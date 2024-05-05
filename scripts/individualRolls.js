@@ -59,7 +59,7 @@ export async function rollMobAttackIndividually(data) {
 			let discarded = false;
 			for (let i = 0; i < availableAttacks; i++) {
 				attackRoll = new Roll(attackFormula);
-				attackRollEvaluated[i] = await attackRoll.evaluate({ async: true });
+				attackRollEvaluated[i] = await attackRoll.evaluateSync({strict: true});
 				if (attackRollEvaluated[i].dice[0].results.length > 1) {
 					discardedRollTotal = attackRollEvaluated[i].dice[0].results.filter(r => r.discarded)[0].result + finalAttackBonus;
 					discarded = true;
@@ -240,7 +240,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 					damageRoll._formula = damageRoll.formula;
 				}
 			}
-			damageRoll = await damageRoll.evaluate({ async: true });
+			damageRoll = await damageRoll.evaluateSync({strict: true});
 
 			// Roll Dice so Nice dice
 			if (game.modules.get("dice-so-nice")?.active && game.settings.get(moduleName, "enableDiceSoNice")) game.dice3d.showForRoll(damageRoll, game.user, game.settings.get("core", "rollMode") === 'publicroll' || game.settings.get("core", "rollMode") === 'roll');
@@ -353,7 +353,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 				if (damageRoll._formula === "") {
 					ui.notifications.error(game.i18n.format("MAT.invalidDamageFormula", { weaponDataName: weaponData.name }));
 				} else {
-					damageRoll = await damageRoll.evaluate({ async: true });
+					damageRoll = await damageRoll.evaluateSync({strict: true});
 					await damageRoll.toMessage(
 						{
 							flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize("MAT.critIncluded")})` : ``}`

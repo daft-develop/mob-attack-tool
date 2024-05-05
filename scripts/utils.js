@@ -230,7 +230,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 			let damageData = getDamageFormulaAndType(weaponData, false);
 			damageData = (typeof damageData[0][0] === "undefined") ? "0" : damageData[0][0];
 			maxDamage = new Roll(damageData).alter(((numAttacksTotal > 1) ? numAttacksTotal : 1), 0, { multiplyNumeric: true });
-			maxDamage = maxDamage.evaluate({ maximize: true, async: true });
+			maxDamage = maxDamage.evaluateSync({ maximize: true, strict: true });
 			maxDamage = maxDamage.total;
 			damageData = getDamageFormulaAndType(weaponData, false);
 			averageDamageRoll = new Roll(damageData[0].join(" + "));

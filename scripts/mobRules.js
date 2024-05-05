@@ -230,7 +230,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 			let damageType = damageTypes.join(", ");
 			let damageRoll = new Roll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod })
 			await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true });
-			damageRoll = await damageRoll.evaluate({ async: true });
+			damageRoll = await damageRoll.evaluateSync({strict: true});
 			await damageRoll.toMessage(
 				{
 					flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})`
