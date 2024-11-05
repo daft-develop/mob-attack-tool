@@ -1,5 +1,7 @@
 ![Mob Attack Tool Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdaft-develop%2Fmob-attack-tool%2Fmaster%2Fmodule.json&label=Module%20Version&query=$.version&colorB=blue)
-![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdaft-develop%2Fmob-attack-tool%2Fmaster%2Fmodule.json&label=Foundry%20Version&query=$.compatibility.verified&colorB=orange) ![Latest Release Download Count](https://img.shields.io/github/downloads/daft-develop/mob-attack-tool/latest/module.zip)
+![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdaft-develop%2Fmob-attack-tool%2Fmaster%2Fmodule.json&label=Foundry%20Version&query=$.compatibility.verified&colorB=%234245f5)
+![DnD5e Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdaft-develop%2Fmob-attack-tool%2Fmaster%2Fmodule.json&label=DnD5e%20Version&query=$.relationships.systems[:1].compatibility.verified&colorB=%23427ef5)
+![Latest Release Download Count](https://img.shields.io/github/downloads/daft-develop/mob-attack-tool/latest/module.zip)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6S7XR3FZ)
 
@@ -15,6 +17,11 @@ This module was originally created by Stenderpaval and is currently being mainta
 - You have a Circle of the Sheperd Druid or School of Necromancy Wizard and want to let them run 10+ summons without bogging down combat turns
 - The big boss monster has 6 claw attacks and a tail attack and the GM wants to focus all the attacks on one poor character without having to roll each action separately, or keeps loosing count halfway between the rolls
 - Your level 5+ character wants to use all their extra attacks on one monster but doesn't want to click through each one
+
+## Limitations
+
+- Currently damage is just rolled without saves or condition checks. Mobs of ghouls claws will not trigger any paralysing effects
+- Older versions of this module worked with grouped initiative modules, but isn't actively supported in newer release. It might still work but hasn't been tested recently
 
 ## How to install
 
@@ -39,11 +46,6 @@ If the Dice So Nice! module is installed, enabled, and activated within Mob Atta
 If the Automated Animations module is installed, enabled, and activated within Mob Attack Tool settings, attack animations configured by Automated Animations will play for each successful hit.
 
 Instead of rolling for each mob, a lookup table can be used instead which will determine a fixed number of attacks based on the number of creatures and attack bonus vs ac difference. This table can be manually adjusted in the settings menu.
-
-## Limitations
-
-- Currently damage is just rolled without saves or condition checks. Mobs of ghouls claws will not trigger any paralysing effects
-- Older versions of this module worked with grouped initiative modules, but isn't actively supported in newer release. It might still work but hasn't been tested recently
 
 ## Using with MidiQOL
 
