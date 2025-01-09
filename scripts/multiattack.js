@@ -1,14 +1,32 @@
 import { getScalingFactor } from "./utils.js";
 
-export function getMultiattackFromActor(weaponName, actorData, weapons, options) {
-
+export function getMultiattackFromActor(
+	weaponName,
+	actorData,
+	weapons,
+	options
+) {
 	// If attacker has only one weapon and no multiattack, autoselect it
 	let multiattack = [1, Object.keys(weapons).length === 1];
 	let weaponData = actorData.items.getName(weaponName);
 
 	// Otherwise, find out details about multiattack
-	let dictStrNum = { "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10 };
-	if (actorData.items.contents.filter(i => i.name.startsWith("Multiattack")).length > 0) {
+	let dictStrNum = {
+		one: 1,
+		two: 2,
+		three: 3,
+		four: 4,
+		five: 5,
+		six: 6,
+		seven: 7,
+		eight: 8,
+		nine: 9,
+		ten: 10,
+	};
+	if (
+		actorData.items.contents.filter((i) => i.name.startsWith("Multiattack"))
+			.length > 0
+	) {
 		// Check for eldritch blast
 		if (weaponData.type === "spell") {
 			if (weaponName === "Eldritch Blast") {
@@ -17,7 +35,9 @@ export function getMultiattackFromActor(weaponName, actorData, weapons, options)
 		}
 
 		// Find Multiattack description
-		let desc = actorData.items.contents.filter(i => i.name.startsWith("Multiattack"))[0].system.description.value;
+		let desc = actorData.items.contents.filter((i) =>
+			i.name.startsWith("Multiattack")
+		)[0].system.description.value;
 		if (desc.endsWith(".</p>")) {
 			desc = desc.slice(0, -5);
 		}
@@ -41,7 +61,10 @@ export function getMultiattackFromActor(weaponName, actorData, weapons, options)
 		} else if (desc.indexOf(`ranged attacks`) !== -1) {
 			attackIndex = desc.indexOf(`ranged attacks`);
 			attackType = `ranged`;
-		} else if (desc.indexOf(`${weaponName.toLowerCase()} attacks`) !== -1 || desc.indexOf(`${weaponName.toLowerCase()}s attacks`) !== -1) {
+		} else if (
+			desc.indexOf(`${weaponName.toLowerCase()} attacks`) !== -1 ||
+			desc.indexOf(`${weaponName.toLowerCase()}s attacks`) !== -1
+		) {
 			attackIndex = desc.indexOf(`${weaponName.toLowerCase()} attacks`);
 			attackType = `specific`;
 		}
@@ -64,7 +87,10 @@ export function getMultiattackFromActor(weaponName, actorData, weapons, options)
 
 		// Next detect specific number of attacks of this weapon
 		// (This is the complicated / messy part.)
-		let remainingWords = desc.slice(attackIndex + attackType.length + 8).split(" ").reverse();
+		let remainingWords = desc
+			.slice(attackIndex + attackType.length + 8)
+			.split(" ")
+			.reverse();
 
 		if (remainingWords.length < 3) {
 			if (attackType === `melee`) {
@@ -85,7 +111,6 @@ export function getMultiattackFromActor(weaponName, actorData, weapons, options)
 
 		// Step backwards through multiattack description
 		for (let word of remainingWords) {
-
 			// homogenize words to simplify detection
 			word = word.toLowerCase();
 			let interpunction = [",", ".", ":"];
@@ -99,7 +124,10 @@ export function getMultiattackFromActor(weaponName, actorData, weapons, options)
 			}
 
 			// detect weapon
-			if (weaponName.toLowerCase().split(" ").includes(word) || `${weaponName.toLowerCase()}s`.split(" ").includes(word)) {
+			if (
+				weaponName.toLowerCase().split(" ").includes(word) ||
+				`${weaponName.toLowerCase()}s`.split(" ").includes(word)
+			) {
 				weaponDetected = true;
 			}
 
@@ -123,22 +151,35 @@ export function getMultiattackFromActor(weaponName, actorData, weapons, options)
 		}
 
 		let typeArray = [];
-		let numWeaponsInventory = actorData.items.filter(w => w.type === "weapon").length
+		let numWeaponsInventory = actorData.items.filter(
+			(w) => w.type === "weapon"
+		).length;
 		if (attackType !== ``) {
 			if (attackType === `melee`) {
 				typeArray = [`simpleM`, `martialM`];
 			} else if (attackType === `ranged`) {
 				typeArray = [`simpleR`, `martialR`];
 			}
-			numWeaponsInventory = actorData.items.filter(w => typeArray.includes(w.system.weaponType)).length;
+			numWeaponsInventory = actorData.items.filter((w) =>
+				typeArray.includes(w.system.weaponType)
+			).length;
 		}
 
 		// either return the specific or total number of multiattacks
 		if (numAttacksTotal !== 0) {
 			if (numAttacksWeapon !== 0) {
-				multiattack = [(numWeaponsInventory === numAttacksWeapon && numWeaponsInventory === numAttacksTotal) ? 1 : numAttacksWeapon, (attackType !== `choose`) ? true : false];
+				multiattack = [
+					numWeaponsInventory === numAttacksWeapon &&
+					numWeaponsInventory === numAttacksTotal
+						? 1
+						: numAttacksWeapon,
+					attackType !== `choose` ? true : false,
+				];
 			} else if (weaponDetected) {
-				multiattack = [(numWeaponsInventory === numAttacksTotal) ? 1 : numAttacksTotal, (attackType !== `choose`) ? true : false];
+				multiattack = [
+					numWeaponsInventory === numAttacksTotal ? 1 : numAttacksTotal,
+					attackType !== `choose` ? true : false,
+				];
 			}
 		}
 

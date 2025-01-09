@@ -14,12 +14,12 @@ Hooks.once("init", () => {
 	const storedHooks = {};
 	game.mobAttackTool = {
 		applications: {
-			MobAttackDialog
+			MobAttackDialog,
 		},
 		dialogs,
-		storedHooks
-	}
-})
+		storedHooks,
+	};
+});
 
 Hooks.on("ready", async () => {
 	window.MobAttacks = MobAttacks();
@@ -34,7 +34,7 @@ Hooks.on("ready", async () => {
 		}
 		if (!game.settings.get(moduleName, "autoSaveCTGgroups")) return;
 		if (groups[0]) {
-			if (groups[0].filter(c => c.initiative).length > 0) {
+			if (groups[0].filter((c) => c.initiative).length > 0) {
 				await MobAttacks().createSavedMobsFromCTGgroups(groups);
 				const dialogId = game.settings.get(moduleName, "currentDialogId");
 				let mobDialog = game.mobAttackTool.dialogs.get(dialogId);
@@ -56,7 +56,7 @@ Hooks.on("ready", async () => {
 			}
 		}
 	});
-})
+});
 
 // update dialog windows if new tokens are selected
 Hooks.on("controlToken", async () => {
@@ -66,7 +66,10 @@ Hooks.on("controlToken", async () => {
 		if (mobDialog.rendered && !mobDialog.currentlySelectingTokens) {
 			await game.settings.set(moduleName, "hiddenChangedMob", false);
 			let mobList = game.settings.get(moduleName, "hiddenMobList");
-			if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
+			if (
+				canvas.tokens.controlled.length !== 0 ||
+				Object.keys(mobList).length !== 0
+			) {
 				mobDialog.render();
 			}
 		}
@@ -81,7 +84,10 @@ Hooks.on("targetToken", async () => {
 		if (mobDialog.rendered) {
 			// await game.settings.set(moduleName, "hiddenChangedMob", false);
 			let mobList = game.settings.get(moduleName, "hiddenMobList");
-			if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
+			if (
+				canvas.tokens.controlled.length !== 0 ||
+				Object.keys(mobList).length !== 0
+			) {
 				mobDialog.render();
 			}
 		}
@@ -94,14 +100,22 @@ Hooks.on("updateCombat", async (combat, changed) => {
 	if (!game.settings.get(moduleName, "autoSelectMobCombatants")) return;
 	let thisCombat = game.combats.get(combat.id);
 	if (thisCombat.combatants.length === 0) return;
-	if (!game.user.isGM && game.combat.combatant.players.filter(p => p.id === game.user.id).length === 0) return;
+	if (
+		!game.user.isGM &&
+		game.combat.combatant.players.filter((p) => p.id === game.user.id)
+			.length === 0
+	)
+		return;
 
 	const mobList = game.settings.get("mob-attack-tool", "hiddenMobList");
 	const nextTurn = combat.turns[changed.turn];
 	const nextTokenId = nextTurn.tokenId;
 	let nextMobName = "";
 	for (let mobName of Object.keys(mobList)) {
-		if (mobList[mobName].selectedTokenIds.includes(nextTokenId) && mobList[mobName].userId === game.user.id) {
+		if (
+			mobList[mobName].selectedTokenIds.includes(nextTokenId) &&
+			mobList[mobName].userId === game.user.id
+		) {
 			nextMobName = mobName;
 			break;
 		}
@@ -113,14 +127,14 @@ Hooks.on("updateCombat", async (combat, changed) => {
 
 	// wait a moment to let CUB's Pan / Select feature do its thing
 	if (game.modules.get("combat-utility-belt")?.active) {
-		await new Promise(resolve => setTimeout(resolve, 50));
+		await new Promise((resolve) => setTimeout(resolve, 50));
 	}
 
 	if (mobDialog) mobDialog.currentlySelectingTokens = true;
 	canvas.tokens.releaseAll();
 	for (let tokenId of mobList[nextMobName].selectedTokenIds) {
-		if (canvas.tokens.placeables.filter(t => t.id === tokenId).length > 0) {
-			canvas.tokens.get(tokenId).control({ releaseOthers: false })
+		if (canvas.tokens.placeables.filter((t) => t.id === tokenId).length > 0) {
+			canvas.tokens.get(tokenId).control({ releaseOthers: false });
 		}
 	}
 	if (mobDialog) {
@@ -128,10 +142,10 @@ Hooks.on("updateCombat", async (combat, changed) => {
 		mobDialog.currentlySelectingTokens = false;
 		mobDialog.render();
 	}
-})
+});
 
 //  Hide DSN 3d dice
-Hooks.on('diceSoNiceRollStart', (messageId, context) => {
+Hooks.on("diceSoNiceRollStart", (messageId, context) => {
 	if (game.settings.get(moduleName, "hiddenDSNactiveFlag")) return;
 
 	//Hide this roll

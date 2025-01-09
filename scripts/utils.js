@@ -15,8 +15,8 @@ export async function callMidiMacro(item, midiMacroData) {
 		saves: [],
 		superSavers: [],
 		failedSaves: [],
-		id: item.id
-	}
+		id: item.id,
+	};
 	try {
 		if (macroName.startsWith("ItemMacro")) {
 			var itemMacro;
@@ -26,7 +26,9 @@ export async function callMidiMacro(item, midiMacroData) {
 			} else {
 				const parts = macroName.split(".");
 				const itemName = parts.slice(1).join(".");
-				item = macroData.actor.items.find(i => i.name === itemName && getProperty(i.flags, "itemacro.macro"))
+				item = macroData.actor.items.find(
+					(i) => i.name === itemName && getProperty(i.flags, "itemacro.macro")
+				);
 				if (item) {
 					itemMacro = getProperty(item.flags, "itemacro.macro");
 					macroData.sourceItemUuid = item?.uuid;
@@ -42,10 +44,10 @@ export async function callMidiMacro(item, midiMacroData) {
 				console.log(`Mob Attack Tool - Could not find item macro ${macroName}`);
 				return {};
 			}
-			return (new Function(`"use strict";
+			return new Function(`"use strict";
 				return (async function ({speaker, actor, token, character, item, args}={}) {
 					${itemMacro.command}
-					});`))().call(this, { speaker, actor, token, character, item, args });
+					});`)().call(this, { speaker, actor, token, character, item, args });
 		} else {
 			const macroCommand = game.macros.getName(macroName);
 			if (macroCommand) {
@@ -53,14 +55,16 @@ export async function callMidiMacro(item, midiMacroData) {
 			}
 		}
 	} catch (err) {
-		ui.notifications.error(`There was an error while executing an "On Use" macro. See the console (F12) for details.`);
+		ui.notifications.error(
+			`There was an error while executing an "On Use" macro. See the console (F12) for details.`
+		);
 		console.error(err);
 	}
 	return {};
 }
 
 export function checkTarget() {
-	let targetToken = canvas.tokens.placeables.find(t => t.isTargeted);
+	let targetToken = canvas.tokens.placeables.find((t) => t.isTargeted);
 	if (!targetToken && game.settings.get(moduleName, "mobRules") === 0) {
 		ui.notifications.warn(game.i18n.localize("MAT.targetValidACWarning"));
 		return false;
@@ -69,18 +73,23 @@ export function checkTarget() {
 }
 
 export async function getTargetData(monsters) {
-	let targetTokens = canvas.tokens.placeables.filter(t => t.isTargeted);
+	let targetTokens = canvas.tokens.placeables.filter((t) => t.isTargeted);
 	for (let i = 0; i < targetTokens.length; i++) {
-		if (targetTokens[i].actor === null && game.modules.get("multilevel-tokens").active) {
+		if (
+			targetTokens[i].actor === null &&
+			game.modules.get("multilevel-tokens").active
+		) {
 			let mltFlags = targetTokens[i].flags["multilevel-tokens"];
-			if (targetTokens.filter(t => t.id === mltFlags.stoken).length > 0) {
+			if (targetTokens.filter((t) => t.id === mltFlags.stoken).length > 0) {
 				targetTokens.splice(i, 1);
 				i--;
 			}
 		}
 	}
 	let weaponsOnTarget = {};
-	for (let [monsterID, monsterData] of Object.entries(foundry.utils.duplicate(monsters))) {
+	for (let [monsterID, monsterData] of Object.entries(
+		foundry.utils.duplicate(monsters)
+	)) {
 		Object.assign(weaponsOnTarget, monsterData.weapons);
 		for (let i = 0; i < monsterData.amount - 1; i++) {
 			for (let weaponID of Object.keys(monsterData.weapons)) {
@@ -108,49 +117,76 @@ export async function getTargetData(monsters) {
 	let targetCount = 0;
 	let arrayStart = 0;
 	let targetAC = 10;
-	let arrayLength = Math.floor(weaponsOnTargetArray.length / targetTokens.length);
+	let arrayLength = Math.floor(
+		weaponsOnTargetArray.length / targetTokens.length
+	);
 	let armorClassMod = game.settings.get(moduleName, "savedArmorClassMod");
 	if (arrayLength === 0) arrayLength = 1;
 	for (let targetToken of targetTokens) {
-		if (targetToken.actor === null && game.modules.get("multilevel-tokens").active) {
+		if (
+			targetToken.actor === null &&
+			game.modules.get("multilevel-tokens").active
+		) {
 			let mltFlags = targetToken.flags["multilevel-tokens"];
 			if (mltFlags?.sscene) {
-				targetAC = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken).actor.system.attributes.ac.value;
+				targetAC = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken)
+					.actor.system.attributes.ac.value;
 			} else {
-				targetAC = canvas.tokens.get(mltFlags.stoken).actor.system.attributes.ac.value;
+				targetAC = canvas.tokens.get(mltFlags.stoken).actor.system.attributes.ac
+					.value;
 			}
 		} else {
 			targetAC = targetToken?.actor.system.attributes.ac.value;
 		}
-		let targetImg = targetToken?.document.texture.src ?? "icons/svg/mystery-man.svg";
+		let targetImg =
+			targetToken?.document.texture.src ?? "icons/svg/mystery-man.svg";
 		if (VideoHelper.hasVideoExtension(targetImg)) {
-			targetImg = await game.video.createThumbnail(targetImg, { width: 100, height: 100 });
+			targetImg = await game.video.createThumbnail(targetImg, {
+				width: 100,
+				height: 100,
+			});
 		}
 		targets.push({
 			targetId: targetToken?.id,
 			targetImg: targetImg,
 			targetImgName: targetToken?.name ?? "Unknown target",
 			isGM: game.user.isGM,
-			weapons: weaponsOnTargetArray.slice(arrayStart, arrayLength * (1 + targetCount)),
-			noWeaponMsg: '',
+			weapons: weaponsOnTargetArray.slice(
+				arrayStart,
+				arrayLength * (1 + targetCount)
+			),
+			noWeaponMsg: "",
 			targetIndex: targetCount,
 			targetAC: targetAC + armorClassMod,
-			targetACtext: ((game.user.isGM) ? ` ${game.i18n.localize("MAT.dialogTargetArmorClassMessage")}` : ``)
-		})
+			targetACtext: game.user.isGM
+				? ` ${game.i18n.localize("MAT.dialogTargetArmorClassMessage")}`
+				: ``,
+		});
 
 		let targetTotalNumAttacks = targets[targets.length - 1].weapons.length;
 		let targetTotalAverageDamage = 0;
 		for (let weapon of targets[targets.length - 1].weapons) {
 			targetTotalAverageDamage += weapon.averageDamage;
 		}
-		targets[targets.length - 1]["targetTotalNumAttacks"] = targetTotalNumAttacks;
-		targets[targets.length - 1]["targetTotalAverageDamage"] = targetTotalAverageDamage;
+		targets[targets.length - 1]["targetTotalNumAttacks"] =
+			targetTotalNumAttacks;
+		targets[targets.length - 1]["targetTotalAverageDamage"] =
+			targetTotalAverageDamage;
 
 		if (targetCount === targetTokens.length - 1) {
-			for (let i = 0; i < (weaponsOnTargetArray.length - arrayLength * (1 + targetCount)); i++) {
-				targets[i].weapons.push(weaponsOnTargetArray[weaponsOnTargetArray.length - 1 - i]);
+			for (
+				let i = 0;
+				i < weaponsOnTargetArray.length - arrayLength * (1 + targetCount);
+				i++
+			) {
+				targets[i].weapons.push(
+					weaponsOnTargetArray[weaponsOnTargetArray.length - 1 - i]
+				);
 				targets[i].targetTotalNumAttacks += 1;
-				targets[i].targetTotalAverageDamage += weaponsOnTargetArray[weaponsOnTargetArray.length - 1 - i].averageDamage;
+				targets[i].targetTotalAverageDamage +=
+					weaponsOnTargetArray[
+						weaponsOnTargetArray.length - 1 - i
+					].averageDamage;
 			}
 		}
 		arrayStart = arrayLength * (1 + targetCount);
@@ -165,7 +201,13 @@ export async function getTargetData(monsters) {
 	return targets;
 }
 
-export async function prepareMonsters(actorList, keepCheckboxes = false, oldMonsters = {}, weapons = {}, availableAttacks = {}) {
+export async function prepareMonsters(
+	actorList,
+	keepCheckboxes = false,
+	oldMonsters = {},
+	weapons = {},
+	availableAttacks = {}
+) {
 	let monsters = {};
 	for (let actor of actorList) {
 		if (monsters[actor.id]) {
@@ -173,7 +215,13 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 				monsters[actor.id].amount += 1;
 			}
 		} else {
-			monsters[actor.id] = { id: actor.id, amount: 1, optionVisible: false, img: actor.img, name: actor.name };
+			monsters[actor.id] = {
+				id: actor.id,
+				amount: 1,
+				optionVisible: false,
+				img: actor.img,
+				name: actor.name,
+			};
 		}
 	}
 
@@ -188,15 +236,28 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 					actorImg: monsters[actor.id].img,
 					actorNameImg: monsters[actor.id].name.replace(" ", "-"),
 					actorName: monsters[actor.id].name,
-					weapons: {}
+					weapons: {},
 				};
 				monsters[actor.id] = { ...monsterData };
 				monsters[actor.id].optionVisible = true;
 				if (game.settings.get(moduleName, "showMultiattackDescription")) {
-					if (actor.items.contents.filter(i => i.name.startsWith("Multiattack")).length > 0) {
-						monsters[actor.id]["multiattackDesc"] = $(actor.items.filter(i => i.name.startsWith("Multiattack"))[0].system.description.value)[0].textContent;
-					} else if (actor.items.contents.filter(i => i.name.startsWith("Extra Attack")).length > 0) {
-						monsters[actor.id]["multiattackDesc"] = $(actor.items.filter(i => i.name.startsWith("Extra Attack"))[0].system.description.value)[0].textContent;
+					if (
+						actor.items.contents.filter((i) => i.name.startsWith("Multiattack"))
+							.length > 0
+					) {
+						monsters[actor.id]["multiattackDesc"] = $(
+							actor.items.filter((i) => i.name.startsWith("Multiattack"))[0]
+								.system.description.value
+						)[0].textContent;
+					} else if (
+						actor.items.contents.filter((i) =>
+							i.name.startsWith("Extra Attack")
+						).length > 0
+					) {
+						monsters[actor.id]["multiattackDesc"] = $(
+							actor.items.filter((i) => i.name.startsWith("Extra Attack"))[0]
+								.system.description.value
+						)[0].textContent;
 					}
 				}
 			}
@@ -205,7 +266,14 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 		let actorWeapons = {};
 		let items = actor.items.contents;
 		for (let item of items) {
-			if (item.type == "weapon" || (item.type == "spell" && (item.system.level === 0 || item.system.preparation.mode === "atwill") && item.system.damage.parts.length > 0 && item.system.save.ability === "")) {
+			if (
+				item.type == "weapon" ||
+				(item.type == "spell" &&
+					(item.system.level === 0 ||
+						item.system.preparation.mode === "atwill") &&
+					item.system.damage.parts.length > 0 &&
+					item.system.save.ability === "")
+			) {
 				if (weapons[item.id]?.id === item.id) {
 					availableAttacks[item.id] += 1;
 				} else {
@@ -217,28 +285,44 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 		}
 		let numAttacksTotal, preChecked;
 		let numCheckedWeapons = 0;
-		let highestDamageFormula = 0, maxDamage, maxDamageWeapon;
+		let highestDamageFormula = 0,
+			maxDamage,
+			maxDamageWeapon;
 		let averageDamageRoll;
 		let averageDamage = {};
 		let options = {};
 		let autoDetect = game.settings.get(moduleName, "autoDetectMultiattacks");
 		for (let [weaponID, weaponData] of Object.entries(actorWeapons)) {
 			if (autoDetect === 2) {
-				[numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options);
+				[numAttacksTotal, preChecked] = getMultiattackFromActor(
+					weaponData.name,
+					weaponData.actor,
+					weapons,
+					options
+				);
 				if (preChecked) numCheckedWeapons++;
 			}
 			let damageData = getDamageFormulaAndType(weaponData, false);
-			damageData = (typeof damageData[0][0] === "undefined") ? "0" : damageData[0][0];
-			maxDamage = new Roll(damageData).alter(((numAttacksTotal > 1) ? numAttacksTotal : 1), 0, { multiplyNumeric: true });
+			damageData =
+				typeof damageData[0][0] === "undefined" ? "0" : damageData[0][0];
+			maxDamage = new Roll(damageData).alter(
+				numAttacksTotal > 1 ? numAttacksTotal : 1,
+				0,
+				{ multiplyNumeric: true }
+			);
 			maxDamage = await maxDamage.evaluate({ maximize: true });
 			maxDamage = maxDamage.total;
 			damageData = getDamageFormulaAndType(weaponData, false);
 			averageDamageRoll = new Roll(damageData[0].join(" + "));
 			let averageDamageValue = 0;
-			for (let dTerm of averageDamageRoll.terms.filter(t => t.number > 0 && t.faces > 0)) {
+			for (let dTerm of averageDamageRoll.terms.filter(
+				(t) => t.number > 0 && t.faces > 0
+			)) {
 				averageDamageValue += ((dTerm.faces + 1) / 2) * dTerm.number;
 			}
-			for (let nTerm of averageDamageRoll.terms.filter(t => t.number > 0 && !t.faces)) {
+			for (let nTerm of averageDamageRoll.terms.filter(
+				(t) => t.number > 0 && !t.faces
+			)) {
 				averageDamageValue += nTerm.number;
 			}
 			averageDamage[weaponID] = Math.ceil(averageDamageValue);
@@ -255,16 +339,25 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 
 		for (let [weaponID, weaponData] of Object.entries(actorWeapons)) {
 			let checkVersatile = weaponData.system.damage.versatile != "";
-			for (let j = 0; j < 1 + ((checkVersatile) ? 1 : 0); j++) {
-				let isVersatile = (j < 1) ? false : weaponData.system.damage.versatile != "";
+			for (let j = 0; j < 1 + (checkVersatile ? 1 : 0); j++) {
+				let isVersatile =
+					j < 1 ? false : weaponData.system.damage.versatile != "";
 				let damageData = getDamageFormulaAndType(weaponData, isVersatile);
 				let weaponDamageText = ``;
 				for (let i = 0; i < damageData[0].length; i++) {
-					((i > 0) ? weaponDamageText += `<br>${damageData[0][i]} ${damageData[1][i].capitalize()}` : weaponDamageText += `${damageData[0][i]} ${damageData[1][i].capitalize()}`);
+					i > 0
+						? (weaponDamageText += `<br>${damageData[0][i]} ${damageData[1][i].capitalize()}`)
+						: (weaponDamageText += `${damageData[0][i]} ${damageData[1][i].capitalize()}`);
 				}
-				numAttacksTotal = 1, preChecked = false;
+				(numAttacksTotal = 1), (preChecked = false);
 				autoDetect = game.settings.get(moduleName, "autoDetectMultiattacks");
-				if (autoDetect > 0) [numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options);
+				if (autoDetect > 0)
+					[numAttacksTotal, preChecked] = getMultiattackFromActor(
+						weaponData.name,
+						weaponData.actor,
+						weapons,
+						options
+					);
 				if (autoDetect === 1 || isVersatile) preChecked = false;
 				let weaponRangeText = ``;
 				if (weaponData.system.range.long > 0) {
@@ -276,28 +369,34 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 				} else if (weaponData.system.range.units === "self") {
 					weaponRangeText = "Self";
 				} else {
-					weaponRangeText = '-';
+					weaponRangeText = "-";
 				}
 
 				let labelData = {
-					numAttacksName: `numAttacks${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize("Versatile")})` : ``)).replace(" ", "-")}`,
+					numAttacksName: `numAttacks${(weaponData.id + (isVersatile ? ` (${game.i18n.localize("Versatile")})` : ``)).replace(" ", "-")}`,
 					numAttack: numAttacksTotal,
 					weaponActorName: weaponData.actor.name,
 					weaponId: weaponData.id,
 					weaponImg: weaponData.img,
 					weaponNameImg: weaponData.name.replace(" ", "-"),
-					weaponName: `${weaponData.name}${((isVersatile) ? ` (${game.i18n.localize("Versatile")})` : ``)}`,
+					weaponName: `${weaponData.name}${isVersatile ? ` (${game.i18n.localize("Versatile")})` : ``}`,
 					weaponAttackBonus: getAttackBonus(weaponData),
 					weaponRange: weaponRangeText,
 					weaponDamageText: weaponDamageText,
-					useButtonName: `use${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize("Versatile")})` : ``)).replace(" ", "-")}`,
-					useButtonValue: (keepCheckboxes) ? oldMonsters[actor.id]["weapons"][weaponID].useButtonValue : (preChecked) ? `checked` : ``,
-					averageDamage: averageDamage[weaponID]
+					useButtonName: `use${(weaponData.id + (isVersatile ? ` (${game.i18n.localize("Versatile")})` : ``)).replace(" ", "-")}`,
+					useButtonValue: keepCheckboxes
+						? oldMonsters[actor.id]["weapons"][weaponID].useButtonValue
+						: preChecked
+							? `checked`
+							: ``,
+					averageDamage: averageDamage[weaponID],
 				};
 				if (j === 0) {
 					monsters[actor.id]["weapons"][weaponID] = { ...labelData };
 				} else if (j === 1) {
-					monsters[actor.id]["weapons"][weaponID + ` (${game.i18n.localize("Versatile")})`] = { ...labelData };
+					monsters[actor.id]["weapons"][
+						weaponID + ` (${game.i18n.localize("Versatile")})`
+					] = { ...labelData };
 				}
 			}
 		}
@@ -305,10 +404,19 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 	return [monsters, weapons, availableAttacks];
 }
 
-export async function prepareMobAttack(html, selectedTokenIds, weapons, availableAttacks, targets, targetAC, numSelected, monsters) {
+export async function prepareMobAttack(
+	html,
+	selectedTokenIds,
+	weapons,
+	availableAttacks,
+	targets,
+	targetAC,
+	numSelected,
+	monsters
+) {
 	let mobList = game.settings.get(moduleName, "hiddenMobList");
 	if (game.settings.get("mob-attack-tool", "hiddenChangedMob")) {
-		let mobName = game.settings.get(moduleName, 'hiddenMobName');
+		let mobName = game.settings.get(moduleName, "hiddenMobName");
 		let mobData = mobList[mobName];
 
 		let dialogId = game.settings.get(moduleName, "currentDialogId");
@@ -328,39 +436,82 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
 	let isVersatile = false;
 	for (let [weaponID, weaponData] of Object.entries(weapons)) {
 		isVersatile = weaponData.system.damage.versatile != "";
-		weaponID += ((isVersatile) ? ` (${game.i18n.localize("Versatile")})` : ``);
+		weaponID += isVersatile ? ` (${game.i18n.localize("Versatile")})` : ``;
 
-		if (html.find(`input[name="use` + weaponData.id.replace(" ", "-") + `"]`)[0].checked) {
+		if (
+			html.find(`input[name="use` + weaponData.id.replace(" ", "-") + `"]`)[0]
+				.checked
+		) {
 			attacks[weaponData.id] = [];
 			for (let target of targets) {
-				if (target.weapons.filter(w => w.weaponId === weaponData.id).length > 0) {
-					attacks[weaponData.id].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === weaponData.id).length });
+				if (
+					target.weapons.filter((w) => w.weaponId === weaponData.id).length > 0
+				) {
+					attacks[weaponData.id].push({
+						targetId: target.targetId,
+						targetNumAttacks: target.weapons.filter(
+							(w) => w.weaponId === weaponData.id
+						).length,
+					});
 				}
 			}
 			if (targets.length === 0) {
-				numAttacksMultiplier = parseInt(html.find(`input[name="numAttacks${weaponData.id.replace(" ", "-")}"]`)[0].value);
+				numAttacksMultiplier = parseInt(
+					html.find(
+						`input[name="numAttacks${weaponData.id.replace(" ", "-")}"]`
+					)[0].value
+				);
 				if (Number.isNaN(numAttacksMultiplier)) {
 					numAttacksMultiplier = 0;
 				}
-				attacks[weaponData.id].push({ targetId: null, targetNumAttacks: availableAttacks[weaponData.id] * numAttacksMultiplier });
+				attacks[weaponData.id].push({
+					targetId: null,
+					targetNumAttacks:
+						availableAttacks[weaponData.id] * numAttacksMultiplier,
+				});
 			}
-			weaponLocators.push({ "actorID": weaponData.actor.id, "weaponName": weaponData.name, "weaponID": weaponData.id });
+			weaponLocators.push({
+				actorID: weaponData.actor.id,
+				weaponName: weaponData.name,
+				weaponID: weaponData.id,
+			});
 		}
-		if (html.find(`input[name="use` + weaponID.replace(" ", "-") + `"]`)[0].checked) {
+		if (
+			html.find(`input[name="use` + weaponID.replace(" ", "-") + `"]`)[0]
+				.checked
+		) {
 			attacks[weaponID] = [];
 			for (let target of targets) {
-				if (target.weapons.filter(w => w.weaponId === weaponData.id).length > 0) {
-					attacks[weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === weaponData.id).length });
+				if (
+					target.weapons.filter((w) => w.weaponId === weaponData.id).length > 0
+				) {
+					attacks[weaponID].push({
+						targetId: target.targetId,
+						targetNumAttacks: target.weapons.filter(
+							(w) => w.weaponId === weaponData.id
+						).length,
+					});
 				}
 			}
 			if (targets.length === 0) {
-				numAttacksMultiplier = parseInt(html.find(`input[name="numAttacks${weaponID.replace(" ", "-")}"]`)[0].value);
+				numAttacksMultiplier = parseInt(
+					html.find(`input[name="numAttacks${weaponID.replace(" ", "-")}"]`)[0]
+						.value
+				);
 				if (Number.isNaN(numAttacksMultiplier)) {
 					numAttacksMultiplier = 0;
 				}
-				attacks[weaponID].push({ targetId: null, targetNumAttacks: availableAttacks[weaponData.id] * numAttacksMultiplier });
+				attacks[weaponID].push({
+					targetId: null,
+					targetNumAttacks:
+						availableAttacks[weaponData.id] * numAttacksMultiplier,
+				});
 			}
-			weaponLocators.push({ "actorID": weaponData.actor.id, "weaponName": weaponData.name, "weaponID": weaponID });
+			weaponLocators.push({
+				actorID: weaponData.actor.id,
+				weaponName: weaponData.name,
+				weaponID: weaponID,
+			});
 		}
 	}
 	let withAdvantage = false;
@@ -393,7 +544,7 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
 		rollTypeValue,
 		rollTypeMessage,
 		monsters,
-		weaponLocators
+		weaponLocators,
 	};
 
 	return mobAttackData;
@@ -406,11 +557,13 @@ export async function loadMob(event, selectedMob) {
 	let mobList = game.settings.get(moduleName, "hiddenMobList");
 
 	await game.settings.set(moduleName, "hiddenChangedMob", true);
-	await game.settings.set(moduleName, 'hiddenMobName', selectedMob);
+	await game.settings.set(moduleName, "hiddenMobName", selectedMob);
 
 	let mobData = mobList[selectedMob];
 	if (mobData === undefined || mobData === null) return;
-	let weapons = {}, monsters = {}, availableAttacks = {};
+	let weapons = {},
+		monsters = {},
+		availableAttacks = {};
 	let actorList = [];
 	for (let monster of mobData.monsters) {
 		for (let i = 0; i < monster.amount; i++) {
@@ -436,7 +589,6 @@ export async function loadMob(event, selectedMob) {
 
 export async function endGroupedMobTurn(data) {
 	if (game.combat != null) {
-
 		const mobList = game.settings.get("mob-attack-tool", "hiddenMobList");
 		const combatants = game.combat.turns;
 		let mobCreatures = {};
@@ -464,7 +616,12 @@ export async function endGroupedMobTurn(data) {
 
 		let skipComplete = false;
 		for (let mobName of Object.keys(mobList)) {
-			if (mobCreatures[mobName]?.includes(game.combat.combatant._id) && canvas.tokens.controlled.filter(t => t.id)?.includes(game.combat.combatant._id)) {
+			if (
+				mobCreatures[mobName]?.includes(game.combat.combatant._id) &&
+				canvas.tokens.controlled
+					.filter((t) => t.id)
+					?.includes(game.combat.combatant._id)
+			) {
 				let turnIndex = game.combat.turns.indexOf(game.combat.combatant);
 				let lastMobTurn = turnIndex;
 				let currentRound = game.combat.round;
@@ -479,7 +636,10 @@ export async function endGroupedMobTurn(data) {
 					await game.combat.nextRound();
 					skipComplete = true;
 				} else if (Object.keys(mobList).length > 0) {
-					await game.combat.update({ round: currentRound, turn: lastMobTurn + 1 });
+					await game.combat.update({
+						round: currentRound,
+						turn: lastMobTurn + 1,
+					});
 					skipComplete = true;
 				}
 				break;
@@ -488,12 +648,20 @@ export async function endGroupedMobTurn(data) {
 		if (!skipComplete) {
 			// skip turn of selected tokens (not a saved mob per se),
 			// but only if they include the current combatant.
-			if (canvas.tokens.controlled.filter(t => t.id === game.combat.combatant.tokenId).length > 0) {
+			if (
+				canvas.tokens.controlled.filter(
+					(t) => t.id === game.combat.combatant.tokenId
+				).length > 0
+			) {
 				let turnIndex = game.combat.turns.indexOf(game.combat.combatant);
 				let lastMobTurn = turnIndex;
 				let currentRound = game.combat.round;
 				for (let i = turnIndex + 1; i < game.combat.turns.length; i++) {
-					if (data.selectedTokenIds.filter(t => t.tokenId === game.combat.turns[i].tokenId).length > 0) {
+					if (
+						data.selectedTokenIds.filter(
+							(t) => t.tokenId === game.combat.turns[i].tokenId
+						).length > 0
+					) {
 						lastMobTurn++;
 					} else {
 						break;
@@ -502,7 +670,10 @@ export async function endGroupedMobTurn(data) {
 				if (lastMobTurn === game.combat.turns.length - 1) {
 					await game.combat.nextRound();
 				} else {
-					await game.combat.update({ round: currentRound, turn: lastMobTurn + 1 });
+					await game.combat.update({
+						round: currentRound,
+						turn: lastMobTurn + 1,
+					});
 				}
 			}
 		}
@@ -513,21 +684,42 @@ export function getDamageFormulaAndType(weaponData, versatile) {
 	let cantripScalingFactor = getScalingFactor(weaponData);
 	let diceFormulas = [];
 	let damageTypes = [];
-	let damageTypeLabels = []
+	let damageTypeLabels = [];
 	let lengthIndex = 0;
 	for (let diceFormulaParts of weaponData.system.damage.parts) {
 		damageTypeLabels.push(diceFormulaParts[1]);
 		damageTypes.push(diceFormulaParts[1].capitalize());
 		if (weaponData.type == "spell") {
 			if (weaponData.system.scaling.mode == "cantrip") {
-				let rollFormula = new Roll(((versatile && lengthIndex === 0) ? weaponData.system.damage.versatile : diceFormulaParts[0]), { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod });
-				rollFormula.alter(0, cantripScalingFactor, { multiplyNumeric: false })
+				let rollFormula = new Roll(
+					versatile && lengthIndex === 0
+						? weaponData.system.damage.versatile
+						: diceFormulaParts[0],
+					{ mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod }
+				);
+				rollFormula.alter(0, cantripScalingFactor, { multiplyNumeric: false });
 				diceFormulas.push(rollFormula.formula);
 			} else {
-				diceFormulas.push(((versatile && lengthIndex === 0) ? weaponData.system.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[weaponData.abilityMod].mod));
+				diceFormulas.push(
+					(versatile && lengthIndex === 0
+						? weaponData.system.damage.versatile
+						: diceFormulaParts[0]
+					).replace(
+						"@mod",
+						weaponData.actor.system.abilities[weaponData.abilityMod].mod
+					)
+				);
 			}
 		} else {
-			diceFormulas.push(((versatile && lengthIndex === 0) ? weaponData.system.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[weaponData.abilityMod].mod));
+			diceFormulas.push(
+				(versatile && lengthIndex === 0
+					? weaponData.system.damage.versatile
+					: diceFormulaParts[0]
+				).replace(
+					"@mod",
+					weaponData.actor.system.abilities[weaponData.abilityMod].mod
+				)
+			);
 		}
 		lengthIndex++;
 	}
@@ -552,7 +744,10 @@ export function calcAttackersNeeded(d20Needed) {
 		let tableArray = {};
 		for (let i = 0; i < Math.floor(customTable.length / 3); i++) {
 			tableArray[i] = customTable.slice(3 * i, 3 * i + 3);
-			if (parseInt(tableArray[i][0]) <= d20Needed && d20Needed <= parseInt(tableArray[i][1])) {
+			if (
+				parseInt(tableArray[i][0]) <= d20Needed &&
+				d20Needed <= parseInt(tableArray[i][1])
+			) {
 				attackersNeeded = Math.abs(parseInt(tableArray[i][2]));
 			}
 		}
@@ -588,32 +783,46 @@ export function isTargeted(token) {
 }
 
 export async function sendChatMessage(text) {
-	let whisperIDs = game.users.contents.filter(u => u.isGM).map(u => u.id);
+	let whisperIDs = game.users.contents.filter((u) => u.isGM).map((u) => u.id);
 
 	let chatData = {
 		user: game.user.id,
 		speaker: { alias: game.i18n.localize("MAT.mobAttackResults") },
 		content: text,
-		whisper: (game.settings.get(moduleName, "showMobAttackResultsToPlayers")) ? [] : whisperIDs,
+		whisper: game.settings.get(moduleName, "showMobAttackResultsToPlayers")
+			? []
+			: whisperIDs,
 	};
-	if (game.settings.get(moduleName, "showMobAttackResultsToPlayers")) chatData = ChatMessage.applyRollMode(chatData, game.settings.get("core", "rollMode"));
+	if (game.settings.get(moduleName, "showMobAttackResultsToPlayers"))
+		chatData = ChatMessage.applyRollMode(
+			chatData,
+			game.settings.get("core", "rollMode")
+		);
 	await ChatMessage.create(chatData, {});
 }
 
 export function getAttackBonus(weaponData) {
 	let weaponAbility = weaponData.abilityMod;
-	if (weaponAbility === "" || typeof weaponAbility === "undefined" || weaponAbility == null) {
+	if (
+		weaponAbility === "" ||
+		typeof weaponAbility === "undefined" ||
+		weaponAbility == null
+	) {
 		if (weaponData.type != "spell") {
 			weaponAbility = "str";
 		} else {
 			weaponAbility = weaponData.actor.system.attributes.spellcasting;
 		}
 	}
-	const actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod);
+	const actorAbilityMod = parseInt(
+		weaponData.actor.system.abilities[weaponAbility].mod
+	);
 	const attackBonus = parseInt(weaponData.system.attackBonus) || 0;
 	let profBonus;
 	if (weaponData.type != "spell") {
-		profBonus = parseInt(((weaponData.system.proficient) ? weaponData.actor.system.attributes.prof : 0));
+		profBonus = parseInt(
+			weaponData.system.proficient ? weaponData.actor.system.attributes.prof : 0
+		);
 	} else {
 		profBonus = parseInt(weaponData.actor.system.attributes.prof);
 	}
@@ -625,7 +834,9 @@ export function getAttackBonus(weaponData) {
 export function getScalingFactor(weaponData) {
 	let cantripScalingFactor = 1;
 	if (weaponData.type == "spell") {
-		let casterLevel = weaponData.actor.system.details.level || weaponData.actor.system.details.spellLevel;
+		let casterLevel =
+			weaponData.actor.system.details.level ||
+			weaponData.actor.system.details.spellLevel;
 		if (5 <= casterLevel && casterLevel <= 10) {
 			cantripScalingFactor = 2;
 		} else if (11 <= casterLevel && casterLevel <= 16) {

@@ -1,60 +1,56 @@
 {
-  "id": "mob-attack-tool",
-  "title": "Mob Attack Tool",
-  "description": "A module for dnd5e that adds support for Mob Attacks.",
-  "authors": [
-    {
-      "name": "Daft-Develop"
-    },
-    {
-      "name": "Stendarpaval (Lupusmalus)"
-    }
-  ],
-  "languages": [
-    {
-      "lang": "en",
-      "name": "English",
-      "path": "lang/en.json",
-      "flags": {}
-    },
-    {
-      "lang": "ko",
-      "name": "Korean",
-      "path": "lang/ko.json",
-      "flags": {}
-    },
-    {
-      "lang": "pt-BR",
-      "name": "Português (Brasil)",
-      "path": "lang/pt-BR.json",
-      "flags": {}
-    }
-  ],
-  "url": "https://github.com/daft-develop/mob-attack-tool",
-  "version": "0.8.1",
-  "compatibility": {
-    "minimum": "11",
-    "verified": "12"
-  },
-  "relationships": {
-    "systems": [
-      {
-        "id": "dnd5e",
-        "type": "system",
-        "compatibility": {
-          "minimum": "3",
-          "verified": "3.3.1",
-          "maximum": "3.3.999"
-        }
-      }
-    ]
-  },
-  "esmodules": [
-    "/scripts/mobAttack.js"
-  ],
-  "styles": [
-    "/styles/mob-attack-tool.css"
-  ],
-  "manifest": "https://raw.githubusercontent.com/daft-develop/mob-attack-tool/master/module.json",
-  "download": "https://github.com/daft-develop/mob-attack-tool/releases/latest/download/module.zip"
+	"id": "mob-attack-tool",
+	"title": "Mob Attack Tool",
+	"description": "A module for dnd5e that adds support for Mob Attacks.",
+	"authors": [
+		{
+			"name": "Daft-Develop"
+		},
+		{
+			"name": "Stendarpaval (Lupusmalus)"
+		}
+	],
+	"languages": [
+		{
+			"lang": "en",
+			"name": "English",
+			"path": "lang/en.json",
+			"flags": {}
+		},
+		{
+			"lang": "ko",
+			"name": "Korean",
+			"path": "lang/ko.json",
+			"flags": {}
+		},
+		{
+			"lang": "pt-BR",
+			"name": "Português (Brasil)",
+			"path": "lang/pt-BR.json",
+			"flags": {}
+		}
+	],
+	"url": "https://github.com/daft-develop/mob-attack-tool",
+	"version": "0.8.1",
+	"compatibility": {
+		"minimum": "11",
+		"verified": "12"
+	},
+	"relationships": {
+		"systems": [
+			{
+				"id": "dnd5e",
+				"type": "system",
+				"compatibility": {
+					"minimum": "3",
+					"verified": "3.3.1",
+					"maximum": "3.3.999"
+				}
+			}
+		]
+	},
+	"esmodules": ["/scripts/mobAttack.js"],
+	"styles": ["/styles/mob-attack-tool.css"],
+	"manifest": "https://raw.githubusercontent.com/daft-develop/mob-attack-tool/master/module.json",
+	"download": "https://github.com/daft-develop/mob-attack-tool/releases/latest/download/module.zip"
 }
