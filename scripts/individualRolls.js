@@ -1,5 +1,5 @@
 import { moduleName } from "./mobAttack.js";
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro } from "./utils.js";
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData } from "./utils.js";
 
 export async function rollMobAttackIndividually(data) {
 	// Temporarily disable DSN 3d dice from rolling, per settings
@@ -216,6 +216,9 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 		}
 	}
 
+	const FoundryDie = foundry.dice?.terms?.Die || Die;
+	const attackData = getAttackData(weaponData);
+
 	if (numHitAttacks != 0) {
 		// midi active
 		if (midi_QOL_Active) {
@@ -225,14 +228,14 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 
 					let diceFormula = diceFormulas.join(" + ");
 					let damageType = damageTypes.join(", ");
-					let damageRoll = new Roll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod });
+					let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: weaponData.actor.system.abilities[attackData.ability].mod });
 
 					if(numCrits > 0) {
 						// Add critical damage dice on each successful attack, up to the number of crits
 						let critDice = [], critDie;
 						let damageRollDiceTerms = damageRoll.terms.filter(t => t.number > 0 && t.faces > 0);
 						for (let term of damageRollDiceTerms) {
-							critDie = new Die({ number: term.number, faces: term.faces });
+							critDie = new FoundryDie({ number: term.number, faces: term.faces });
 							critDice.push(critDie);
 						}
 						for (let i = 0; i < critDice.length; i++) {
@@ -261,7 +264,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 						damageRoll,
 						{
 							flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize("MAT.critIncluded")})` : ``}`,
-							itemData: weaponData,
+							item: weaponData,
 							itemCardId: `new`
 						}
 					);
@@ -279,13 +282,13 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 
 				let diceFormula = diceFormulas.join(" + ");
 				let damageType = damageTypes.join(", ");
-				let damageRoll = new Roll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod });
+				let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: weaponData.actor.system.abilities[attackData.ability].mod });
 
 				// Add critical damage dice
 				let critDice = [], critDie;
 				let damageRollDiceTerms = damageRoll.terms.filter(t => t.number > 0 && t.faces > 0);
 				for (let term of damageRollDiceTerms) {
-					critDie = new Die({ number: term.number, faces: term.faces });
+					critDie = new FoundryDie({ number: term.number, faces: term.faces });
 					critDice.push(critDie);
 				}
 				await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true });
@@ -316,13 +319,13 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 					damageRoll,
 					{
 						flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize("MAT.critIncluded")})` : ``}`,
-						itemData: weaponData,
+						item: weaponData,
 						itemCardId: `new`
 					}
 				);
 
 				// prepare data for Midi's On Use Macro feature
-				if (game.settings.get(moduleName, "enableMidiOnUseMacro") && getProperty(weaponData, "flags.midi-qol.onUseMacroName")) {
+				if (game.settings.get(moduleName, "enableMidiOnUseMacro") && foundry.utils.getProperty(weaponData, "flags.midi-qol.onUseMacroName")) {
 					await new Promise(resolve => setTimeout(resolve, 300));
 					const macroData = {
 						actor: weaponData.actor,
@@ -353,7 +356,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 						uuid: workflow.uuid,
 						rollData: weaponData.actor.getRollData(),
 						tag: "OnUse",
-						concentrationData: getProperty(weaponData.actor.flags, "midi-qol.concentration-data"),
+						concentrationData: foundry.utils.getProperty(weaponData.actor.flags, "midi-qol.concentration-data"),
 						templateId: workflow.templateId,
 						templateUuid: workflow.templateUuid
 					}
@@ -390,13 +393,13 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 				let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile);
 				let diceFormula = diceFormulas.join(" + ");
 				let damageType = damageTypes.join(", ");
-				let damageRoll = new Roll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod })
+				let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: weaponData.actor.system.abilities[attackData.ability].mod });
 
 				// Add critical damage dice
 				let critDice = [], critDie;
 				let damageRollDiceTerms = damageRoll.terms.filter(t => t.number > 0 && t.faces > 0);
 				for (let term of damageRollDiceTerms) {
-					critDie = new Die({ number: term.number, faces: term.faces });
+					critDie = new FoundryDie({ number: term.number, faces: term.faces });
 					critDice.push(critDie);
 				}
 				await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true });
@@ -415,7 +418,14 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 					damageRoll = await damageRoll.evaluate();
 					await damageRoll.toMessage(
 						{
-							flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize("MAT.critIncluded")})` : ``}`
+							flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize("MAT.critIncluded")})` : ``}`,
+							flags: {
+								dnd5e: {
+									messageType: "roll",
+									roll: { type: "damage" },
+									targets: dnd5e.utils.getTargetDescriptors()
+								}
+							}
 						}
 					);
 				}

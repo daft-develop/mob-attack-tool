@@ -1,9 +1,45 @@
 import { moduleName } from "./mobAttack.js";
 import { getMultiattackFromActor } from "./multiattack.js";
 
+export function isDndV4OrNewer() {
+	return foundry.utils.isNewerVersion(game.system.version, "3.9");
+}
+
+export function getAttackData(item) {
+	let attackData;
+	if (!isDndV4OrNewer()) {
+		attackData = item.system;
+	} else {
+		const attackActivity = item.system?.activities?.find(a => a.type === "attack") || {};
+		attackData = {...attackActivity};
+		if (attackActivity.damage) {
+			attackData.damage = {
+				parts: attackData.damage.parts.map(p => [
+					p.formula,
+					p.types.first()
+				])
+			};
+			if (item.system.properties.has("ver")) {
+				const versatile = item.system.damage.versatile.clone(item.system.damage.versatile);
+				versatile.denomination ||= item.system.damage.base.steppedDenomination();
+				versatile.number ||= item.system.damage.base.number;
+				versatile.types = item.system.damage.base.types;
+				attackData.damage.versatile = versatile.formula;
+			} else {
+				attackData.damage.versatile = "";
+			}
+			attackData.ability = attackActivity.ability;
+			if (item.type === "spell" && item.level === 0) {
+				attackData.scaling = {mode: "cantrip"};
+			}
+		}
+	}
+	return attackData;
+}
+
 // This is based in large part on midi-qol's callMacro method
 export async function callMidiMacro(item, midiMacroData) {
-	const macroName = getProperty(item, "flags.midi-qol.onUseMacroName");
+	const macroName = foundry.utils.getProperty(item, "flags.midi-qol.onUseMacroName");
 	if (!macroName) {
 		console.log(`No On Use Macro found at ${item.name}.`);
 		return;
@@ -21,14 +57,14 @@ export async function callMidiMacro(item, midiMacroData) {
 		if (macroName.startsWith("ItemMacro")) {
 			var itemMacro;
 			if (macroName === "ItemMacro") {
-				itemMacro = getProperty(item.flags, "itemacro.macro");
+				itemMacro = foundry.utils.getProperty(item.flags, "itemacro.macro");
 				macroData.sourceItemUuid = item?.uuid;
 			} else {
 				const parts = macroName.split(".");
 				const itemName = parts.slice(1).join(".");
-				item = macroData.actor.items.find(i => i.name === itemName && getProperty(i.flags, "itemacro.macro"))
+				item = macroData.actor.items.find(i => i.name === itemName && foundry.utils.getProperty(i.flags, "itemacro.macro"))
 				if (item) {
-					itemMacro = getProperty(item.flags, "itemacro.macro");
+					itemMacro = foundry.utils.getProperty(item.flags, "itemacro.macro");
 					macroData.sourceItemUuid = item?.uuid;
 				} else return {};
 			}
@@ -205,7 +241,13 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 		let actorWeapons = {};
 		let items = actor.items.contents;
 		for (let item of items) {
-			if (item.type == "weapon" || (item.type == "spell" && (item.system.level === 0 || item.system.preparation.mode === "atwill") && item.system.damage.parts.length > 0 && item.system.save.ability === "")) {
+			let isAttack = false;
+			if (isDndV4OrNewer()) {
+				isAttack = item.system.activities?.some(a => a.type === "attack" && a.damage?.parts?.length) && (item.type !== "spell" || item.system.level === 0 || item.system.preparation.mode === "atwill");
+			} else {
+				isAttack = item.type == "weapon" || (item.type == "spell" && (item.system.level === 0 || item.system.preparation.mode === "atwill") && item.system.damage.parts.length > 0 && item.system.save.ability === "");
+			}
+			if (isAttack) {
 				if (weapons[item.id]?.id === item.id) {
 					availableAttacks[item.id] += 1;
 				} else {
@@ -254,9 +296,10 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
 		}
 
 		for (let [weaponID, weaponData] of Object.entries(actorWeapons)) {
-			let checkVersatile = weaponData.system.damage.versatile != "";
+			const attackData = getAttackData(weaponData);
+			let checkVersatile = attackData.damage.versatile != "";
 			for (let j = 0; j < 1 + ((checkVersatile) ? 1 : 0); j++) {
-				let isVersatile = (j < 1) ? false : weaponData.system.damage.versatile != "";
+				let isVersatile = (j < 1) ? false : attackData.damage.versatile != "";
 				let damageData = getDamageFormulaAndType(weaponData, isVersatile);
 				let weaponDamageText = ``;
 				for (let i = 0; i < damageData[0].length; i++) {
@@ -327,7 +370,7 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
 	let numAttacksMultiplier = 1;
 	let isVersatile = false;
 	for (let [weaponID, weaponData] of Object.entries(weapons)) {
-		isVersatile = weaponData.system.damage.versatile != "";
+		isVersatile = getAttackData(weaponData).damage.versatile != "";
 		weaponID += ((isVersatile) ? ` (${game.i18n.localize("Versatile")})` : ``);
 
 		if (html.find(`input[name="use` + weaponData.id.replace(" ", "-") + `"]`)[0].checked) {
@@ -510,24 +553,25 @@ export async function endGroupedMobTurn(data) {
 }
 
 export function getDamageFormulaAndType(weaponData, versatile) {
+	const attackData = getAttackData(weaponData);
 	let cantripScalingFactor = getScalingFactor(weaponData);
 	let diceFormulas = [];
 	let damageTypes = [];
 	let damageTypeLabels = []
 	let lengthIndex = 0;
-	for (let diceFormulaParts of weaponData.system.damage.parts) {
+	for (let diceFormulaParts of attackData.damage.parts) {
 		damageTypeLabels.push(diceFormulaParts[1]);
 		damageTypes.push(diceFormulaParts[1].capitalize());
 		if (weaponData.type == "spell") {
-			if (weaponData.system.scaling.mode == "cantrip") {
-				let rollFormula = new Roll(((versatile && lengthIndex === 0) ? weaponData.system.damage.versatile : diceFormulaParts[0]), { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod });
+			if (attackData.scaling?.mode == "cantrip") {
+				let rollFormula = new Roll(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]), { mod: weaponData.actor.system.abilities[attackData.ability].mod });
 				rollFormula.alter(0, cantripScalingFactor, { multiplyNumeric: false })
 				diceFormulas.push(rollFormula.formula);
 			} else {
-				diceFormulas.push(((versatile && lengthIndex === 0) ? weaponData.system.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[weaponData.abilityMod].mod));
+				diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[attackData.ability].mod));
 			}
 		} else {
-			diceFormulas.push(((versatile && lengthIndex === 0) ? weaponData.system.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[weaponData.abilityMod].mod));
+			diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[attackData.ability].mod));
 		}
 		lengthIndex++;
 	}

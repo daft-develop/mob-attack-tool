@@ -137,7 +137,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 		let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile);
 		let diceFormula = diceFormulas.join(" + ");
 		let damageType = damageTypes.join(", ");
-		let damageRoll = new Roll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod });
+		let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod });
 		await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true }).roll();
 
 		if (game.modules.get("dice-so-nice")?.active && game.settings.get(moduleName, "enableDiceSoNice")) {
@@ -161,13 +161,13 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 			damageRoll,
 			{
 				flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})`,
-				itemData: weaponData,
+				item: weaponData,
 				itemCardId: `new`
 			}
 		);
 
 		// prepare data for Midi's On Use Macro feature
-		if (game.settings.get(moduleName, "enableMidiOnUseMacro") && getProperty(weaponData, "flags.midi-qol.onUseMacroName")) {
+		if (game.settings.get(moduleName, "enableMidiOnUseMacro") && foundry.utils.getProperty(weaponData, "flags.midi-qol.onUseMacroName")) {
 			await new Promise(resolve => setTimeout(resolve, 300));
 			const macroData = {
 				actor: weaponData.actor,
@@ -198,7 +198,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 				uuid: workflow.uuid,
 				rollData: weaponData.actor.getRollData(),
 				tag: "OnUse",
-				concentrationData: getProperty(weaponData.actor.flags, "midi-qol.concentration-data"),
+				concentrationData: foundry.utils.getProperty(weaponData.actor.flags, "midi-qol.concentration-data"),
 				templateId: workflow.templateId,
 				templateUuid: workflow.templateUuid
 			}
@@ -229,12 +229,19 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 			let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile);
 			let diceFormula = diceFormulas.join(" + ");
 			let damageType = damageTypes.join(", ");
-			let damageRoll = new Roll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod })
+			let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: weaponData.actor.system.abilities[weaponData.abilityMod].mod })
 			await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true });
 			damageRoll = await damageRoll.evaluate();
 			await damageRoll.toMessage(
 				{
-					flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})`
+					flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})`,
+					flags: {
+						dnd5e: {
+							messageType: "roll",
+							roll: { type: "damage" },
+							targets: dnd5e.utils.getTargetDescriptors()
+						}
+					}
 				}
 			);
 		}
