@@ -15,7 +15,7 @@ export function getAttackData(item) {
 		if (attackActivity.damage) {
 			attackData.damage = {
 				parts: attackData.damage.parts.map(p => [
-					p.formula,
+					p.formula + (p.base && !/@mod\b/.test(p.formula) ? " + @mod" : ""),
 					p.types.first()
 				])
 			};
@@ -24,7 +24,7 @@ export function getAttackData(item) {
 				versatile.denomination ||= item.system.damage.base.steppedDenomination();
 				versatile.number ||= item.system.damage.base.number;
 				versatile.types = item.system.damage.base.types;
-				attackData.damage.versatile = versatile.formula;
+				attackData.damage.versatile = versatile.formula + (!/@mod\b/.test(versatile.formula) ? " + @mod" : "");
 			} else {
 				attackData.damage.versatile = "";
 			}
