@@ -1,5 +1,5 @@
 import { moduleName } from "./mobAttack.js";
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData } from "./utils.js";
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions } from "./utils.js";
 
 export async function rollMobAttackIndividually(data) {
 	// Temporarily disable DSN 3d dice from rolling, per settings
@@ -381,12 +381,12 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 					await new Promise(resolve => setTimeout(resolve, 300));
 					let damageOptions = {};
 					if (successfulAttackRolls[i].total - finalAttackBonus >= critThreshold && numCrits > 0) {
-						damageOptions = { "critical": true, "options": { "fastForward": true } };
+						damageOptions = getDamageOptions(true);
 						numCrits--
 					} else {
-						damageOptions = { "critical": false, "options": { "fastForward": true } };
+						damageOptions = getDamageOptions(false);
 					}
-					await weaponData.rollDamage(damageOptions);
+					await attackData.rollDamage(damageOptions.damage, damageOptions.dialog);
 				}
 			} else {
 				// Condense the damage rolls.

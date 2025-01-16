@@ -1,5 +1,5 @@
 import { moduleName } from "./mobAttack.js";
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro } from "./utils.js";
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions } from "./utils.js";
 
 export async function rollMobAttack(data) {
 	// Temporarily disable DSN 3d dice from rolling, per settings
@@ -131,6 +131,8 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 
 	let showDamageRolls = game.user.getFlag(moduleName, "showIndividualDamageRolls") ?? game.settings.get(moduleName, "showIndividualDamageRolls");
 
+	const attackData = getAttackData(weaponData);
+
 	if (midi_QOL_Active) {
 		await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -221,7 +223,8 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 		if (showDamageRolls) {
 			await new Promise(resolve => setTimeout(resolve, 100));
 			for (let i = 0; i < numHitAttacks; i++) {
-				await weaponData.rollDamage({ "critical": false, "options": { "fastForward": true } });
+				const damageOptions = getDamageOptions(false);
+				await attackData.rollDamage(damageOptions.damage, damageOptions.dialog);
 				await new Promise(resolve => setTimeout(resolve, 300));
 			}
 		} else {

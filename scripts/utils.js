@@ -9,6 +9,7 @@ export function getAttackData(item) {
 	let attackData;
 	if (!isDndV4OrNewer()) {
 		attackData = item.system;
+		attackData.rollDamage = item.rollDamage.bind(item);
 	} else {
 		const attackActivity = item.system?.activities?.find(a => a.type === "attack") || {};
 		attackData = {...attackActivity};
@@ -32,9 +33,24 @@ export function getAttackData(item) {
 			if (item.type === "spell" && item.level === 0) {
 				attackData.scaling = {mode: "cantrip"};
 			}
+			attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity);
 		}
 	}
 	return attackData;
+}
+
+export function getDamageOptions(allowCritical = true) {
+	if (!isDndV4OrNewer()) {
+		return {
+			damage: { critical: allowCritical, options: { fastForward: true } },
+			dialog: {}
+		};
+	} else {
+		return {
+			damage: { critical: { allow: true } },
+			dialog: { configure: false }
+		};
+	}
 }
 
 // This is based in large part on midi-qol's callMacro method
