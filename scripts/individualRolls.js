@@ -423,7 +423,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 								dnd5e: {
 									messageType: "roll",
 									roll: { type: "damage" },
-									targets: dnd5e.utils.getTargetDescriptors()
+									targets: dnd5e.utils.getTargetDescriptors?.()
 								}
 							}
 						}
