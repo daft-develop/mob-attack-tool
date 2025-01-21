@@ -47,7 +47,7 @@ export function getDamageOptions(allowCritical = true) {
 		};
 	} else {
 		return {
-			damage: { critical: { allow: true } },
+			damage: { isCritical: allowCritical },
 			dialog: { configure: false }
 		};
 	}
