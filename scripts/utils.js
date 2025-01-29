@@ -10,6 +10,10 @@ export function getAttackData(item) {
 	if (!isDndV4OrNewer()) {
 		attackData = item.system;
 		attackData.rollDamage = item.rollDamage.bind(item);
+		// sub out "default" Ability Modifier
+		if (attackData.ability == "") {
+			attackData.ability = attackData.abilityMod;
+		}
 	} else {
 		const attackActivity = item.system?.activities?.find(a => a.type === "attack") || {};
 		attackData = {...attackActivity};
@@ -29,7 +33,7 @@ export function getAttackData(item) {
 			} else {
 				attackData.damage.versatile = "";
 			}
-			attackData.ability = attackActivity.ability;
+			attackData.ability = attackActivity.ability ?? "none";
 			if (item.type === "spell" && item.level === 0) {
 				attackData.scaling = {mode: "cantrip"};
 			}
@@ -590,14 +594,14 @@ export function getDamageFormulaAndType(weaponData, versatile) {
 		damageTypes.push(diceFormulaParts[1].capitalize());
 		if (weaponData.type == "spell") {
 			if (attackData.scaling?.mode == "cantrip") {
-				let rollFormula = new Roll(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]), { mod: weaponData.actor.system.abilities[attackData.ability].mod });
+				let rollFormula = new Roll(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]), { mod: attackData.ability == "none" ? 0 : weaponData.actor.system.abilities[attackData.ability].mod });
 				rollFormula.alter(0, cantripScalingFactor, { multiplyNumeric: false })
 				diceFormulas.push(rollFormula.formula);
 			} else {
-				diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[attackData.ability].mod));
+				diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace("@mod", attackData.ability == "none" ? 0 : weaponData.actor.system.abilities[attackData.ability].mod));
 			}
 		} else {
-			diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace("@mod", weaponData.actor.system.abilities[attackData.ability].mod));
+			diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace("@mod", attackData.ability == "none" ? 0 : weaponData.actor.system.abilities[attackData.ability].mod));
 		}
 		lengthIndex++;
 	}
@@ -671,15 +675,19 @@ export async function sendChatMessage(text) {
 }
 
 export function getAttackBonus(weaponData) {
-	let weaponAbility = weaponData.abilityMod;
-	if (weaponAbility === "" || typeof weaponAbility === "undefined" || weaponAbility == null) {
+	let attackData = getAttackData(weaponData);
+	let weaponAbility = attackData.ability;
+	let actorAbilityMod = 0;
+	if (weaponAbility === "" || typeof weaponAbility === "undefined" || weaponAbility == null || weaponAbility == "none") {
 		if (weaponData.type != "spell") {
-			weaponAbility = "str";
+			actorAbilityMod = 0;
 		} else {
 			weaponAbility = weaponData.actor.system.attributes.spellcasting;
+			actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod);
 		}
+	} else {
+		actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod);
 	}
-	const actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod);
 	const attackBonus = parseInt(weaponData.system.attackBonus) || 0;
 	let profBonus;
 	if (weaponData.type != "spell") {
