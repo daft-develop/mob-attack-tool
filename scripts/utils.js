@@ -39,16 +39,18 @@ export function getAttackData(item) {
 	return attackData;
 }
 
-export function getDamageOptions(allowCritical = true) {
+export function getDamageOptions(allowCritical = true, targetId = null)  {
+	let formattedTarget = formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId)?.actor.uuid);
 	if (!isDndV4OrNewer()) {
 		return {
-			damage: { critical: allowCritical, options: { fastForward: true } },
+			damage: { critical: allowCritical, options: { fastForward: true, messageData : { 'flags.dnd5e' : { targets : formattedTarget } } } },
 			dialog: {}
 		};
 	} else {
 		return {
 			damage: { isCritical: allowCritical },
-			dialog: { configure: false }
+			dialog: { configure: false },
+			message: { 'data.flags.dnd5e.targets' : formattedTarget }
 		};
 	}
 }
@@ -118,6 +120,14 @@ export function checkTarget() {
 		return false;
 	}
 	return true;
+}
+
+export function formatAttackTargets() {
+	if(!isDndV4OrNewer()){
+		return dnd5e.documents.Item5e._formatAttackTargets()
+	} else {
+		return dnd5e.utils.getTargetDescriptors()
+	}
 }
 
 export async function getTargetData(monsters) {

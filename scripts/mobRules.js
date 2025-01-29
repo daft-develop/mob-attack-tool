@@ -1,5 +1,5 @@
 import { moduleName } from "./mobAttack.js";
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions } from "./utils.js";
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from "./utils.js";
 
 export async function rollMobAttack(data) {
 	// Temporarily disable DSN 3d dice from rolling, per settings
@@ -223,8 +223,8 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 		if (showDamageRolls) {
 			await new Promise(resolve => setTimeout(resolve, 100));
 			for (let i = 0; i < numHitAttacks; i++) {
-				const damageOptions = getDamageOptions(false);
-				await attackData.rollDamage(damageOptions.damage, damageOptions.dialog);
+				const damageOptions = getDamageOptions(false, targetId);
+				await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, damageOptions.message);
 				await new Promise(resolve => setTimeout(resolve, 300));
 			}
 		} else {
@@ -242,7 +242,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 						dnd5e: {
 							messageType: "roll",
 							roll: { type: "damage" },
-							targets: dnd5e.utils.getTargetDescriptors()
+							targets: formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId).actor.uuid)
 						}
 					}
 				}

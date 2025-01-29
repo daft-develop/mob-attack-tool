@@ -1,5 +1,5 @@
 import { moduleName } from "./mobAttack.js";
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions } from "./utils.js";
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from "./utils.js";
 
 export async function rollMobAttackIndividually(data) {
 	// Temporarily disable DSN 3d dice from rolling, per settings
@@ -381,12 +381,12 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 					await new Promise(resolve => setTimeout(resolve, 300));
 					let damageOptions = {};
 					if (successfulAttackRolls[i].total - finalAttackBonus >= critThreshold && numCrits > 0) {
-						damageOptions = getDamageOptions(true);
+						damageOptions = getDamageOptions(true, targetId);
 						numCrits--
 					} else {
-						damageOptions = getDamageOptions(false);
+						damageOptions = getDamageOptions(false, targetId);
 					}
-					await attackData.rollDamage(damageOptions.damage, damageOptions.dialog);
+					await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, damageOptions.message);
 				}
 			} else {
 				// Condense the damage rolls.
@@ -423,7 +423,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 								dnd5e: {
 									messageType: "roll",
 									roll: { type: "damage" },
-									targets: dnd5e.utils.getTargetDescriptors?.()
+									targets: formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId).actor.uuid)
 								}
 							}
 						}
