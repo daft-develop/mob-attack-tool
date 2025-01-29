@@ -683,7 +683,7 @@ export function getAttackBonus(weaponData) {
 	const attackBonus = parseInt(weaponData.system.attackBonus) || 0;
 	let profBonus;
 	if (weaponData.type != "spell") {
-		profBonus = parseInt(((weaponData.system.proficient) ? weaponData.actor.system.attributes.prof : 0));
+		profBonus = parseInt(((weaponData.system.prof.hasProficiency) ? weaponData.actor.system.attributes.prof : 0));
 	} else {
 		profBonus = parseInt(weaponData.actor.system.attributes.prof);
 	}
