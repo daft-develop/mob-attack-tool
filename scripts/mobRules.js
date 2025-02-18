@@ -1,270 +1,278 @@
-import { moduleName } from "./mobAttack.js";
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from "./utils.js";
+import { moduleName } from './mobAttack.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from './utils.js'
 
 export async function rollMobAttack(data) {
-	// Temporarily disable DSN 3d dice from rolling, per settings
-	if (!game.settings.get(moduleName, "enableDiceSoNice") && game.user.isGM) {
-		await game.settings.set(moduleName, "hiddenDSNactiveFlag", false);
-	}
+  // Temporarily disable DSN 3d dice from rolling, per settings
+  if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
+    await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
+  }
 
-	// Cycle through selected weapons
-	let attackData = [];
-	let messageData = { messages: {} };
-	let isVersatile;
-	for (let [key, value] of Object.entries(data.attacks)) {
-		for (let j = 0; j < value.length; j++) {
-			isVersatile = false;
-			if (key.endsWith(`(${game.i18n.localize("Versatile")})`.replace(" ", "-"))) {
-				isVersatile = true;
-				key = key.slice(0, key.indexOf(` (${game.i18n.localize("Versatile")})`));
-			}
+  // Cycle through selected weapons
+  let attackData = []
+  let messageData = { messages: {} }
+  let isVersatile
+  for (let [key, value] of Object.entries(data.attacks)) {
+    for (let j = 0; j < value.length; j++) {
+      isVersatile = false
+      if (key.endsWith(`(${game.i18n.localize('Versatile')})`.replace(' ', '-'))) {
+        isVersatile = true
+        key = key.slice(0, key.indexOf(` (${game.i18n.localize('Versatile')})`))
+      }
 
-			let targetAC = data.targets.filter(t => t.targetId === value[j].targetId)[0]?.targetAC;
-			const weaponData = data.weapons[key];
-			const actorName = weaponData.actor.name;
-			const finalAttackBonus = getAttackBonus(weaponData);
-			if (!data.withDisadvantage && data.event?.altKey) {
-				data.withAdvantage = true;
-				data.rollTypeValue = Math.floor(game.settings.get(moduleName, "rollTypeValue"));
-				data.rollTypeMessage = ` + ${data.rollTypeValue} [adv]`;
-			} else if (!data.withAdvantage && (game.settings.get(moduleName, "disadvantageKeyBinding") === 0 ? data.event?.metaKey : data.event?.ctrlKey)) {
-				data.withDisadvantage = true;
-				data.rollTypeValue = -1 * Math.floor(game.settings.get(moduleName, "rollTypeValue"));
-				data.rollTypeMessage = ` - ${data.rollTypeValue} [adv]`;
-			}
-			const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue);
-			const attackersNeeded = calcAttackersNeeded(d20Needed);
+      let targetAC = data.targets.filter(t => t.targetId === value[j].targetId)[0]?.targetAC
+      const weaponData = data.weapons[key]
+      const actorName = weaponData.actor.name
+      const finalAttackBonus = getAttackBonus(weaponData)
+      if (!data.withDisadvantage && data.event?.altKey) {
+        data.withAdvantage = true
+        data.rollTypeValue = Math.floor(game.settings.get(moduleName, 'rollTypeValue'))
+        data.rollTypeMessage = ` + ${data.rollTypeValue} [adv]`
+      }
+      else if (!data.withAdvantage && (game.settings.get(moduleName, 'disadvantageKeyBinding') === 0 ? data.event?.metaKey : data.event?.ctrlKey)) {
+        data.withDisadvantage = true
+        data.rollTypeValue = -1 * Math.floor(game.settings.get(moduleName, 'rollTypeValue'))
+        data.rollTypeMessage = ` - ${data.rollTypeValue} [adv]`
+      }
+      const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue)
+      const attackersNeeded = calcAttackersNeeded(d20Needed)
 
-			// Check whether how many attackers can use this weapon
-			let availableAttacks = value[j]?.targetNumAttacks;
+      // Check whether how many attackers can use this weapon
+      let availableAttacks = value[j]?.targetNumAttacks
 
-			if (availableAttacks / attackersNeeded >= 1) {
-				const numHitAttacks = Math.floor(availableAttacks / attackersNeeded);
-				const pluralOrNot = ` ${game.i18n.localize((numHitAttacks === 1) ? "MAT.oneAttackSingular" : "MAT.multipleAttackPlural")}!`;
-				const sOrNot = ((numHitAttacks > 1) ? "s" : "");
-				const targetACtext = game.user.isGM ? `${game.i18n.localize("MAT.targetAC")} ${targetAC}` : ``;
+      if (availableAttacks / attackersNeeded >= 1) {
+        const numHitAttacks = Math.floor(availableAttacks / attackersNeeded)
+        const pluralOrNot = ` ${game.i18n.localize((numHitAttacks === 1) ? 'MAT.oneAttackSingular' : 'MAT.multipleAttackPlural')}!`
+        const sOrNot = ((numHitAttacks > 1) ? 's' : '')
+        const targetACtext = game.user.isGM ? `${game.i18n.localize('MAT.targetAC')} ${targetAC}` : ``
 
-				let actorAmount = data.numSelected;
-				if (data.monsters?.[weaponData.actor.id]?.["amount"]) {
-					actorAmount = data.monsters[weaponData.actor.id]["amount"];
-				}
+        let actorAmount = data.numSelected
+        if (data.monsters?.[weaponData.actor.id]?.['amount']) {
+          actorAmount = data.monsters[weaponData.actor.id]['amount']
+        }
 
-				let tokenAttackList = [];
-				let attackToken;
-				let availableTokens = data.selectedTokenIds.filter(t => !tokenAttackList.includes(t));
-				for (let i = 0; i < numHitAttacks; i++) {
-					attackToken = availableTokens[Math.floor(Math.random() * availableTokens.length)];
-					if (attackToken) tokenAttackList.push(attackToken);
-				}
+        let tokenAttackList = []
+        let attackToken
+        let availableTokens = data.selectedTokenIds.filter(t => !tokenAttackList.includes(t))
+        for (let i = 0; i < numHitAttacks; i++) {
+          attackToken = availableTokens[Math.floor(Math.random() * availableTokens.length)]
+          if (attackToken) tokenAttackList.push(attackToken)
+        }
 
-				// Mob attack results message
-				let msgData = {
-					actorAmount: actorAmount,
-					targetACtext: targetACtext,
-					d20Needed: d20Needed,
-					finalAttackBonus: finalAttackBonus,
-					weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize("Versatile")})` : ``}`,
-					availableAttacks: availableAttacks,
-					attackersNeeded: attackersNeeded,
-					numSelected: data.numSelected,
-					numHitAttacks: numHitAttacks,
-					pluralOrNot: pluralOrNot,
-					sOrNot: sOrNot,
-					displayTarget: data.targets.length !== 0,
-					targetImg: data.targets.filter(t => t.targetId === value[j].targetId)[0]?.targetImg,
-					targetId: value[j]?.targetId
-				}
+        // Mob attack results message
+        let msgData = {
+          actorAmount: actorAmount,
+          targetACtext: targetACtext,
+          d20Needed: d20Needed,
+          finalAttackBonus: finalAttackBonus,
+          weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``}`,
+          availableAttacks: availableAttacks,
+          attackersNeeded: attackersNeeded,
+          numSelected: data.numSelected,
+          numHitAttacks: numHitAttacks,
+          pluralOrNot: pluralOrNot,
+          sOrNot: sOrNot,
+          displayTarget: data.targets.length !== 0,
+          targetImg: data.targets.filter(t => t.targetId === value[j].targetId)[0]?.targetImg,
+          targetId: value[j]?.targetId,
+        }
 
-				if (!messageData.messages[actorName]) {
-					messageData.messages[actorName] = [msgData];
-				} else {
-					messageData.messages[actorName].push(msgData);
-				}
+        if (!messageData.messages[actorName]) {
+          messageData.messages[actorName] = [msgData]
+        }
+        else {
+          messageData.messages[actorName].push(msgData)
+        }
 
-				if (!messageData["totalHitAttacks"]) {
-					messageData["totalHitAttacks"] = numHitAttacks;
-				} else {
-					messageData["totalHitAttacks"] += numHitAttacks;
-				}
+        if (!messageData['totalHitAttacks']) {
+          messageData['totalHitAttacks'] = numHitAttacks
+        }
+        else {
+          messageData['totalHitAttacks'] += numHitAttacks
+        }
 
-				attackData.push({
-					data: data,
-					weaponData: weaponData,
-					numHitAttacks: numHitAttacks,
-					isVersatile: isVersatile,
-					tokenAttackList,
-					targetId: value[j]?.targetId ?? undefined
-				})
+        attackData.push({
+          data: data,
+          weaponData: weaponData,
+          numHitAttacks: numHitAttacks,
+          isVersatile: isVersatile,
+          tokenAttackList,
+          targetId: value[j]?.targetId ?? undefined,
+        })
 
-				await new Promise(resolve => setTimeout(resolve, 250));
-			} else {
-				ui.notifications.warn(game.i18n.format("MAT.lowAttackBonusOrSmallMob", { weaponName: weaponData.name }));
-			}
-		}
-	}
-	if (attackData.length === 0) {
-		return;
-	} else {
-		let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? "MAT.numTotalHitsSingular" : "MAT.numTotalHitsPlural")}`;
-		messageData["totalPluralOrNot"] = totalPluralOrNot;
-		let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.html', messageData);
-		if (!game.settings.get(moduleName, "noResultsMessage")) {
-			await sendChatMessage(messageText);
-		}
+        await new Promise(resolve => setTimeout(resolve, 250))
+      }
+      else {
+        ui.notifications.warn(game.i18n.format('MAT.lowAttackBonusOrSmallMob', { weaponName: weaponData.name }))
+      }
+    }
+  }
+  if (attackData.length === 0) {
+    return
+  }
+  else {
+    let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
+    messageData['totalPluralOrNot'] = totalPluralOrNot
+    let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.html', messageData)
+    if (!game.settings.get(moduleName, 'noResultsMessage')) {
+      await sendChatMessage(messageText)
+    }
 
-		for (let attack of attackData) {
-			await processMobRulesDamageRolls(attack, attack.weaponData, attack.numHitAttacks, attack.isVersatile, attack.tokenAttackList, attack.targetId);
-			await new Promise(resolve => setTimeout(resolve, 500));
-		}
+    for (let attack of attackData) {
+      await processMobRulesDamageRolls(attack, attack.weaponData, attack.numHitAttacks, attack.isVersatile, attack.tokenAttackList, attack.targetId)
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
 
-		if (data.endMobTurn) {
-			await endGroupedMobTurn(data);
-		}
-	}
+    if (data.endMobTurn) {
+      await endGroupedMobTurn(data)
+    }
+  }
 }
 
 export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks, isVersatile, tokenAttackList, targetId) {
+  // Check for midi-qol
+  let midi_QOL_Active = false
+  if (game.modules.get('midi-qol')?.active && game.settings.get(moduleName, 'enableMidi')) midi_QOL_Active = true
 
-	// Check for midi-qol
-	let midi_QOL_Active = false;
-	if (game.modules.get("midi-qol")?.active && game.settings.get(moduleName, "enableMidi")) midi_QOL_Active = true;
+  let showDamageRolls = game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls')
 
-	let showDamageRolls = game.user.getFlag(moduleName, "showIndividualDamageRolls") ?? game.settings.get(moduleName, "showIndividualDamageRolls");
+  const attackData = getAttackData(weaponData)
 
-	const attackData = getAttackData(weaponData);
+  if (midi_QOL_Active) {
+    await new Promise(resolve => setTimeout(resolve, 100))
 
-	if (midi_QOL_Active) {
-		await new Promise(resolve => setTimeout(resolve, 100));
+    let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
+    let diceFormula = diceFormulas.join(' + ')
+    let damageType = damageTypes.join(', ')
+    let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+    await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true }).roll()
 
-		let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile);
-		let diceFormula = diceFormulas.join(" + ");
-		let damageType = damageTypes.join(", ");
-		let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == "none" ? 0 : weaponData.actor.system.abilities[attackData.ability].mod });
-		await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true }).roll();
+    if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
+      game.dice3d.showForRoll(damageRoll)
+    }
 
-		if (game.modules.get("dice-so-nice")?.active && game.settings.get(moduleName, "enableDiceSoNice")) {
-			game.dice3d.showForRoll(damageRoll);
-		}
+    let targetToken = canvas.tokens.get(targetId)
+    if (targetToken?.actor === null && game.modules.get('multilevel-tokens').active) {
+      let mltFlags = targetToken.flags['multilevel-tokens']
+      if (mltFlags?.sscene) {
+        targetToken = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken)
+      }
+    }
 
-		let targetToken = canvas.tokens.get(targetId);
-		if (targetToken?.actor === null && game.modules.get("multilevel-tokens").active) {
-			let mltFlags = targetToken.flags["multilevel-tokens"];
-			if (mltFlags?.sscene) {
-				targetToken = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken);
-			}
-		}
+    let workflow = await new MidiQOL.DamageOnlyWorkflow(
+      weaponData.actor,
+      targetToken ?? undefined,
+      damageRoll.total,
+      damageTypeLabels[0],
+      targetToken ? [targetToken] : [],
+      damageRoll,
+      {
+        flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
+        item: weaponData,
+        itemCardId: `new`,
+      },
+    )
 
-		let workflow = await new MidiQOL.DamageOnlyWorkflow(
-			weaponData.actor,
-			targetToken ?? undefined,
-			damageRoll.total,
-			damageTypeLabels[0],
-			targetToken ? [targetToken] : [],
-			damageRoll,
-			{
-				flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})`,
-				item: weaponData,
-				itemCardId: `new`
-			}
-		);
+    // prepare data for Midi's On Use Macro feature
+    if (game.settings.get(moduleName, 'enableMidiOnUseMacro') && foundry.utils.getProperty(weaponData, 'flags.midi-qol.onUseMacroName')) {
+      await new Promise(resolve => setTimeout(resolve, 300))
+      const macroData = {
+        actor: weaponData.actor,
+        actorUuid: weaponData.actor.uuid,
+        tokenId: workflow.tokenId,
+        tokenUuid: workflow.tokenUuid,
+        targets: targetToken ? [targetToken] : [],
+        hitTargets: targetToken ? [targetToken] : [],
+        damageRoll: damageRoll,
+        damageRollHTML: workflow.damageRollHTML,
+        attackRoll: workflow?.attackRoll,
+        attackTotal: workflow.attackTotal,
+        itemCardId: (game.settings.get(moduleName, 'dontSendItemCardId')) ? null : workflow.itemCardId,
+        isCritical: false,
+        isFumble: false,
+        spellLevel: 0,
+        powerLevel: 0,
+        damageTotal: damageRoll.total,
+        damageDetail: workflow.damageDetail,
+        damageList: workflow.damageList,
+        otherDamageTotal: 0,
+        otherDamageDetail: workflow.otherDamageDetail,
+        otherDamageList: [{ damage: damageRoll.total, type: damageTypes[0] }],
+        rollOptions: { advantage: data.withAdvantage, disadvantage: data.withDisadvantage, versatile: isVersatile, fastForward: true },
+        advantage: data.withAdvantage,
+        disadvantage: data.withDisadvantage,
+        event: null,
+        uuid: workflow.uuid,
+        rollData: weaponData.actor.getRollData(),
+        tag: 'OnUse',
+        concentrationData: foundry.utils.getProperty(weaponData.actor.flags, 'midi-qol.concentration-data'),
+        templateId: workflow.templateId,
+        templateUuid: workflow.templateUuid,
+      }
 
-		// prepare data for Midi's On Use Macro feature
-		if (game.settings.get(moduleName, "enableMidiOnUseMacro") && foundry.utils.getProperty(weaponData, "flags.midi-qol.onUseMacroName")) {
-			await new Promise(resolve => setTimeout(resolve, 300));
-			const macroData = {
-				actor: weaponData.actor,
-				actorUuid: weaponData.actor.uuid,
-				tokenId: workflow.tokenId,
-				tokenUuid: workflow.tokenUuid,
-				targets: targetToken ? [targetToken] : [],
-				hitTargets: targetToken ? [targetToken] : [],
-				damageRoll: damageRoll,
-				damageRollHTML: workflow.damageRollHTML,
-				attackRoll: workflow?.attackRoll,
-				attackTotal: workflow.attackTotal,
-				itemCardId: (game.settings.get(moduleName, "dontSendItemCardId")) ? null : workflow.itemCardId,
-				isCritical: false,
-				isFumble: false,
-				spellLevel: 0,
-				powerLevel: 0,
-				damageTotal: damageRoll.total,
-				damageDetail: workflow.damageDetail,
-				damageList: workflow.damageList,
-				otherDamageTotal: 0,
-				otherDamageDetail: workflow.otherDamageDetail,
-				otherDamageList: [{ damage: damageRoll.total, type: damageTypes[0] }],
-				rollOptions: { advantage: data.withAdvantage, disadvantage: data.withDisadvantage, versatile: isVersatile, fastForward: true },
-				advantage: data.withAdvantage,
-				disadvantage: data.withDisadvantage,
-				event: null,
-				uuid: workflow.uuid,
-				rollData: weaponData.actor.getRollData(),
-				tag: "OnUse",
-				concentrationData: foundry.utils.getProperty(weaponData.actor.flags, "midi-qol.concentration-data"),
-				templateId: workflow.templateId,
-				templateUuid: workflow.templateUuid
-			}
+      let j = 0
+      for (let i = 0; i < numHitAttacks; i++) {
+        if (j < tokenAttackList.length) {
+          j = i
+        }
+        else {
+          j = tokenAttackList.length - 1
+        }
+        macroData.tokenId = tokenAttackList[j].tokenId
+        macroData.tokenUuid = tokenAttackList[j].tokenUuid
+        await callMidiMacro(weaponData, macroData)
+      }
+    }
 
-			let j = 0;
-			for (let i = 0; i < numHitAttacks; i++) {
-				if (j < tokenAttackList.length) {
-					j = i;
-				} else {
-					j = tokenAttackList.length - 1;
-				}
-				macroData.tokenId = tokenAttackList[j].tokenId;
-				macroData.tokenUuid = tokenAttackList[j].tokenUuid;
-				await callMidiMacro(weaponData, macroData);
-			}
-		}
-
-	// midi-qol not active
-	} else {
-		if (showDamageRolls) {
-			await new Promise(resolve => setTimeout(resolve, 100));
-			for (let i = 0; i < numHitAttacks; i++) {
-				const damageOptions = getDamageOptions(false, targetId);
-				await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, damageOptions.message);
-				await new Promise(resolve => setTimeout(resolve, 300));
-			}
-		} else {
-			// Condense the damage rolls.
-			let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile);
-			let diceFormula = diceFormulas.join(" + ");
-			let damageType = damageTypes.join(", ");
-			let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == "none" ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
-			await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true });
-			damageRoll = await damageRoll.evaluate();
-			await damageRoll.toMessage(
-				{
-					flavor: `${weaponData.name} - ${game.i18n.localize("Damage Roll")} (${damageType})`,
-					flags: {
-						dnd5e: {
-							messageType: "roll",
-							roll: { type: "damage" },
-							targets: formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId).actor.uuid)
-						}
-					}
-				}
-			);
-		}
-	}
-	// trigger AutoAnimations
-	if (game.settings.get(moduleName, "enableAutoAnimations")) {
-		let j = 0;
-		if (game.modules.get("autoanimations")?.active) {
-			for (let i = 0; i < numHitAttacks; i++) {
-				if (j < tokenAttackList.length) {
-					j = i;
-				} else {
-					j = tokenAttackList.length - 1;
-				}
-				if (tokenAttackList.length > 0) {
-					AutomatedAnimations.playAnimation(canvas.tokens.get(tokenAttackList[j].tokenId), weaponData, { targets: [canvas.tokens.get(targetId)] });
-				}
-			}
-		}
-	}
-	// Allow DSN 3d dice to be rolled again
-	if (game.user.isGM) await game.settings.set(moduleName, "hiddenDSNactiveFlag", true);
+    // midi-qol not active
+  }
+  else {
+    if (showDamageRolls) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      for (let i = 0; i < numHitAttacks; i++) {
+        const damageOptions = getDamageOptions(false, targetId)
+        await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, damageOptions.message)
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
+    }
+    else {
+      // Condense the damage rolls.
+      let [diceFormulas, damageTypes] = getDamageFormulaAndType(weaponData, isVersatile)
+      let diceFormula = diceFormulas.join(' + ')
+      let damageType = damageTypes.join(', ')
+      let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+      await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true })
+      damageRoll = await damageRoll.evaluate()
+      await damageRoll.toMessage(
+        {
+          flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
+          flags: {
+            dnd5e: {
+              messageType: 'roll',
+              roll: { type: 'damage' },
+              targets: formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId).actor.uuid),
+            },
+          },
+        },
+      )
+    }
+  }
+  // trigger AutoAnimations
+  if (game.settings.get(moduleName, 'enableAutoAnimations')) {
+    let j = 0
+    if (game.modules.get('autoanimations')?.active) {
+      for (let i = 0; i < numHitAttacks; i++) {
+        if (j < tokenAttackList.length) {
+          j = i
+        }
+        else {
+          j = tokenAttackList.length - 1
+        }
+        if (tokenAttackList.length > 0) {
+          AutomatedAnimations.playAnimation(canvas.tokens.get(tokenAttackList[j].tokenId), weaponData, { targets: [canvas.tokens.get(targetId)] })
+        }
+      }
+    }
+  }
+  // Allow DSN 3d dice to be rolled again
+  if (game.user.isGM) await game.settings.set(moduleName, 'hiddenDSNactiveFlag', true)
 }

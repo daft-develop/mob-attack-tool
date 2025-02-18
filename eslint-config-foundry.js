@@ -1,12 +1,12 @@
 // globals from Foundry to ignore during linting
 export default [
   {
-    name: "mat-eslint-file",
+    name: 'mat-eslint-file',
     languageOptions: {
       globals: {
         // Foundry globals - writeable
-        game: "writeable",
-        Roll: "writeable",
+        game: 'writeable',
+        Roll: 'writeable',
         // Foundry globals - readonly
         $: 'readonly',
         dnd5e: 'readonly',
@@ -23,9 +23,9 @@ export default [
         VideoHelper: 'readonly',
         ChatMessage: 'readonly',
         // 3rd party module globals
-        MidiQOL: "readonly",
-        AutomatedAnimations: "readonly",
+        MidiQOL: 'readonly',
+        AutomatedAnimations: 'readonly',
       },
     },
   },
-];
+]
