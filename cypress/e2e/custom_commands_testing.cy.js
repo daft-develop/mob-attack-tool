@@ -20,4 +20,16 @@ describe('Basic Login Tests', () => {
     cy.visit('/game')
     cy.disableAllModules()
   })
+
+  it('Enable MAT Only', () => {
+    cy.login('Gamemaster')
+    cy.visit('/game')
+    cy.enableMat()
+  })
+
+  it('Enable All Testing Mods', () => {
+    cy.login('Gamemaster')
+    cy.visit('/game')
+    cy.enableTestingMods()
+  })
 })
