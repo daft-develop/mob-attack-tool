@@ -8,7 +8,7 @@ The tests perform a preflight suite to ensure your actors are setup correctly, b
 
 * A scene named 'Scene' that is active, global lighting enabled, token vision disabled, and no background image. This is to ensure reloading the page for repeat testing is reasonably quick
 
-* Import the starter hero "Randal" with the following changes
+* Import the starter hero "Randal" with the following changes (or import from /test_data in this repo)
   * Level him up to level 5 to get Extra Attack, and use the level 4 ASI to bump STR up to 18
   * Drag one copy of Randal onto the scene. Probably not necessary but MAT uses tokens as it's baseline reference
   * Add a lot of custom equipment to help test all the different attack bonus modifiers
