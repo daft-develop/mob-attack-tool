@@ -29,9 +29,9 @@ export function initQuenchTests() {
           })
         }),
         describe('Randal setup', function () {
-          const randalToken = canvas.tokens.placeables.find(t => t.name == 'Randal')
-          const randalActor = randalToken.actor
-          const randalItems = randalActor.items
+          const randalToken = canvas.tokens.placeables?.find(t => t.name == 'Randal')
+          const randalActor = randalToken?.actor
+          const randalItems = randalActor?.items
           it('should have one and only one Randal on the Canvas', function () {
             // one and only one Randal to make .find selection repeatable
             expect(canvas.tokens.placeables.filter(t => t.name == 'Randal')).to.have.lengthOf(1)
@@ -52,18 +52,18 @@ export function initQuenchTests() {
             expect(randalActor.system.abilities.cha.value).to.equal(11)
           })
           it('should have all test equipment', function () {
-            expect(randalItems.filter(i => i.name == 'Longsword')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Longbow')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Handaxe (CHA)')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Handaxe (No Prof)')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Handaxe (None)')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Handaxe (Bonus ToHit)')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Handaxe (Flat)')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Handaxe, +1')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Handaxe, +5')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Battleaxe +3')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Fire Bolt')).to.have.lengthOf(1)
-            expect(randalItems.filter(i => i.name == 'Fire Bolt (CON)')).to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Longsword'), 'missing Longsword').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Longbow'), 'missing Longbow').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe (CHA)'), 'missing Handaxe (CHA)').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe (No Prof)'), 'missing Handaxe (No Prof) Not Proficient').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe (None)'), 'missing Handaxe (None) attribute set to none').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe (Bonus ToHit)'), 'missing Handaxe (Bonus ToHit) with +10 bonus').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe (Flat)'), 'missing Handaxe (Flat) with flat +5 bonus').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Fire Bolt', 'missing default Fire Bolt')).to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Fire Bolt (CON)'), 'missing Fire Bolt (CON)').to.have.lengthOf(1)
           })
         })
       },
@@ -74,9 +74,9 @@ export function initQuenchTests() {
       (context) => {
         const { describe, it, expect } = context
 
-        const randalToken = canvas.tokens.placeables.find(t => t.name == 'Randal')
-        const randalActor = randalToken.actor
-        const randalItems = randalActor.items
+        const randalToken = canvas.tokens.placeables?.find(t => t.name == 'Randal')
+        const randalActor = randalToken?.actor
+        const randalItems = randalActor?.items
 
         describe('Player Attack Bonus', function () {
           it('should handle default prof (str for melee)', function () {
