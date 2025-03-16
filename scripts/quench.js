@@ -1,4 +1,4 @@
-import { getAttackBonus } from './utils.js'
+import { getAttackBonus, isDndV4OrNewer } from './utils.js'
 
 export function initQuenchTests() {
   Hooks.on('quenchReady', (quench) => {
@@ -16,13 +16,23 @@ export function initQuenchTests() {
           // the rest of these settings and trying to decrease load time
           // since we're constantly refreshing while testing
           it('should have global lighting enabled', function () {
-            expect(activeScene.environment.globalLight.enabled).to.equal(true)
+            if (!isDndV4OrNewer()) {
+              expect(activeScene.globalLight).to.equal(true)
+            }
+            else {
+              expect(activeScene.environment.globalLight.enabled).to.equal(true)
+            }
           })
           it('should have token vision disabled', function () {
             expect(activeScene.tokenVision).to.equal(false)
           })
           it('should have fog exploration disabled', function () {
-            expect(activeScene.fog.exploration).to.equal(false)
+            if (!isDndV4OrNewer()) {
+              expect(activeScene.fogExploration).to.equal(false)
+            }
+            else {
+              expect(activeScene.fog.exploration).to.equal(false)
+            }
           })
           it('should have no background set', function () {
             expect(activeScene.background.src).to.be.a('null')
