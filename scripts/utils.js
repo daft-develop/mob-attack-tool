@@ -11,7 +11,7 @@ export function getAttackData(item) {
     attackData = item.system
     attackData.rollDamage = item.rollDamage.bind(item)
     // sub out "default" Ability Modifier
-    if (attackData.ability == '') {
+    if (attackData?.ability == undefined || attackData.ability == '') {
       attackData.ability = attackData.abilityMod
     }
   }
@@ -711,9 +711,16 @@ export async function sendChatMessage(text) {
   await ChatMessage.create(chatData, {})
 }
 
+/**
+ * Get the numerical attack bonus for a given weapon that's from an actor embedded collection
+ * Required to be on an actor in order to get the correct modifiers
+ * which are called via item.actor...
+ * @param {Item5e} weaponData - weapon type item from an actor embedded collection
+ * @returns Number(attack modifier)
+ */
 export function getAttackBonus(weaponData) {
   let attackData = getAttackData(weaponData)
-  let weaponAbility = attackData.ability
+  let weaponAbility = attackData?.ability
   let actorAbilityMod = 0
   if (weaponAbility === '' || typeof weaponAbility === 'undefined' || weaponAbility == null || weaponAbility == 'none') {
     if (weaponData.type != 'spell') {

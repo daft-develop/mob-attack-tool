@@ -72,6 +72,14 @@ export function initQuenchTests() {
             expect(randalItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
+            if (!isDndV4OrNewer()) {
+              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source, 'Battleaxe +3 ability of NULL').to.have.property('actionType')
+              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.ability, 'Battleaxe +3 ability of NULL').to.be.null
+            }
+            else {
+              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.activation.type, 'Battleaxe +3 ability of NULL').to.equal('action')
+              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.attack.ability, 'Battleaxe +3 ability of NULL').to.equal('')
+            }
             expect(randalItems.filter(i => i.name == 'Fire Bolt', 'missing default Fire Bolt')).to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Fire Bolt (CON)'), 'missing Fire Bolt (CON)').to.have.lengthOf(1)
           })

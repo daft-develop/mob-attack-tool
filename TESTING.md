@@ -19,7 +19,7 @@ The tests perform a preflight suite to ensure your actors are setup correctly, b
     * 'Handaxe (None)' - Change attribute to 'None'
     * 'Handaxe (Bonus ToHit)' - Add ToHit Bonus of 10
     * 'Handaxe (Flat)' - Enable Flat Bonus, Bonus ToHit of 11
-    * 'Battleaxe +3' - SRD +3 battleaxe puts the bonus in the item description field
+    * 'Battleaxe +3' - SRD +3 battleaxe puts the bonus in the item description field, and has an attribute default of NULL on the import file
     * 'Handaxe, +1' - Use "Magic Weapon" spell to at a +1 using active effects
     * 'Handaxe, +5' - Modify "Magic Weapon" spell with the additional `activities[attack].attack.flat` override true and `activities[attack].attack.bonus` override `5`
     * 'Fire Bolt' - Default import
