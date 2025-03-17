@@ -6083,9 +6083,15 @@
               "priority": null
             },
             {
-              "key": "system.magicalBonus",
+              "key": "system.attack.bonus",
               "mode": 5,
               "value": "5",
+              "priority": null
+            },
+            {
+              "key": "system.attack.flat",
+              "mode": 5,
+              "value": "true",
               "priority": null
             }
           ],
@@ -6253,7 +6259,7 @@
         "summons": null,
         "enchantment": null,
         "attuned": false,
-        "equipped": false,
+        "equipped": true,
         "proficient": null
       },
       "effects": [],

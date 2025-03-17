@@ -131,7 +131,7 @@ export function initQuenchTests() {
           })
           it('should handle a flat to hit bonus', function () {
             const handaxe_bonus_tohit = randalItems.find(i => i.name == 'Handaxe (Flat)')
-            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(11)
+            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(5)
           })
           it('should handle magic bonus in details', function () {
             const magic_battleaxe = randalItems.find(i => i.name == 'Battleaxe +3')
