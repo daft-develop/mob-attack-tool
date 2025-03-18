@@ -216,7 +216,7 @@ export function initQuenchTests() {
           })
           it('should handle default spell prof (int)', function () {
             const firebolt = skeletonItems.find(i => i.name == 'Fire Bolt')
-            expect(getAttackBonus(firebolt)).to.equal(2)
+            expect(getAttackBonus(firebolt)).to.equal(0)
           })
           it('should handle manually set weapon prof', function () {
             const handaxe_manual_cha = skeletonItems.find(i => i.name == 'Handaxe (CHA)')
