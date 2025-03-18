@@ -726,10 +726,10 @@ export function getAttackBonus(weaponData) {
     return parseInt(weaponData.labels.modifier)
   }
   else {
-    weaponData.getAttackToHit()
-    // the system getAttackToHit generates a modifier integer
-    // as a side effect, so we'll use it
-    return parseInt(weaponData.labels.modifier)
+    // getAttackToHit migrated to the activity as getAttackData, but the labels.modifier
+    // field on the activity is pre-calculated somewhere else, so no need to trigger it
+    let modifier = weaponData.system.activities?.find(a => a.type === 'attack').labels.modifier ?? 0
+    return parseInt(modifier)
   }
 }
 
