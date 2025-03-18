@@ -37,7 +37,8 @@ export function initQuenchTests() {
           it('should have no background set', function () {
             expect(activeScene.background.src).to.be.a('null')
           })
-        }),
+        })
+
         describe('Randal setup', function () {
           const randalToken = canvas.tokens.placeables?.find(t => t.name == 'Randal')
           const randalActor = randalToken?.actor
@@ -84,9 +85,54 @@ export function initQuenchTests() {
             expect(randalItems.filter(i => i.name == 'Fire Bolt (CON)'), 'missing Fire Bolt (CON)').to.have.lengthOf(1)
           })
         })
+
+        describe('Skeleton setup', function () {
+          const skeletonToken = canvas.tokens.placeables?.find(t => t.name == 'Skeleton')
+          const skeletonActor = skeletonToken?.actor
+          const skeletonItems = skeletonActor?.items
+          it('should have one and only one Skeleton on the Canvas', function () {
+            // one and only one Randal to make .find selection repeatable
+            expect(canvas.tokens.placeables.filter(t => t.name == 'Skeleton')).to.have.lengthOf(1)
+          })
+          it('should have Skeleton CR of 1/4', function () {
+            expect(skeletonActor.system.details.cr).to.equal(0.25)
+          })
+          it('should have Abilities set to 18/14/15/9/13/11', function () {
+            // level 4 ASI into STR
+            expect(skeletonActor.system.abilities.str.value).to.equal(10)
+            expect(skeletonActor.system.abilities.dex.value).to.equal(14)
+            expect(skeletonActor.system.abilities.con.value).to.equal(15)
+            expect(skeletonActor.system.abilities.int.value).to.equal(6)
+            expect(skeletonActor.system.abilities.wis.value).to.equal(8)
+            expect(skeletonActor.system.abilities.cha.value).to.equal(5)
+          })
+          it('should have all test equipment', function () {
+            expect(skeletonItems.filter(i => i.name == 'Longsword'), 'missing Longsword').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Longbow'), 'missing Longbow').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe (CHA)'), 'missing Handaxe (CHA)').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe (No Prof)'), 'missing Handaxe (No Prof) Not Proficient').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe (None)'), 'missing Handaxe (None) attribute set to none').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe (Bonus ToHit)'), 'missing Handaxe (Bonus ToHit) with +10 bonus').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe (Flat)'), 'missing Handaxe (Flat) with flat +5 bonus').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
+            if (!isDndV4OrNewer()) {
+              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source, 'Battleaxe +3 ability of NULL').to.have.property('actionType')
+              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.ability, 'Battleaxe +3 ability of NULL').to.be.null
+            }
+            else {
+              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.activation.type, 'Battleaxe +3 ability of NULL').to.equal('action')
+              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.attack.ability, 'Battleaxe +3 ability of NULL').to.equal('')
+            }
+            expect(skeletonItems.filter(i => i.name == 'Fire Bolt', 'missing default Fire Bolt')).to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Fire Bolt (CON)'), 'missing Fire Bolt (CON)').to.have.lengthOf(1)
+          })
+        })
       },
       { displayName: 'MAT: Preflight Checks' },
     )
+
     quench.registerBatch(
       'mat.player',
       (context) => {
@@ -148,6 +194,69 @@ export function initQuenchTests() {
         })
       },
       { displayName: 'MAT: Player Character Checks' },
+    )
+
+    quench.registerBatch(
+      'mat.npc',
+      (context) => {
+        const { describe, it, expect } = context
+
+        const skeletonToken = canvas.tokens.placeables?.find(t => t.name == 'Skeleton')
+        const skeletonActor = skeletonToken?.actor
+        const skeletonItems = skeletonActor?.items
+
+        describe('NPC Attack Bonus', function () {
+          it('should handle default prof (str for melee)', function () {
+            const longsword = skeletonItems.find(i => i.name == 'Longsword')
+            expect(getAttackBonus(longsword)).to.equal(2)
+          })
+          it('should handle default prof (dex for ranged)', function () {
+            const longbow = skeletonItems.find(i => i.name == 'Longbow')
+            expect(getAttackBonus(longbow)).to.equal(4)
+          })
+          it('should handle default spell prof (int)', function () {
+            const firebolt = skeletonItems.find(i => i.name == 'Fire Bolt')
+            expect(getAttackBonus(firebolt)).to.equal(2)
+          })
+          it('should handle manually set weapon prof', function () {
+            const handaxe_manual_cha = skeletonItems.find(i => i.name == 'Handaxe (CHA)')
+            expect(getAttackBonus(handaxe_manual_cha)).to.equal(-1)
+          })
+          it('should handle manually set spell prof', function () {
+            const firebolt_con = skeletonItems.find(i => i.name == 'Fire Bolt (CON)')
+            expect(getAttackBonus(firebolt_con)).to.equal(4)
+          })
+          it('should handle not prof', function () {
+            const handaxe_no_prof = skeletonItems.find(i => i.name == 'Handaxe (No Prof)')
+            expect(getAttackBonus(handaxe_no_prof)).to.equal(0)
+          })
+          it('should handle "none" prof', function () {
+            const handaxe_attribute_none = skeletonItems.find(i => i.name == 'Handaxe (None)')
+            expect(getAttackBonus(handaxe_attribute_none)).to.equal(2)
+          })
+          it('should handle to hit bonus', function () {
+            const handaxe_bonus_tohit = skeletonItems.find(i => i.name == 'Handaxe (Bonus ToHit)')
+            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(12)
+          })
+          it('should handle a flat to hit bonus', function () {
+            const handaxe_bonus_tohit = skeletonItems.find(i => i.name == 'Handaxe (Flat)')
+            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(5)
+          })
+          it('should handle magic bonus in details', function () {
+            const magic_battleaxe = skeletonItems.find(i => i.name == 'Battleaxe +3')
+            expect(getAttackBonus(magic_battleaxe)).to.equal(5)
+          })
+          it('should handle magical enhancement bonuses', function () {
+            const enhanced_handaxe = skeletonItems.find(i => i.name == 'Handaxe, +1')
+            expect(getAttackBonus(enhanced_handaxe)).to.equal(3)
+          })
+          it('should handle magical enhancement flat attack modified', function () {
+            const flat_enhanced_handaxe = skeletonItems.find(i => i.name == 'Handaxe, +5')
+            expect(getAttackBonus(flat_enhanced_handaxe)).to.equal(5)
+          })
+        })
+      },
+      { displayName: 'MAT: NPC Checks' },
     )
   })
 }
