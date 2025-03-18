@@ -726,32 +726,10 @@ export function getAttackBonus(weaponData) {
     return parseInt(weaponData.labels.modifier)
   }
   else {
-    let attackData = getAttackData(weaponData)
-    let weaponAbility = attackData?.ability
-    let actorAbilityMod = 0
-    if (weaponAbility === '' || typeof weaponAbility === 'undefined' || weaponAbility == null || weaponAbility == 'none') {
-      if (weaponData.type != 'spell') {
-        actorAbilityMod = 0
-      }
-      else {
-        weaponAbility = weaponData.actor.system.attributes.spellcasting
-        actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod)
-      }
-    }
-    else {
-      actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod)
-    }
-    const attackBonus = parseInt(weaponData.system.attackBonus) || 0
-    let profBonus
-    if (weaponData.type != 'spell') {
-      profBonus = parseInt(((weaponData.system.prof.hasProficiency) ? weaponData.actor.system.attributes.prof : 0))
-    }
-    else {
-      profBonus = parseInt(weaponData.actor.system.attributes.prof)
-    }
-    let finalAttackBonus = actorAbilityMod + attackBonus + profBonus
-
-    return finalAttackBonus
+    weaponData.getAttackToHit()
+    // the system getAttackToHit generates a modifier integer
+    // as a side effect, so we'll use it
+    return parseInt(weaponData.labels.modifier)
   }
 }
 
