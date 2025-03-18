@@ -6270,7 +6270,7 @@
             },
             "attack": {
               "ability": "",
-              "bonus": "11",
+              "bonus": "5",
               "critical": {
                 "threshold": null
               },
