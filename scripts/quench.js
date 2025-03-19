@@ -1,4 +1,4 @@
-import { getAttackBonus, isDndV4OrNewer } from './utils.js'
+import { getAttackBonus, getDamageFormulaAndType, isDndV4OrNewer } from './utils.js'
 
 export function initQuenchTests() {
   Hooks.on('quenchReady', (quench) => {
@@ -138,58 +138,146 @@ export function initQuenchTests() {
       (context) => {
         const { describe, it, expect } = context
 
-        const randalToken = canvas.tokens.placeables?.find(t => t.name == 'Randal')
-        const randalActor = randalToken?.actor
-        const randalItems = randalActor?.items
+        const testToken = canvas.tokens.placeables?.find(t => t.name == 'Randal')
+        const testActor = testToken?.actor
+        const testItems = testActor?.items
 
         describe('Player Attack Bonus', function () {
           it('should handle default prof (str for melee)', function () {
-            const longsword = randalItems.find(i => i.name == 'Longsword')
-            expect(getAttackBonus(longsword)).to.equal(7)
+            const weapon = testItems.find(i => i.name == 'Longsword')
+            expect(getAttackBonus(weapon)).to.equal(7)
           })
           it('should handle default prof (dex for ranged)', function () {
-            const longbow = randalItems.find(i => i.name == 'Longbow')
-            expect(getAttackBonus(longbow)).to.equal(5)
+            const weapon = testItems.find(i => i.name == 'Longbow')
+            expect(getAttackBonus(weapon)).to.equal(5)
           })
           it('should handle default spell prof (int)', function () {
-            const firebolt = randalItems.find(i => i.name == 'Fire Bolt')
-            expect(getAttackBonus(firebolt)).to.equal(2)
+            const weapon = testItems.find(i => i.name == 'Fire Bolt')
+            expect(getAttackBonus(weapon)).to.equal(2)
           })
           it('should handle manually set weapon prof', function () {
-            const handaxe_manual_cha = randalItems.find(i => i.name == 'Handaxe (CHA)')
-            expect(getAttackBonus(handaxe_manual_cha)).to.equal(3)
+            const weapon = testItems.find(i => i.name == 'Handaxe (CHA)')
+            expect(getAttackBonus(weapon)).to.equal(3)
           })
           it('should handle manually set spell prof', function () {
-            const firebolt_con = randalItems.find(i => i.name == 'Fire Bolt (CON)')
-            expect(getAttackBonus(firebolt_con)).to.equal(5)
+            const weapon = testItems.find(i => i.name == 'Fire Bolt (CON)')
+            expect(getAttackBonus(weapon)).to.equal(5)
           })
           it('should handle not prof', function () {
-            const handaxe_no_prof = randalItems.find(i => i.name == 'Handaxe (No Prof)')
-            expect(getAttackBonus(handaxe_no_prof)).to.equal(4)
+            const weapon = testItems.find(i => i.name == 'Handaxe (No Prof)')
+            expect(getAttackBonus(weapon)).to.equal(4)
           })
           it('should handle "none" prof', function () {
-            const handaxe_attribute_none = randalItems.find(i => i.name == 'Handaxe (None)')
-            expect(getAttackBonus(handaxe_attribute_none)).to.equal(3)
+            const weapon = testItems.find(i => i.name == 'Handaxe (None)')
+            expect(getAttackBonus(weapon)).to.equal(3)
           })
           it('should handle to hit bonus', function () {
-            const handaxe_bonus_tohit = randalItems.find(i => i.name == 'Handaxe (Bonus ToHit)')
-            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(17)
+            const weapon = testItems.find(i => i.name == 'Handaxe (Bonus ToHit)')
+            expect(getAttackBonus(weapon)).to.equal(17)
           })
           it('should handle a flat to hit bonus', function () {
-            const handaxe_bonus_tohit = randalItems.find(i => i.name == 'Handaxe (Flat)')
-            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(5)
+            const weapon = testItems.find(i => i.name == 'Handaxe (Flat)')
+            expect(getAttackBonus(weapon)).to.equal(5)
           })
           it('should handle magic bonus in details', function () {
-            const magic_battleaxe = randalItems.find(i => i.name == 'Battleaxe +3')
-            expect(getAttackBonus(magic_battleaxe)).to.equal(10)
+            const weapon = testItems.find(i => i.name == 'Battleaxe +3')
+            expect(getAttackBonus(weapon)).to.equal(10)
           })
           it('should handle magical enhancement bonuses', function () {
-            const enhanced_handaxe = randalItems.find(i => i.name == 'Handaxe, +1')
-            expect(getAttackBonus(enhanced_handaxe)).to.equal(8)
+            const weapon = testItems.find(i => i.name == 'Handaxe, +1')
+            expect(getAttackBonus(weapon)).to.equal(8)
           })
           it('should handle magical enhancement flat attack modified', function () {
-            const flat_enhanced_handaxe = randalItems.find(i => i.name == 'Handaxe, +5')
-            expect(getAttackBonus(flat_enhanced_handaxe)).to.equal(5)
+            const weapon = testItems.find(i => i.name == 'Handaxe, +5')
+            expect(getAttackBonus(weapon)).to.equal(5)
+          })
+        })
+
+        describe('Player Damage Roll', function () {
+          let damage, type, label
+          it('should handle default prof (str for melee)', function () {
+            const weapon = testItems.find(i => i.name == 'Longsword');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d8 + 4')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle default prof (dex for ranged)', function () {
+            const weapon = testItems.find(i => i.name == 'Longbow');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d8 + 2')
+            type[0].should.equal('Piercing')
+            label[0].should.equal('piercing')
+          })
+          it('should handle default spell prof (int)', function () {
+            const weapon = testItems.find(i => i.name == 'Fire Bolt');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d10')
+            type[0].should.equal('Fire')
+            label[0].should.equal('fire')
+          })
+          it('should handle manually set weapon prof', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (CHA)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle manually set spell prof', function () {
+            const weapon = testItems.find(i => i.name == 'Fire Bolt (CON)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d10')
+            type[0].should.equal('Fire')
+            label[0].should.equal('fire')
+          })
+          it('should handle not prof', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (No Prof)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 4')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle "none" prof', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (None)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle to hit bonus', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (Bonus ToHit)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 4')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle a flat to hit bonus', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (Flat)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 4')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle magic bonus in details', function () {
+            const weapon = testItems.find(i => i.name == 'Battleaxe +3');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d8 + 7')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle magical enhancement bonuses', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe, +1');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 5')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle magical enhancement flat attack modified', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe, +5');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 4')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
           })
         })
       },
@@ -201,58 +289,146 @@ export function initQuenchTests() {
       (context) => {
         const { describe, it, expect } = context
 
-        const skeletonToken = canvas.tokens.placeables?.find(t => t.name == 'Skeleton')
-        const skeletonActor = skeletonToken?.actor
-        const skeletonItems = skeletonActor?.items
+        const testToken = canvas.tokens.placeables?.find(t => t.name == 'Skeleton')
+        const testActor = testToken?.actor
+        const testItems = testActor?.items
 
         describe('NPC Attack Bonus', function () {
           it('should handle default prof (str for melee)', function () {
-            const longsword = skeletonItems.find(i => i.name == 'Longsword')
-            expect(getAttackBonus(longsword)).to.equal(2)
+            const weapon = testItems.find(i => i.name == 'Longsword')
+            expect(getAttackBonus(weapon)).to.equal(2)
           })
           it('should handle default prof (dex for ranged)', function () {
-            const longbow = skeletonItems.find(i => i.name == 'Longbow')
-            expect(getAttackBonus(longbow)).to.equal(4)
+            const weapon = testItems.find(i => i.name == 'Longbow')
+            expect(getAttackBonus(weapon)).to.equal(4)
           })
           it('should handle default spell prof (int)', function () {
-            const firebolt = skeletonItems.find(i => i.name == 'Fire Bolt')
-            expect(getAttackBonus(firebolt)).to.equal(0)
+            const weapon = testItems.find(i => i.name == 'Fire Bolt')
+            expect(getAttackBonus(weapon)).to.equal(0)
           })
           it('should handle manually set weapon prof', function () {
-            const handaxe_manual_cha = skeletonItems.find(i => i.name == 'Handaxe (CHA)')
-            expect(getAttackBonus(handaxe_manual_cha)).to.equal(-1)
+            const weapon = testItems.find(i => i.name == 'Handaxe (CHA)')
+            expect(getAttackBonus(weapon)).to.equal(-1)
           })
           it('should handle manually set spell prof', function () {
-            const firebolt_con = skeletonItems.find(i => i.name == 'Fire Bolt (CON)')
-            expect(getAttackBonus(firebolt_con)).to.equal(4)
+            const weapon = testItems.find(i => i.name == 'Fire Bolt (CON)')
+            expect(getAttackBonus(weapon)).to.equal(4)
           })
           it('should handle not prof', function () {
-            const handaxe_no_prof = skeletonItems.find(i => i.name == 'Handaxe (No Prof)')
-            expect(getAttackBonus(handaxe_no_prof)).to.equal(0)
+            const weapon = testItems.find(i => i.name == 'Handaxe (No Prof)')
+            expect(getAttackBonus(weapon)).to.equal(0)
           })
           it('should handle "none" prof', function () {
-            const handaxe_attribute_none = skeletonItems.find(i => i.name == 'Handaxe (None)')
-            expect(getAttackBonus(handaxe_attribute_none)).to.equal(2)
+            const weapon = testItems.find(i => i.name == 'Handaxe (None)')
+            expect(getAttackBonus(weapon)).to.equal(2)
           })
           it('should handle to hit bonus', function () {
-            const handaxe_bonus_tohit = skeletonItems.find(i => i.name == 'Handaxe (Bonus ToHit)')
-            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(12)
+            const weapon = testItems.find(i => i.name == 'Handaxe (Bonus ToHit)')
+            expect(getAttackBonus(weapon)).to.equal(12)
           })
           it('should handle a flat to hit bonus', function () {
-            const handaxe_bonus_tohit = skeletonItems.find(i => i.name == 'Handaxe (Flat)')
-            expect(getAttackBonus(handaxe_bonus_tohit)).to.equal(5)
+            const weapon = testItems.find(i => i.name == 'Handaxe (Flat)')
+            expect(getAttackBonus(weapon)).to.equal(5)
           })
           it('should handle magic bonus in details', function () {
-            const magic_battleaxe = skeletonItems.find(i => i.name == 'Battleaxe +3')
-            expect(getAttackBonus(magic_battleaxe)).to.equal(5)
+            const weapon = testItems.find(i => i.name == 'Battleaxe +3')
+            expect(getAttackBonus(weapon)).to.equal(5)
           })
           it('should handle magical enhancement bonuses', function () {
-            const enhanced_handaxe = skeletonItems.find(i => i.name == 'Handaxe, +1')
-            expect(getAttackBonus(enhanced_handaxe)).to.equal(3)
+            const weapon = testItems.find(i => i.name == 'Handaxe, +1')
+            expect(getAttackBonus(weapon)).to.equal(3)
           })
           it('should handle magical enhancement flat attack modified', function () {
-            const flat_enhanced_handaxe = skeletonItems.find(i => i.name == 'Handaxe, +5')
-            expect(getAttackBonus(flat_enhanced_handaxe)).to.equal(5)
+            const weapon = testItems.find(i => i.name == 'Handaxe, +5')
+            expect(getAttackBonus(weapon)).to.equal(5)
+          })
+        })
+
+        describe('NPC Damage Roll', function () {
+          let damage, type, label
+          it('should handle default prof (str for melee)', function () {
+            const weapon = testItems.find(i => i.name == 'Longsword');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d8 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle default prof (dex for ranged)', function () {
+            const weapon = testItems.find(i => i.name == 'Longbow');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d8 + 2')
+            type[0].should.equal('Piercing')
+            label[0].should.equal('piercing')
+          })
+          it('should handle default spell prof (int)', function () {
+            const weapon = testItems.find(i => i.name == 'Fire Bolt');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d10')
+            type[0].should.equal('Fire')
+            label[0].should.equal('fire')
+          })
+          it('should handle manually set weapon prof', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (CHA)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 - 3')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle manually set spell prof', function () {
+            const weapon = testItems.find(i => i.name == 'Fire Bolt (CON)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d10')
+            type[0].should.equal('Fire')
+            label[0].should.equal('fire')
+          })
+          it('should handle not prof', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (No Prof)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle "none" prof', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (None)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle to hit bonus', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (Bonus ToHit)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle a flat to hit bonus', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe (Flat)');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle magic bonus in details', function () {
+            const weapon = testItems.find(i => i.name == 'Battleaxe +3');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d8 + 3')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle magical enhancement bonuses', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe, +1');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 1')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
+          })
+          it('should handle magical enhancement flat attack modified', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe, +5');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('Slashing')
+            label[0].should.equal('slashing')
           })
         })
       },
