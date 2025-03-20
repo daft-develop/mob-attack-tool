@@ -714,23 +714,27 @@ export async function sendChatMessage(text) {
 /**
  * Get the numerical attack bonus for a given weapon that's from an actor embedded collection
  * Required to be on an actor in order to get the correct modifiers
- * which are called via item.actor...
- * @param {Item5e} weaponData - weapon type item from an actor embedded collection
- * @returns Number(attack modifier)
+ *
+ * @param {Item5e} actorItem - weapon type item from an actor embedded collection
+ * @returns Int(attack modifier)
  */
-export function getAttackBonus(weaponData) {
+export function getAttackBonus(actorItem) {
+  let attackData // common structure where labels.modifier is kept on both version
   if (!isDndV4OrNewer()) {
-    weaponData.getAttackToHit()
-    // the system getAttackToHit generates a modifier integer
+    actorItem.getAttackToHit()
+    // the system getAttackToHit updates the labels.modifier integer
     // as a side effect, so we'll use it
-    return parseInt(weaponData.labels.modifier)
+    attackData = actorItem
   }
   else {
     // getAttackToHit migrated to the activity as getAttackData, but the labels.modifier
     // field on the activity is pre-calculated somewhere else, so no need to trigger it
-    let modifier = weaponData.system.activities?.find(a => a.type === 'attack').labels.modifier ?? 0
-    return parseInt(modifier)
+
+    // we assume a single activity of type 'attack' exists on the weapon
+    attackData = actorItem.system.activities?.find(a => a.type === 'attack')
   }
+  // return the labels.modifier if it exists, otherwise modifier is 0
+  return parseInt(attackData?.labels?.modifier ?? 0)
 }
 
 export function getScalingFactor(weaponData) {
