@@ -51,7 +51,7 @@ export function getAttackData(item) {
         attackData.damage.versatile = ''
       }
       attackData.ability = attackActivity.ability ?? 'none'
-      if (item.type === 'spell' && item.level === 0) {
+      if (item.type === 'spell' && item.system.level === 0) {
         attackData.scaling = { mode: 'cantrip' }
       }
       attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity)
