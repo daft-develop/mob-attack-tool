@@ -58,12 +58,21 @@ export async function rollMobAttack(data) {
           if (attackToken) tokenAttackList.push(attackToken)
         }
 
+        let finalAttackBonusText = ''
+        // add a '+' for positive attack bonuses
+        if (finalAttackBonus >= 0) {
+          finalAttackBonusText = '+' + finalAttackBonus
+        }
+        else {
+          finalAttackBonusText = '' + finalAttackBonus
+        }
+
         // Mob attack results message
         let msgData = {
           actorAmount: actorAmount,
           targetACtext: targetACtext,
           d20Needed: d20Needed,
-          finalAttackBonus: finalAttackBonus,
+          finalAttackBonus: finalAttackBonusText,
           weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``}`,
           availableAttacks: availableAttacks,
           attackersNeeded: attackersNeeded,

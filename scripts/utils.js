@@ -386,6 +386,15 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponRangeText = '-'
         }
 
+        let weaponAttackBonusText = getAttackBonus(weaponData)
+        // add a '+' for positive attack bonuses
+        if (weaponAttackBonusText >= 0) {
+          weaponAttackBonusText = '+' + weaponAttackBonusText
+        }
+        else {
+          weaponAttackBonusText = '' + weaponAttackBonusText
+        }
+
         let labelData = {
           numAttacksName: `numAttacks${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
           numAttack: numAttacksTotal,
@@ -394,7 +403,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponImg: weaponData.img,
           weaponNameImg: weaponData.name.replace(' ', '-'),
           weaponName: `${weaponData.name}${((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)}`,
-          weaponAttackBonus: getAttackBonus(weaponData),
+          weaponAttackBonusText: weaponAttackBonusText,
           weaponRange: weaponRangeText,
           weaponDamageText: weaponDamageText,
           useButtonName: `use${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
