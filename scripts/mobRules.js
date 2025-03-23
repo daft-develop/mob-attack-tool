@@ -121,7 +121,7 @@ export async function rollMobAttack(data) {
   else {
     let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
     messageData['totalPluralOrNot'] = totalPluralOrNot
-    let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.html', messageData)
+    let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
     if (!game.settings.get(moduleName, 'noResultsMessage')) {
       await sendChatMessage(messageText)
     }

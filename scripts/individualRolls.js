@@ -191,7 +191,7 @@ export async function rollMobAttackIndividually(data) {
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
   // Send message
-  let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.html', messageData)
+  let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
   if (!game.settings.get(moduleName, 'noResultsMessage')) {
     await sendChatMessage(messageText)
   }
