@@ -308,7 +308,7 @@ class RollSettingsMenu extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       title: 'Mob Attack Tool Settings',
       id: 'mob-attack-tool-roll-settings',
-      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu.html',
+      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu.hbs',
       width: '530',
       height: 'auto',
       closeOnSubmit: true,

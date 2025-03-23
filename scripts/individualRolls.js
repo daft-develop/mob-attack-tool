@@ -68,6 +68,15 @@ export async function rollMobAttackIndividually(data) {
           discarded = true
         }
 
+        let finalAttackBonusText = ''
+        // add a '+' for positive attack bonuses
+        if (finalAttackBonus >= 0) {
+          finalAttackBonusText = '+' + finalAttackBonus
+        }
+        else {
+          finalAttackBonusText = '' + finalAttackBonus
+        }
+
         // Check settings for rolling 3d dice from Dice So Nice
         if (game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls')) {
           if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
@@ -86,23 +95,23 @@ export async function rollMobAttackIndividually(data) {
           numCrits++
           numHitAttacks += 1
           successfulAttackRolls.push(attackRollEvaluated[i])
-          atkRollData.push({ roll: attackRollEvaluated[i].total, color: 'max', finalAttackBonus, discarded, discardedRollTotal })
+          atkRollData.push({ roll: attackRollEvaluated[i].total, color: 'max', finalAttackBonusText, discarded, discardedRollTotal })
           attackToken = availableTokens[Math.floor(Math.random() * availableTokens.length)]
         }
         else if (attackRollEvaluated[i].total - finalAttackBonus === 1) {
           numCritFails++
           if (game.user.getFlag(moduleName, 'showAllAttackRolls') ?? game.settings.get(moduleName, 'showAllAttackRolls')) {
-            atkRollData.push({ roll: attackRollEvaluated[i].total, color: 'min', finalAttackBonus, discarded, discardedRollTotal })
+            atkRollData.push({ roll: attackRollEvaluated[i].total, color: 'min', finalAttackBonusText, discarded, discardedRollTotal })
           }
         }
         else if (attackRollEvaluated[i].total >= ((targetAC) ? targetAC : 0) && attackRollEvaluated[i].total - finalAttackBonus > 1) {
           numHitAttacks += 1
           successfulAttackRolls.push(attackRollEvaluated[i])
-          atkRollData.push({ roll: attackRollEvaluated[i].total, color: '', finalAttackBonus, discarded, discardedRollTotal })
+          atkRollData.push({ roll: attackRollEvaluated[i].total, color: '', finalAttackBonusText, discarded, discardedRollTotal })
           attackToken = availableTokens[Math.floor(Math.random() * availableTokens.length)]
         }
         else if (game.user.getFlag(moduleName, 'showAllAttackRolls') ?? game.settings.get(moduleName, 'showAllAttackRolls')) {
-          atkRollData.push({ roll: attackRollEvaluated[i].total, color: 'discarded', finalAttackBonus, discarded, discardedRollTotal })
+          atkRollData.push({ roll: attackRollEvaluated[i].total, color: 'discarded', finalAttackBonusText, discarded, discardedRollTotal })
         }
         if (attackToken) tokenAttackList.push(attackToken)
       }
@@ -182,7 +191,7 @@ export async function rollMobAttackIndividually(data) {
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
   // Send message
-  let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.html', messageData)
+  let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
   if (!game.settings.get(moduleName, 'noResultsMessage')) {
     await sendChatMessage(messageText)
   }

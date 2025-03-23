@@ -75,7 +75,7 @@ export class MobAttackDialog extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       title: 'Mob Attack Tool',
       id: 'mob-attack-tool-dialog',
-      template: 'modules/mob-attack-tool/templates/mat-dialog.html',
+      template: 'modules/mob-attack-tool/templates/mat-dialog.hbs',
       width: '505',
       height: 'auto',
       closeOnSubmit: false,
@@ -556,7 +556,7 @@ export class MobAttackDialog extends FormApplication {
         }
       }
 
-      let dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.html', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+      let dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
 
       let selectedMob = await new Promise((resolve) => {
         new Dialog({
@@ -740,7 +740,7 @@ export class MobAttackDialog extends FormApplication {
       else {
         macroName = `${mobAttackData.weapons[key].name} ${game.i18n.localize('MAT.macroNamePrefix')} ${mobList[Object.keys(mobList)[0]].numSelected} ${Object.keys(mobList)[0]}${game.i18n.localize('MAT.macroNamePostfix')}`
       }
-      let macroNameTemplate = await renderTemplate('modules/mob-attack-tool/templates/mat-macro-name-dialog.html', { macroName: macroName })
+      let macroNameTemplate = await renderTemplate('modules/mob-attack-tool/templates/mat-macro-name-dialog.hbs', { macroName: macroName })
       let selectedName = await new Promise((resolve) => {
         new Dialog({
           title: game.i18n.localize('Macro Name'),

@@ -58,12 +58,21 @@ export async function rollMobAttack(data) {
           if (attackToken) tokenAttackList.push(attackToken)
         }
 
+        let finalAttackBonusText = ''
+        // add a '+' for positive attack bonuses
+        if (finalAttackBonus >= 0) {
+          finalAttackBonusText = '+' + finalAttackBonus
+        }
+        else {
+          finalAttackBonusText = '' + finalAttackBonus
+        }
+
         // Mob attack results message
         let msgData = {
           actorAmount: actorAmount,
           targetACtext: targetACtext,
           d20Needed: d20Needed,
-          finalAttackBonus: finalAttackBonus,
+          finalAttackBonus: finalAttackBonusText,
           weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``}`,
           availableAttacks: availableAttacks,
           attackersNeeded: attackersNeeded,
@@ -112,7 +121,7 @@ export async function rollMobAttack(data) {
   else {
     let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
     messageData['totalPluralOrNot'] = totalPluralOrNot
-    let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.html', messageData)
+    let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
     if (!game.settings.get(moduleName, 'noResultsMessage')) {
       await sendChatMessage(messageText)
     }

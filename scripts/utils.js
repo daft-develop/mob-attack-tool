@@ -5,13 +5,28 @@ export function isDndV4OrNewer() {
   return foundry.utils.isNewerVersion(game.system.version, '3.9')
 }
 
+/**
+ * For a given weapon/spell/item, return the data required to perform an attack
+ * This was part of "WeaponData" in v3 and
+ * migrated to "AttackActivity" on the item's activity in v4
+ * We're using:
+ * ability - string of str/dex/etc. or 'none'
+ * a bound copy of the rollDamage function pointing back to the item/activity source
+ * damage.versatile - bool true if versatile copy of item
+ * damage.parts[] - array of damage "parts" like the damage formula and damage type (fire/slashing)
+ * scaling.mode - for spells
+ *
+ * @param {Item5e} item a weapon/spell held by an actor
+ * @returns the item's attackData
+ */
 export function getAttackData(item) {
   let attackData
   if (!isDndV4OrNewer()) {
     attackData = item.system
+    // v3 requires a rollDamage() call to calculate some of the additional fields we use
     attackData.rollDamage = item.rollDamage.bind(item)
     // sub out "default" Ability Modifier
-    if (attackData.ability == '') {
+    if (attackData?.ability == undefined || attackData.ability == '') {
       attackData.ability = attackData.abilityMod
     }
   }
@@ -36,7 +51,7 @@ export function getAttackData(item) {
         attackData.damage.versatile = ''
       }
       attackData.ability = attackActivity.ability ?? 'none'
-      if (item.type === 'spell' && item.level === 0) {
+      if (item.type === 'spell' && item.system.level === 0) {
         attackData.scaling = { mode: 'cantrip' }
       }
       attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity)
@@ -371,6 +386,15 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponRangeText = '-'
         }
 
+        let weaponAttackBonusText = getAttackBonus(weaponData)
+        // add a '+' for positive attack bonuses
+        if (weaponAttackBonusText >= 0) {
+          weaponAttackBonusText = '+' + weaponAttackBonusText
+        }
+        else {
+          weaponAttackBonusText = '' + weaponAttackBonusText
+        }
+
         let labelData = {
           numAttacksName: `numAttacks${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
           numAttack: numAttacksTotal,
@@ -379,7 +403,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponImg: weaponData.img,
           weaponNameImg: weaponData.name.replace(' ', '-'),
           weaponName: `${weaponData.name}${((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)}`,
-          weaponAttackBonus: getAttackBonus(weaponData),
+          weaponAttackBonusText: weaponAttackBonusText,
           weaponRange: weaponRangeText,
           weaponDamageText: weaponDamageText,
           useButtonName: `use${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
@@ -608,7 +632,17 @@ export async function endGroupedMobTurn(data) {
   }
 }
 
-export function getDamageFormulaAndType(weaponData, versatile) {
+/**
+ * Given a weapon and optional isVersatile setting, return the damage formulas and types
+ * as an array of arrays
+ * @param {Item5e} weaponData - An item in an actor's inventory
+ * @param {boolean} isVersatile - true if calculating versatile damage, false otherwise
+ * @returns an array of three sub-arrays, one entry per damage "part"
+ *  {string} diceFormulas - string formula for damage roll including modifiers etc.
+ *  {string} damageTypes - string of damage type (fire, slashing, etc.) but capitalized
+ *  {string} damageTypeLabes - string of damage type, no formatting applied
+ */
+export function getDamageFormulaAndType(weaponData, isVersatile = false) {
   const attackData = getAttackData(weaponData)
   let cantripScalingFactor = getScalingFactor(weaponData)
   let diceFormulas = []
@@ -620,16 +654,16 @@ export function getDamageFormulaAndType(weaponData, versatile) {
     damageTypes.push(diceFormulaParts[1].capitalize())
     if (weaponData.type == 'spell') {
       if (attackData.scaling?.mode == 'cantrip') {
-        let rollFormula = new Roll(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]), { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+        let rollFormula = new Roll(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]), { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
         rollFormula.alter(0, cantripScalingFactor, { multiplyNumeric: false })
         diceFormulas.push(rollFormula.formula)
       }
       else {
-        diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
+        diceFormulas.push(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
       }
     }
     else {
-      diceFormulas.push(((versatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
+      diceFormulas.push(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
     }
     lengthIndex++
   }
@@ -711,33 +745,30 @@ export async function sendChatMessage(text) {
   await ChatMessage.create(chatData, {})
 }
 
-export function getAttackBonus(weaponData) {
-  let attackData = getAttackData(weaponData)
-  let weaponAbility = attackData.ability
-  let actorAbilityMod = 0
-  if (weaponAbility === '' || typeof weaponAbility === 'undefined' || weaponAbility == null || weaponAbility == 'none') {
-    if (weaponData.type != 'spell') {
-      actorAbilityMod = 0
-    }
-    else {
-      weaponAbility = weaponData.actor.system.attributes.spellcasting
-      actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod)
-    }
+/**
+ * Get the numerical attack bonus for a given weapon that's from an actor embedded collection
+ * Required to be on an actor in order to get the correct modifiers
+ *
+ * @param {Item5e} actorItem - weapon type item from an actor embedded collection
+ * @returns a positive or negative integer represention the total attack bonus
+ */
+export function getAttackBonus(actorItem) {
+  let attackData // common structure where labels.modifier is kept on both version
+  if (!isDndV4OrNewer()) {
+    actorItem.getAttackToHit()
+    // the system getAttackToHit updates the labels.modifier integer
+    // as a side effect, so we'll use it
+    attackData = actorItem
   }
   else {
-    actorAbilityMod = parseInt(weaponData.actor.system.abilities[weaponAbility].mod)
-  }
-  const attackBonus = parseInt(weaponData.system.attackBonus) || 0
-  let profBonus
-  if (weaponData.type != 'spell') {
-    profBonus = parseInt(((weaponData.system.prof.hasProficiency) ? weaponData.actor.system.attributes.prof : 0))
-  }
-  else {
-    profBonus = parseInt(weaponData.actor.system.attributes.prof)
-  }
-  let finalAttackBonus = actorAbilityMod + attackBonus + profBonus
+    // getAttackToHit migrated to the activity as getAttackData, but the labels.modifier
+    // field on the activity is pre-calculated somewhere else, so no need to trigger it
 
-  return finalAttackBonus
+    // we assume a single activity of type 'attack' exists on the weapon
+    attackData = actorItem.system.activities?.find(a => a.type === 'attack')
+  }
+  // return the labels.modifier if it exists, otherwise modifier is 0
+  return parseInt(attackData?.labels?.modifier ?? 0)
 }
 
 export function getScalingFactor(weaponData) {

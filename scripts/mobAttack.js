@@ -1,6 +1,7 @@
 import { initSettings } from './settings.js'
 import { initMobAttackTool, MobAttackDialog } from './mobAttackTool.js'
 import { MobAttacks } from './mobAttackTool.js'
+// import { initQuenchTests } from './quench.js'
 
 export const moduleName = 'mob-attack-tool'
 
@@ -9,6 +10,7 @@ Hooks.once('init', () => {
 
   initSettings()
   initMobAttackTool()
+  // initQuenchTests()
 
   const dialogs = new Map()
   const storedHooks = {}

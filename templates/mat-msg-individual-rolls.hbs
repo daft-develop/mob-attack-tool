@@ -24,7 +24,7 @@
 							<ol class="dice-rolls">
 								{{#each this.atkRollData}}
 								<li class="roll die d20 {{this.color}}"
-									title="{{localize 'Attack Roll'}} (+{{this.finalAttackBonus}} {{localize 'MAT.toHit'}}) {{#if ../withAdvantage}}(Advantage){{/if}}{{#if ../withDisadvantage}}(Disadvantage){{/if}} {{#if this.discarded}}{{localize 'Discarded Result'}}: {{this.discardedRollTotal}}{{/if}}">
+									title="{{localize 'Attack Roll'}} ({{this.finalAttackBonusText}} {{localize 'MAT.toHit'}}) {{#if ../withAdvantage}}(Advantage){{/if}}{{#if ../withDisadvantage}}(Disadvantage){{/if}} {{#if this.discarded}}{{localize 'Discarded Result'}}: {{this.discardedRollTotal}}{{/if}}">
 									{{this.roll}}</li>
 								{{/each}}
 							</ol>
