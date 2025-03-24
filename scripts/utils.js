@@ -386,15 +386,6 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponRangeText = '-'
         }
 
-        let weaponAttackBonusText = getAttackBonus(weaponData)
-        // add a '+' for positive attack bonuses
-        if (weaponAttackBonusText >= 0) {
-          weaponAttackBonusText = '+' + weaponAttackBonusText
-        }
-        else {
-          weaponAttackBonusText = '' + weaponAttackBonusText
-        }
-
         let labelData = {
           numAttacksName: `numAttacks${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
           numAttack: numAttacksTotal,
@@ -403,7 +394,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponImg: weaponData.img,
           weaponNameImg: weaponData.name.replace(' ', '-'),
           weaponName: `${weaponData.name}${((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)}`,
-          weaponAttackBonusText: weaponAttackBonusText,
+          weaponAttackBonusText: getTextFromAttackBonus(getAttackBonus(weaponData)),
           weaponRange: weaponRangeText,
           weaponDamageText: weaponDamageText,
           useButtonName: `use${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
@@ -793,4 +784,16 @@ export function getScalingFactor(weaponData) {
     }
   }
   return cantripScalingFactor
+}
+
+/**
+ * Text formatting the attack bonus to include leading +/-
+ * @param {Number} finalAttackBonus number representing attack bonus
+ * @returns string version of bonus, leading + or -
+ */
+export function getTextFromAttackBonus(finalAttackBonus) {
+  // convert to string first
+  let finalAttackBonusText = finalAttackBonus.toString()
+  // add a '+' for positive attack bonuses if it's not already there
+  return !/^[+-]/.test(finalAttackBonusText) ? `+${finalAttackBonusText}` : finalAttackBonusText
 }

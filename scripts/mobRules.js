@@ -1,5 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 
 export async function rollMobAttack(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
@@ -58,21 +58,12 @@ export async function rollMobAttack(data) {
           if (attackToken) tokenAttackList.push(attackToken)
         }
 
-        let finalAttackBonusText = ''
-        // add a '+' for positive attack bonuses
-        if (finalAttackBonus >= 0) {
-          finalAttackBonusText = '+' + finalAttackBonus
-        }
-        else {
-          finalAttackBonusText = '' + finalAttackBonus
-        }
-
         // Mob attack results message
         let msgData = {
           actorAmount: actorAmount,
           targetACtext: targetACtext,
           d20Needed: d20Needed,
-          finalAttackBonus: finalAttackBonusText,
+          finalAttackBonus: getTextFromAttackBonus(finalAttackBonus),
           weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``}`,
           availableAttacks: availableAttacks,
           attackersNeeded: attackersNeeded,

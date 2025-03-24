@@ -1,5 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 
 export async function rollMobAttackIndividually(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
@@ -68,14 +68,7 @@ export async function rollMobAttackIndividually(data) {
           discarded = true
         }
 
-        let finalAttackBonusText = ''
-        // add a '+' for positive attack bonuses
-        if (finalAttackBonus >= 0) {
-          finalAttackBonusText = '+' + finalAttackBonus
-        }
-        else {
-          finalAttackBonusText = '' + finalAttackBonus
-        }
+        let finalAttackBonusText = getTextFromAttackBonus(finalAttackBonus)
 
         // Check settings for rolling 3d dice from Dice So Nice
         if (game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls')) {
