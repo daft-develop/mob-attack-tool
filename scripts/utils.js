@@ -31,7 +31,7 @@ export function getAttackData(item) {
     }
   }
   else {
-    const attackActivity = item.system?.activities?.find(a => a.type === 'attack') || {}
+    const attackActivity = getActivityFromItem(item) || {}
     attackData = { ...attackActivity }
     if (attackActivity.damage) {
       attackData.damage = {
@@ -761,14 +761,21 @@ export function getAttackBonus(actorItem) {
     attackData = actorItem
   }
   else {
-    // getAttackToHit migrated to the activity as getAttackData, but the labels.modifier
-    // field on the activity is pre-calculated somewhere else, so no need to trigger it
-
     // we assume a single activity of type 'attack' exists on the weapon
-    attackData = actorItem.system.activities?.find(a => a.type === 'attack')
+    attackData = getActivityFromItem(actorItem)
   }
   // return the labels.modifier if it exists, otherwise modifier is 0
   return parseInt(attackData?.labels?.modifier ?? 0)
+}
+
+/**
+ * Return the first attack activity from an item
+ * This is taken from the dnd5e system code
+ * @param {Item5e} actorItem - item containting an attack activity
+ * @returns the first activity on an item with the type attack, or null if no match
+ */
+function getActivityFromItem(actorItem) {
+  return actorItem.system.activities?.getByType('attack')[0]
 }
 
 export function getScalingFactor(weaponData) {
