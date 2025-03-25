@@ -264,6 +264,9 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
           }
 
+          /* DamageOnlyWorkflow: itemCardId is deprecated, use itemCardUuid instead
+          * Deprecated since Version midi-qol 12.4.32
+          * Backwards-compatible support will be removed in Version midi-qol 12.5.0 */
           await new MidiQOL.DamageOnlyWorkflow(
             weaponData.actor,
             // (targetToken) ? targetToken : undefined,
@@ -322,6 +325,9 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
         }
 
+        /* DamageOnlyWorkflow: itemCardId is deprecated, use itemCardUuid instead
+        * Deprecated since Version midi-qol 12.4.32
+        * Backwards-compatible support will be removed in Version midi-qol 12.5.0 */
         let workflow = await new MidiQOL.DamageOnlyWorkflow(
           weaponData.actor,
           // (targetToken) ? targetToken : undefined,

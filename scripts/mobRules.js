@@ -158,6 +158,9 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       }
     }
 
+    /* DamageOnlyWorkflow: itemCardId is deprecated, use itemCardUuid instead
+    * Deprecated since Version midi-qol 12.4.32
+    * Backwards-compatible support will be removed in Version midi-qol 12.5.0 */
     let workflow = await new MidiQOL.DamageOnlyWorkflow(
       weaponData.actor,
       targetToken ?? undefined,

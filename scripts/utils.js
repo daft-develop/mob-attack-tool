@@ -367,6 +367,9 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
         if (autoDetect > 0) [numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
         if (autoDetect === 1 || isVersatile) preChecked = false
         let weaponRangeText = ``
+        // The `range` property on `ActivatedEffectTemplate` has been deprecated.
+        // Deprecated since Version DnD5e 4.0
+        // Backwards-compatible support will be removed in Version DnD5e 4.4
         if (weaponData.system.range.long > 0) {
           weaponRangeText = `${weaponData.system.range.value}/${weaponData.system.range.long} ${weaponData.system.range.units}.`
         }
@@ -769,6 +772,9 @@ function getActivityFromItem(actorItem) {
 export function getScalingFactor(weaponData) {
   let cantripScalingFactor = 1
   if (weaponData.type == 'spell') {
+    // The `details.spellLevel` property on NPCs have moved to `attributes.spell.level`.
+    // Deprecated since Version DnD5e 4.3
+    // Backwards-compatible support will be removed in Version DnD5e 5.0
     let casterLevel = weaponData.actor.system.details.level || weaponData.actor.system.details.spellLevel
     if (5 <= casterLevel && casterLevel <= 10) {
       cantripScalingFactor = 2
