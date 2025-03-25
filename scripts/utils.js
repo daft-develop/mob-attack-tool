@@ -1,9 +1,6 @@
+import { systemEqualOrNewer } from './versions.js'
 import { moduleName } from './mobAttack.js'
 import { getMultiattackFromActor } from './multiattack.js'
-
-export function isDndV4OrNewer() {
-  return foundry.utils.isNewerVersion(game.system.version, '3.9')
-}
 
 /**
  * For a given weapon/spell/item, return the data required to perform an attack
@@ -21,7 +18,7 @@ export function isDndV4OrNewer() {
  */
 export function getAttackData(item) {
   let attackData
-  if (!isDndV4OrNewer()) {
+  if (!systemEqualOrNewer('4.0.0')) {
     attackData = item.system
     // v3 requires a rollDamage() call to calculate some of the additional fields we use
     attackData.rollDamage = item.rollDamage.bind(item)
@@ -62,7 +59,7 @@ export function getAttackData(item) {
 
 export function getDamageOptions(allowCritical = true, targetId = null) {
   let formattedTarget = formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId)?.actor.uuid)
-  if (!isDndV4OrNewer()) {
+  if (!systemEqualOrNewer('4.0.0')) {
     return {
       damage: { critical: allowCritical, options: { fastForward: true, messageData: { 'flags.dnd5e': { targets: formattedTarget } } } },
       dialog: {},
@@ -149,7 +146,7 @@ export function checkTarget() {
 }
 
 export function formatAttackTargets() {
-  if (!isDndV4OrNewer()) {
+  if (!systemEqualOrNewer('4.0.0')) {
     return dnd5e.documents.Item5e._formatAttackTargets()
   }
   else {
@@ -300,7 +297,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     let items = actor.items.contents
     for (let item of items) {
       let isAttack = false
-      if (isDndV4OrNewer()) {
+      if (systemEqualOrNewer('4.0.0')) {
         isAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
       }
       else {
@@ -745,7 +742,7 @@ export async function sendChatMessage(text) {
  */
 export function getAttackBonus(actorItem) {
   let attackData // common structure where labels.modifier is kept on both version
-  if (!isDndV4OrNewer()) {
+  if (!systemEqualOrNewer('4.0.0')) {
     actorItem.getAttackToHit()
     // the system getAttackToHit updates the labels.modifier integer
     // as a side effect, so we'll use it

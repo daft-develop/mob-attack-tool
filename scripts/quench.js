@@ -1,4 +1,5 @@
-import { getAttackBonus, getDamageFormulaAndType, isDndV4OrNewer } from './utils.js'
+import { getAttackBonus, getDamageFormulaAndType } from './utils.js'
+import { systemEqualOrNewer } from './versions.js'
 
 export function initQuenchTests() {
   Hooks.on('quenchReady', (quench) => {
@@ -16,7 +17,7 @@ export function initQuenchTests() {
           // the rest of these settings and trying to decrease load time
           // since we're constantly refreshing while testing
           it('should have global lighting enabled', function () {
-            if (!isDndV4OrNewer()) {
+            if (!systemEqualOrNewer('4.0.0')) {
               expect(activeScene.globalLight).to.equal(true)
             }
             else {
@@ -27,7 +28,7 @@ export function initQuenchTests() {
             expect(activeScene.tokenVision).to.equal(false)
           })
           it('should have fog exploration disabled', function () {
-            if (!isDndV4OrNewer()) {
+            if (!systemEqualOrNewer('4.0.0')) {
               expect(activeScene.fogExploration).to.equal(false)
             }
             else {
@@ -73,7 +74,7 @@ export function initQuenchTests() {
             expect(randalItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
-            if (!isDndV4OrNewer()) {
+            if (!systemEqualOrNewer('4.0.0')) {
               expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source, 'Battleaxe +3 ability of NULL').to.have.property('actionType')
               expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.ability, 'Battleaxe +3 ability of NULL').to.not.be.ok // check for falsy value
             }
@@ -117,7 +118,7 @@ export function initQuenchTests() {
             expect(skeletonItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
-            if (!isDndV4OrNewer()) {
+            if (!systemEqualOrNewer('4.0.0')) {
               expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source, 'Battleaxe +3 ability of NULL').to.have.property('actionType')
               expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.ability, 'Battleaxe +3 ability of NULL').to.be.null
             }
@@ -391,6 +392,28 @@ export function initQuenchTests() {
         })
       },
       { displayName: 'MAT: NPC Checks' },
+    )
+
+    quench.registerBatch(
+      'mat.misc',
+      (context) => {
+        const { describe, it, expect } = context
+
+        describe('Version checking', function () {
+          it('should return true for identical versions', function () {
+            expect(systemEqualOrNewer('3.0.0', '3.0.0'), '3.0.0 == 3.0.0').to.equal(true)
+          })
+          it('should return true for newer versions', function () {
+            expect(systemEqualOrNewer('4.0.0', '4.1.2'), '4.2.1 > 4.0.0').to.equal(true)
+            expect(systemEqualOrNewer('3', '3.3.1'), '3.3.1 > 3').to.equal(true)
+          })
+          it('should return false for older versions', function () {
+            expect(systemEqualOrNewer('4', '3.3.1'), '3.3.1 !> 4').to.equal(false)
+            expect(systemEqualOrNewer('5', '4.0.0'), '4.0.0 !> 5').to.equal(false)
+          })
+        })
+      },
+      { displayName: 'MAT: Misc Tests' },
     )
   })
 }
