@@ -1,4 +1,4 @@
-import { systemEqualOrNewer } from './versions.js'
+import { systemEqualOrNewerThan } from './versions.js'
 import { moduleName } from './mobAttack.js'
 import { getMultiattackFromActor } from './multiattack.js'
 
@@ -18,16 +18,7 @@ import { getMultiattackFromActor } from './multiattack.js'
  */
 export function getAttackData(item) {
   let attackData
-  if (!systemEqualOrNewer('4.0.0')) {
-    attackData = item.system
-    // v3 requires a rollDamage() call to calculate some of the additional fields we use
-    attackData.rollDamage = item.rollDamage.bind(item)
-    // sub out "default" Ability Modifier
-    if (attackData?.ability == undefined || attackData.ability == '') {
-      attackData.ability = attackData.abilityMod
-    }
-  }
-  else {
+  if (systemEqualOrNewerThan('4.0.0')) {
     const attackActivity = getActivityFromItem(item) || {}
     attackData = { ...attackActivity }
     if (attackActivity.damage) {
@@ -54,22 +45,31 @@ export function getAttackData(item) {
       attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity)
     }
   }
+  else {
+    attackData = item.system
+    // v3 requires a rollDamage() call to calculate some of the additional fields we use
+    attackData.rollDamage = item.rollDamage.bind(item)
+    // sub out "default" Ability Modifier
+    if (attackData?.ability == undefined || attackData.ability == '') {
+      attackData.ability = attackData.abilityMod
+    }
+  }
   return attackData
 }
 
 export function getDamageOptions(allowCritical = true, targetId = null) {
   let formattedTarget = formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId)?.actor.uuid)
-  if (!systemEqualOrNewer('4.0.0')) {
-    return {
-      damage: { critical: allowCritical, options: { fastForward: true, messageData: { 'flags.dnd5e': { targets: formattedTarget } } } },
-      dialog: {},
-    }
-  }
-  else {
+  if (systemEqualOrNewerThan('4.0.0')) {
     return {
       damage: { isCritical: allowCritical },
       dialog: { configure: false },
       message: { 'data.flags.dnd5e.targets': formattedTarget },
+    }
+  }
+  else {
+    return {
+      damage: { critical: allowCritical, options: { fastForward: true, messageData: { 'flags.dnd5e': { targets: formattedTarget } } } },
+      dialog: {},
     }
   }
 }
@@ -146,11 +146,11 @@ export function checkTarget() {
 }
 
 export function formatAttackTargets() {
-  if (!systemEqualOrNewer('4.0.0')) {
-    return dnd5e.documents.Item5e._formatAttackTargets()
+  if (systemEqualOrNewerThan('4.0.0')) {
+    return dnd5e.utils.getTargetDescriptors()
   }
   else {
-    return dnd5e.utils.getTargetDescriptors()
+    return dnd5e.documents.Item5e._formatAttackTargets()
   }
 }
 
@@ -297,7 +297,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     let items = actor.items.contents
     for (let item of items) {
       let isAttack = false
-      if (systemEqualOrNewer('4.0.0')) {
+      if (systemEqualOrNewerThan('4.0.0')) {
         isAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
       }
       else {
@@ -742,15 +742,15 @@ export async function sendChatMessage(text) {
  */
 export function getAttackBonus(actorItem) {
   let attackData // common structure where labels.modifier is kept on both version
-  if (!systemEqualOrNewer('4.0.0')) {
+  if (systemEqualOrNewerThan('4.0.0')) {
+    // we assume a single activity of type 'attack' exists on the weapon
+    attackData = getActivityFromItem(actorItem)
+  }
+  else {
     actorItem.getAttackToHit()
     // the system getAttackToHit updates the labels.modifier integer
     // as a side effect, so we'll use it
     attackData = actorItem
-  }
-  else {
-    // we assume a single activity of type 'attack' exists on the weapon
-    attackData = getActivityFromItem(actorItem)
   }
   // return the labels.modifier if it exists, otherwise modifier is 0
   return parseInt(attackData?.labels?.modifier ?? 0)
