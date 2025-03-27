@@ -158,9 +158,6 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       }
     }
 
-    /* DamageOnlyWorkflow: itemCardId is deprecated, use itemCardUuid instead
-    * Deprecated since Version midi-qol 12.4.32
-    * Backwards-compatible support will be removed in Version midi-qol 12.5.0 */
     let workflow = await new MidiQOL.DamageOnlyWorkflow(
       weaponData.actor,
       targetToken ?? undefined,
@@ -171,7 +168,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       {
         flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
         item: weaponData,
-        itemCardId: `new`,
+        itemCardUuid: `new`,
       },
     )
 
@@ -189,7 +186,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
         damageRollHTML: workflow.damageRollHTML,
         attackRoll: workflow?.attackRoll,
         attackTotal: workflow.attackTotal,
-        itemCardId: (game.settings.get(moduleName, 'dontSendItemCardId')) ? null : workflow.itemCardId,
+        itemCardUuid: (game.settings.get(moduleName, 'dontSendItemCardUuid')) ? null : workflow.itemCardUuid,
         isCritical: false,
         isFumble: false,
         spellLevel: 0,

@@ -264,9 +264,6 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
           }
 
-          /* DamageOnlyWorkflow: itemCardId is deprecated, use itemCardUuid instead
-          * Deprecated since Version midi-qol 12.4.32
-          * Backwards-compatible support will be removed in Version midi-qol 12.5.0 */
           await new MidiQOL.DamageOnlyWorkflow(
             weaponData.actor,
             // (targetToken) ? targetToken : undefined,
@@ -279,7 +276,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             {
               flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
               item: weaponData,
-              itemCardId: `new`,
+              itemCardUuid: `new`,
             },
           )
           // after issuing the workflow, wait until it signals complete, or 4 seconds has passed, whichever is first
@@ -325,9 +322,6 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
         }
 
-        /* DamageOnlyWorkflow: itemCardId is deprecated, use itemCardUuid instead
-        * Deprecated since Version midi-qol 12.4.32
-        * Backwards-compatible support will be removed in Version midi-qol 12.5.0 */
         let workflow = await new MidiQOL.DamageOnlyWorkflow(
           weaponData.actor,
           // (targetToken) ? targetToken : undefined,
@@ -340,7 +334,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           {
             flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
             item: weaponData,
-            itemCardId: `new`,
+            itemCardUuid: `new`,
           },
         )
 
@@ -358,7 +352,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             damageRollHTML: workflow.damageRollHTML,
             attackRoll: successfulAttackRolls[0],
             attackTotal: successfulAttackRolls[0].total,
-            itemCardId: (game.settings.get(moduleName, 'dontSendItemCardId')) ? null : workflow.itemCardId,
+            itemCardUuid: (game.settings.get(moduleName, 'dontSendItemCardUuid')) ? null : workflow.itemCardUuid,
             isCritical: (numCrits > 0),
             isFumble: false,
             spellLevel: 0,
