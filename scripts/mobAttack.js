@@ -5,6 +5,10 @@ import { MobAttacks } from './mobAttackTool.js'
 
 export const moduleName = 'mob-attack-tool'
 
+/* The {{select}} handlebars helper is deprecated in favor of using the {{selectOptions}} helper or the foundry.applications.fields.createSelectInput, foundry.applications.fields.createMultiSelectElement, or foundry.applications.fields.prepareSelectOptionGroups methods.
+Deprecated since Version 12
+Backwards-compatible support will be removed in Version 14 */
+
 Hooks.once('init', () => {
   console.log('Mob Attack Tool | Adding Mob Attack Tool.')
 

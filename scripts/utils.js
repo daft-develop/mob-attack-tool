@@ -1,9 +1,6 @@
+import { systemEqualOrNewerThan } from './versions.js'
 import { moduleName } from './mobAttack.js'
 import { getMultiattackFromActor } from './multiattack.js'
-
-export function isDndV4OrNewer() {
-  return foundry.utils.isNewerVersion(game.system.version, '3.9')
-}
 
 /**
  * For a given weapon/spell/item, return the data required to perform an attack
@@ -21,17 +18,8 @@ export function isDndV4OrNewer() {
  */
 export function getAttackData(item) {
   let attackData
-  if (!isDndV4OrNewer()) {
-    attackData = item.system
-    // v3 requires a rollDamage() call to calculate some of the additional fields we use
-    attackData.rollDamage = item.rollDamage.bind(item)
-    // sub out "default" Ability Modifier
-    if (attackData?.ability == undefined || attackData.ability == '') {
-      attackData.ability = attackData.abilityMod
-    }
-  }
-  else {
-    const attackActivity = item.system?.activities?.find(a => a.type === 'attack') || {}
+  if (systemEqualOrNewerThan('4.0.0')) {
+    const attackActivity = getActivityFromItem(item) || {}
     attackData = { ...attackActivity }
     if (attackActivity.damage) {
       attackData.damage = {
@@ -57,22 +45,31 @@ export function getAttackData(item) {
       attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity)
     }
   }
+  else {
+    attackData = item.system
+    // v3 requires a rollDamage() call to calculate some of the additional fields we use
+    attackData.rollDamage = item.rollDamage.bind(item)
+    // sub out "default" Ability Modifier
+    if (attackData?.ability == undefined || attackData.ability == '') {
+      attackData.ability = attackData.abilityMod
+    }
+  }
   return attackData
 }
 
 export function getDamageOptions(allowCritical = true, targetId = null) {
   let formattedTarget = formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId)?.actor.uuid)
-  if (!isDndV4OrNewer()) {
-    return {
-      damage: { critical: allowCritical, options: { fastForward: true, messageData: { 'flags.dnd5e': { targets: formattedTarget } } } },
-      dialog: {},
-    }
-  }
-  else {
+  if (systemEqualOrNewerThan('4.0.0')) {
     return {
       damage: { isCritical: allowCritical },
       dialog: { configure: false },
       message: { 'data.flags.dnd5e.targets': formattedTarget },
+    }
+  }
+  else {
+    return {
+      damage: { critical: allowCritical, options: { fastForward: true, messageData: { 'flags.dnd5e': { targets: formattedTarget } } } },
+      dialog: {},
     }
   }
 }
@@ -149,11 +146,11 @@ export function checkTarget() {
 }
 
 export function formatAttackTargets() {
-  if (!isDndV4OrNewer()) {
-    return dnd5e.documents.Item5e._formatAttackTargets()
+  if (systemEqualOrNewerThan('4.0.0')) {
+    return dnd5e.utils.getTargetDescriptors()
   }
   else {
-    return dnd5e.utils.getTargetDescriptors()
+    return dnd5e.documents.Item5e._formatAttackTargets()
   }
 }
 
@@ -300,7 +297,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     let items = actor.items.contents
     for (let item of items) {
       let isAttack = false
-      if (isDndV4OrNewer()) {
+      if (systemEqualOrNewerThan('4.0.0')) {
         isAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
       }
       else {
@@ -370,6 +367,9 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
         if (autoDetect > 0) [numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
         if (autoDetect === 1 || isVersatile) preChecked = false
         let weaponRangeText = ``
+        // The `range` property on `ActivatedEffectTemplate` has been deprecated.
+        // Deprecated since Version DnD5e 4.0
+        // Backwards-compatible support will be removed in Version DnD5e 4.4
         if (weaponData.system.range.long > 0) {
           weaponRangeText = `${weaponData.system.range.value}/${weaponData.system.range.long} ${weaponData.system.range.units}.`
         }
@@ -386,15 +386,6 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponRangeText = '-'
         }
 
-        let weaponAttackBonusText = getAttackBonus(weaponData)
-        // add a '+' for positive attack bonuses
-        if (weaponAttackBonusText >= 0) {
-          weaponAttackBonusText = '+' + weaponAttackBonusText
-        }
-        else {
-          weaponAttackBonusText = '' + weaponAttackBonusText
-        }
-
         let labelData = {
           numAttacksName: `numAttacks${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
           numAttack: numAttacksTotal,
@@ -403,7 +394,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
           weaponImg: weaponData.img,
           weaponNameImg: weaponData.name.replace(' ', '-'),
           weaponName: `${weaponData.name}${((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)}`,
-          weaponAttackBonusText: weaponAttackBonusText,
+          weaponAttackBonusText: getTextFromAttackBonus(getAttackBonus(weaponData)),
           weaponRange: weaponRangeText,
           weaponDamageText: weaponDamageText,
           useButtonName: `use${(weaponData.id + ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)).replace(' ', '-')}`,
@@ -754,26 +745,36 @@ export async function sendChatMessage(text) {
  */
 export function getAttackBonus(actorItem) {
   let attackData // common structure where labels.modifier is kept on both version
-  if (!isDndV4OrNewer()) {
+  if (systemEqualOrNewerThan('4.0.0')) {
+    // we assume a single activity of type 'attack' exists on the weapon
+    attackData = getActivityFromItem(actorItem)
+  }
+  else {
     actorItem.getAttackToHit()
     // the system getAttackToHit updates the labels.modifier integer
     // as a side effect, so we'll use it
     attackData = actorItem
   }
-  else {
-    // getAttackToHit migrated to the activity as getAttackData, but the labels.modifier
-    // field on the activity is pre-calculated somewhere else, so no need to trigger it
-
-    // we assume a single activity of type 'attack' exists on the weapon
-    attackData = actorItem.system.activities?.find(a => a.type === 'attack')
-  }
   // return the labels.modifier if it exists, otherwise modifier is 0
   return parseInt(attackData?.labels?.modifier ?? 0)
+}
+
+/**
+ * Return the first attack activity from an item
+ * This is taken from the dnd5e system code
+ * @param {Item5e} actorItem - item containting an attack activity
+ * @returns the first activity on an item with the type attack, or null if no match
+ */
+function getActivityFromItem(actorItem) {
+  return actorItem.system.activities?.getByType('attack')[0]
 }
 
 export function getScalingFactor(weaponData) {
   let cantripScalingFactor = 1
   if (weaponData.type == 'spell') {
+    // The `details.spellLevel` property on NPCs have moved to `attributes.spell.level`.
+    // Deprecated since Version DnD5e 4.3
+    // Backwards-compatible support will be removed in Version DnD5e 5.0
     let casterLevel = weaponData.actor.system.details.level || weaponData.actor.system.details.spellLevel
     if (5 <= casterLevel && casterLevel <= 10) {
       cantripScalingFactor = 2
@@ -786,4 +787,16 @@ export function getScalingFactor(weaponData) {
     }
   }
   return cantripScalingFactor
+}
+
+/**
+ * Text formatting the attack bonus to include leading +/-
+ * @param {Number} finalAttackBonus number representing attack bonus
+ * @returns string version of bonus, leading + or -
+ */
+export function getTextFromAttackBonus(finalAttackBonus) {
+  // convert to string first
+  let finalAttackBonusText = finalAttackBonus.toString()
+  // add a '+' for positive attack bonuses if it's not already there
+  return !/^[+-]/.test(finalAttackBonusText) ? `+${finalAttackBonusText}` : finalAttackBonusText
 }

@@ -1,5 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 
 export async function rollMobAttack(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
@@ -58,21 +58,12 @@ export async function rollMobAttack(data) {
           if (attackToken) tokenAttackList.push(attackToken)
         }
 
-        let finalAttackBonusText = ''
-        // add a '+' for positive attack bonuses
-        if (finalAttackBonus >= 0) {
-          finalAttackBonusText = '+' + finalAttackBonus
-        }
-        else {
-          finalAttackBonusText = '' + finalAttackBonus
-        }
-
         // Mob attack results message
         let msgData = {
           actorAmount: actorAmount,
           targetACtext: targetACtext,
           d20Needed: d20Needed,
-          finalAttackBonus: finalAttackBonusText,
+          finalAttackBonus: getTextFromAttackBonus(finalAttackBonus),
           weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``}`,
           availableAttacks: availableAttacks,
           attackersNeeded: attackersNeeded,
@@ -177,7 +168,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       {
         flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
         item: weaponData,
-        itemCardId: `new`,
+        itemCardUuid: `new`,
       },
     )
 
@@ -195,7 +186,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
         damageRollHTML: workflow.damageRollHTML,
         attackRoll: workflow?.attackRoll,
         attackTotal: workflow.attackTotal,
-        itemCardId: (game.settings.get(moduleName, 'dontSendItemCardId')) ? null : workflow.itemCardId,
+        itemCardUuid: (game.settings.get(moduleName, 'dontSendItemCardUuid')) ? null : workflow.itemCardUuid,
         isCritical: false,
         isFumble: false,
         spellLevel: 0,

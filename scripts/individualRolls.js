@@ -1,5 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 
 export async function rollMobAttackIndividually(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
@@ -68,14 +68,7 @@ export async function rollMobAttackIndividually(data) {
           discarded = true
         }
 
-        let finalAttackBonusText = ''
-        // add a '+' for positive attack bonuses
-        if (finalAttackBonus >= 0) {
-          finalAttackBonusText = '+' + finalAttackBonus
-        }
-        else {
-          finalAttackBonusText = '' + finalAttackBonus
-        }
+        let finalAttackBonusText = getTextFromAttackBonus(finalAttackBonus)
 
         // Check settings for rolling 3d dice from Dice So Nice
         if (game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls')) {
@@ -283,7 +276,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             {
               flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
               item: weaponData,
-              itemCardId: `new`,
+              itemCardUuid: `new`,
             },
           )
           // after issuing the workflow, wait until it signals complete, or 4 seconds has passed, whichever is first
@@ -341,7 +334,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           {
             flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
             item: weaponData,
-            itemCardId: `new`,
+            itemCardUuid: `new`,
           },
         )
 
@@ -359,7 +352,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             damageRollHTML: workflow.damageRollHTML,
             attackRoll: successfulAttackRolls[0],
             attackTotal: successfulAttackRolls[0].total,
-            itemCardId: (game.settings.get(moduleName, 'dontSendItemCardId')) ? null : workflow.itemCardId,
+            itemCardUuid: (game.settings.get(moduleName, 'dontSendItemCardUuid')) ? null : workflow.itemCardUuid,
             isCritical: (numCrits > 0),
             isFumble: false,
             spellLevel: 0,

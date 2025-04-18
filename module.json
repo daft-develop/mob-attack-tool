@@ -31,10 +31,11 @@
     }
   ],
   "url": "https://github.com/daft-develop/mob-attack-tool",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "compatibility": {
     "minimum": "11",
-    "verified": "12"
+    "verified": "12",
+    "maximum": "14"
   },
   "relationships": {
     "systems": [
@@ -44,7 +45,7 @@
         "compatibility": {
           "minimum": "3",
           "verified": "3.3.1",
-          "maximum": "4.9.99"
+          "maximum": "4.3.999"
         }
       }
     ]
