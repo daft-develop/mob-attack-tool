@@ -4,6 +4,7 @@ import { rollMobAttackIndividually } from './individualRolls.js'
 import { rollMobAttack } from './mobRules.js'
 
 export function initMobAttackTool() {
+  // Something is deprecated here on v13. Works as intended v12 but no toolbar icon shows on v13
   Hooks.on('getSceneControlButtons', (controls) => {
     const playerAccess = game.settings.get(moduleName, 'playerAccess')
     const bar = controls.find(c => c.name === 'token')

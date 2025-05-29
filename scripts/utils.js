@@ -4,14 +4,17 @@ import { getMultiattackFromActor } from './multiattack.js'
 
 /**
  * For a given weapon/spell/item, return the data required to perform an attack
- * This was part of "WeaponData" in v3 and
- * migrated to "AttackActivity" on the item's activity in v4
+ * This was part of "WeaponData" in v3 and migrated to "AttackActivity" on the
+ * item's activity in v4
+ *
  * We're using:
+ *
  * ability - string of str/dex/etc. or 'none'
  * a bound copy of the rollDamage function pointing back to the item/activity source
  * damage.versatile - bool true if versatile copy of item
  * damage.parts[] - array of damage "parts" like the damage formula and damage type (fire/slashing)
  * scaling.mode - for spells
+ * range - for ranged weapon reach/long/value/units
  *
  * @param {Item5e} item a weapon/spell held by an actor
  * @returns the item's attackData
@@ -367,19 +370,16 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
         if (autoDetect > 0) [numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
         if (autoDetect === 1 || isVersatile) preChecked = false
         let weaponRangeText = ``
-        // The `range` property on `ActivatedEffectTemplate` has been deprecated.
-        // Deprecated since Version DnD5e 4.0
-        // Backwards-compatible support will be removed in Version DnD5e 4.4
-        if (weaponData.system.range.long > 0) {
-          weaponRangeText = `${weaponData.system.range.value}/${weaponData.system.range.long} ${weaponData.system.range.units}.`
+        if (attackData.range.long > 0) {
+          weaponRangeText = `${attackData.range.value}/${attackData.range.long} ${attackData.range.units}.`
         }
-        else if (weaponData.system.range.value > 0) {
-          weaponRangeText = `${weaponData.system.range.value} ${weaponData.system.range.units}.`
+        else if (attackData.range.value > 0) {
+          weaponRangeText = `${attackData.range.value} ${attackData.range.units}.`
         }
-        else if (weaponData.system.range.units === 'touch') {
+        else if (attackData.range.units === 'touch') {
           weaponRangeText = 'Touch'
         }
-        else if (weaponData.system.range.units === 'self') {
+        else if (attackData.range.units === 'self') {
           weaponRangeText = 'Self'
         }
         else {
