@@ -35,7 +35,7 @@
   "compatibility": {
     "minimum": "11",
     "verified": "12",
-    "maximum": "14"
+    "maximum": "12"
   },
   "relationships": {
     "systems": [
