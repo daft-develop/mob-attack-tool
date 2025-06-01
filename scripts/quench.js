@@ -71,6 +71,7 @@ export function initQuenchTests() {
             expect(randalItems.filter(i => i.name == 'Handaxe (None)'), 'missing Handaxe (None) attribute set to none').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Handaxe (Bonus ToHit)'), 'missing Handaxe (Bonus ToHit) with +10 bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Handaxe (Flat)'), 'missing Handaxe (Flat) with flat +5 bonus').to.have.lengthOf(1)
+            expect(randalItems.filter(i => i.name == 'Handaxe, No Damage Type'), 'missing Handaxe, No Damage Type').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
@@ -115,6 +116,7 @@ export function initQuenchTests() {
             expect(skeletonItems.filter(i => i.name == 'Handaxe (None)'), 'missing Handaxe (None) attribute set to none').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Handaxe (Bonus ToHit)'), 'missing Handaxe (Bonus ToHit) with +10 bonus').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Handaxe (Flat)'), 'missing Handaxe (Flat) with flat +5 bonus').to.have.lengthOf(1)
+            expect(skeletonItems.filter(i => i.name == 'Handaxe, No Damage Type'), 'missing Handaxe, No Damage Type').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
@@ -259,6 +261,13 @@ export function initQuenchTests() {
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
           })
+          it('should handle damage without a damage type', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe, No Damage Type');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 4')
+            type[0].should.equal('')
+            label[0].should.equal('')
+          })
         })
       },
       { displayName: 'MAT: Player Character Checks' },
@@ -389,6 +398,13 @@ export function initQuenchTests() {
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
           })
+          it('should handle damage without a damage type', function () {
+            const weapon = testItems.find(i => i.name == 'Handaxe, No Damage Type');
+            [damage, type, label] = getDamageFormulaAndType(weapon, false)
+            damage[0].should.equal('1d6 + 0')
+            type[0].should.equal('')
+            label[0].should.equal('')
+          })
         })
       },
       { displayName: 'MAT: NPC Checks' },
@@ -410,6 +426,9 @@ export function initQuenchTests() {
           it('should return false for older versions', function () {
             expect(systemEqualOrNewerThan('4', '3.3.1'), '3.3.1 !> 4').to.equal(false)
             expect(systemEqualOrNewerThan('5', '4.0.0'), '4.0.0 !> 5').to.equal(false)
+          })
+          it('should return true without overriding system arg', function () {
+            expect(systemEqualOrNewerThan('3')).to.equal(true)
           })
         })
       },
