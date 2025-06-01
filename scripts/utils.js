@@ -28,7 +28,7 @@ export function getAttackData(item) {
       attackData.damage = {
         parts: attackData.damage.parts.map(p => [
           p.formula + (p.base && !/@mod\b/.test(p.formula) ? ' + @mod' : ''),
-          p.types.first(),
+          p.types.first() ?? '',
         ]),
       }
       if (item.system.properties.has('ver')) {
