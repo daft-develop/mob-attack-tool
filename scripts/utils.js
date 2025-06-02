@@ -42,7 +42,7 @@ export function getAttackData(item) {
         attackData.damage.versatile = ''
       }
       attackData.ability = attackActivity.ability ?? 'none'
-      if (item.type === 'spell' && item.system.level === 0) {
+      if (item.type === 'spell' && item.system.level === 0 && item.name !== 'Eldritch Blast') {
         attackData.scaling = { mode: 'cantrip' }
       }
       attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity)
@@ -772,10 +772,14 @@ function getActivityFromItem(actorItem) {
 export function getScalingFactor(weaponData) {
   let cantripScalingFactor = 1
   if (weaponData.type == 'spell') {
-    // The `details.spellLevel` property on NPCs have moved to `attributes.spell.level`.
-    // Deprecated since Version DnD5e 4.3
-    // Backwards-compatible support will be removed in Version DnD5e 5.0
-    let casterLevel = weaponData.actor.system.details.level || weaponData.actor.system.details.spellLevel
+    let casterLevel = 0
+    if (systemEqualOrNewerThan('4.3.0') && weaponData.actor.type === 'npc') {
+      casterLevel = weaponData.actor.system.attributes.spell.level
+    }
+    else {
+      casterLevel = weaponData.actor.system.details.level || weaponData.actor.system.details.spellLevel
+    }
+
     if (5 <= casterLevel && casterLevel <= 10) {
       cantripScalingFactor = 2
     }

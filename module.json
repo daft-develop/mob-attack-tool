@@ -45,7 +45,7 @@
         "compatibility": {
           "minimum": "3.2.1",
           "verified": "4.4.3",
-          "maximum": "4.99.999"
+          "maximum": "5.99.999"
         }
       }
     ]
