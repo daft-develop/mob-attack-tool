@@ -2,20 +2,33 @@ import { moduleName } from './mobAttack.js'
 import { checkTarget, getTargetData, prepareMonsters, prepareMobAttack, loadMob } from './utils.js'
 import { rollMobAttackIndividually } from './individualRolls.js'
 import { rollMobAttack } from './mobRules.js'
+import { foundryEqualOrNewerThan } from './versions.js'
 
-export function initMobAttackTool() {
-  // Something is deprecated here on v13. Works as intended v12 but no toolbar icon shows on v13
+export function addMobAttackToolButton() {
   Hooks.on('getSceneControlButtons', (controls) => {
     const playerAccess = game.settings.get(moduleName, 'playerAccess')
-    const bar = controls.find(c => c.name === 'token')
-    bar.tools.push({
-      name: game.i18n.localize('MAT.name'),
-      title: game.i18n.localize('MAT.mobAttack'),
-      icon: 'fas fa-dice',
-      visible: (playerAccess ? true : game.user.isGM),
-      onClick: async () => mobAttackTool(),
-      button: true,
-    })
+    if (foundryEqualOrNewerThan('13.0')) {
+      const tokenBar = controls['tokens']
+      tokenBar.tools[game.i18n.localize('MAT.name')] = {
+        name: game.i18n.localize('MAT.name'),
+        title: game.i18n.localize('MAT.mobAttack'),
+        icon: 'fas fa-dice',
+        visible: (playerAccess ? true : game.user.isGM),
+        onChange: () => mobAttackTool(),
+        button: true,
+      }
+    }
+    else {
+      const bar = controls.find(c => c.name === 'token')
+      bar.tools.push({
+        name: game.i18n.localize('MAT.name'),
+        title: game.i18n.localize('MAT.mobAttack'),
+        icon: 'fas fa-dice',
+        visible: (playerAccess ? true : game.user.isGM),
+        onClick: async () => mobAttackTool(),
+        button: true,
+      })
+    }
   })
 }
 

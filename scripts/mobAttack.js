@@ -1,5 +1,5 @@
 import { initSettings } from './settings.js'
-import { initMobAttackTool, MobAttackDialog } from './mobAttackTool.js'
+import { addMobAttackToolButton, MobAttackDialog } from './mobAttackTool.js'
 import { MobAttacks } from './mobAttackTool.js'
 // import { initQuenchTests } from './quench.js'
 
@@ -13,7 +13,7 @@ Hooks.once('init', () => {
   console.log('Mob Attack Tool | Adding Mob Attack Tool.')
 
   initSettings()
-  initMobAttackTool()
+  addMobAttackToolButton()
   // initQuenchTests()
 
   const dialogs = new Map()

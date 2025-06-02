@@ -1,5 +1,5 @@
 import { getAttackBonus, getDamageFormulaAndType } from './utils.js'
-import { systemEqualOrNewerThan } from './versions.js'
+import { systemEqualOrNewerThan, foundryEqualOrNewerThan } from './versions.js'
 
 export function initQuenchTests() {
   Hooks.on('quenchReady', (quench) => {
@@ -418,17 +418,25 @@ export function initQuenchTests() {
         describe('Version checking', function () {
           it('should return true for identical versions', function () {
             expect(systemEqualOrNewerThan('3.0.0', '3.0.0'), '3.0.0 == 3.0.0').to.equal(true)
+
+            expect(foundryEqualOrNewerThan('11.123', '11.123'), '11.123 == 11.123').to.equal(true)
           })
           it('should return true for newer versions', function () {
             expect(systemEqualOrNewerThan('4.0.0', '4.1.2'), '4.2.1 > 4.0.0').to.equal(true)
             expect(systemEqualOrNewerThan('3', '3.3.1'), '3.3.1 > 3').to.equal(true)
+
+            expect(foundryEqualOrNewerThan('11.0', '11.123'), '11.123 > 11.0').to.equal(true)
           })
           it('should return false for older versions', function () {
             expect(systemEqualOrNewerThan('4', '3.3.1'), '3.3.1 !> 4').to.equal(false)
             expect(systemEqualOrNewerThan('5', '4.0.0'), '4.0.0 !> 5').to.equal(false)
+
+            expect(foundryEqualOrNewerThan('13.0', '12.123'), '12.123 !> 13').to.equal(false)
           })
           it('should return true without overriding system arg', function () {
             expect(systemEqualOrNewerThan('3')).to.equal(true)
+
+            expect(foundryEqualOrNewerThan('11.0')).to.equal(true)
           })
         })
       },
