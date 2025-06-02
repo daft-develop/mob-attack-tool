@@ -184,6 +184,11 @@ export async function rollMobAttackIndividually(data) {
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
   // Send message
+  /*
+  You are accessing the global "renderTemplate" which is now namespaced under foundry.applications.handlebars.renderTemplate
+  Deprecated since Version 13
+  Backwards-compatible support will be removed in Version 15
+  */
   let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
   if (!game.settings.get(moduleName, 'noResultsMessage')) {
     await sendChatMessage(messageText)
