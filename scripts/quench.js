@@ -88,6 +88,30 @@ export function initQuenchTests() {
           })
         })
 
+        describe('Sefris setup', function () {
+          const sefrisToken = canvas.tokens.placeables?.find(t => t.name == 'Sefris')
+          const sefrisActor = sefrisToken?.actor
+          it('should have one and only one Sefris on the Canvas', function () {
+            // one and only one Randal to make .find selection repeatable
+            expect(canvas.tokens.placeables.filter(t => t.name == 'Sefris')).to.have.lengthOf(1)
+          })
+          it('should have Sefris at level 5', function () {
+            expect(sefrisActor.system.details.level).to.equal(5)
+          })
+          it('should have Eldritch Blast', function () {
+            expect(sefrisActor.items.filter(i => i.name == 'Eldritch Blast')).to.have.lengthOf(1)
+          })
+          it('should have Abilities set to 18/14/15/9/13/11', function () {
+            // level 4 ASI into STR
+            expect(sefrisActor.system.abilities.str.value).to.equal(12)
+            expect(sefrisActor.system.abilities.dex.value).to.equal(14)
+            expect(sefrisActor.system.abilities.con.value).to.equal(15)
+            expect(sefrisActor.system.abilities.int.value).to.equal(10)
+            expect(sefrisActor.system.abilities.wis.value).to.equal(8)
+            expect(sefrisActor.system.abilities.cha.value).to.equal(20)
+          })
+        })
+
         describe('Skeleton setup', function () {
           const skeletonToken = canvas.tokens.placeables?.find(t => t.name == 'Skeleton')
           const skeletonActor = skeletonToken?.actor
@@ -130,6 +154,15 @@ export function initQuenchTests() {
             }
             expect(skeletonItems.filter(i => i.name == 'Fire Bolt', 'missing default Fire Bolt')).to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Fire Bolt (CON)'), 'missing Fire Bolt (CON)').to.have.lengthOf(1)
+          })
+        })
+
+        describe('Archmage setup', function () {
+          const archmageToken = canvas.tokens.placeables?.find(t => t.name == 'Archmage')
+          const archmageActor = archmageToken?.actor
+          const archmageItems = archmageActor?.items
+          it('should have all test equipment', function () {
+            expect(archmageItems.filter(i => i.name == 'Fire Bolt'), 'missing Fire Bolt').to.have.lengthOf(1)
           })
         })
       },
@@ -225,6 +258,13 @@ export function initQuenchTests() {
             damage[0].should.equal('2d10')
             type[0].should.equal('Fire')
             label[0].should.equal('fire')
+          })
+          it('should handle Eldritch Blast scaling', function () {
+            const eldritch_blast = canvas.tokens.placeables.find(t => t.name == 'Sefris').actor.items.find(i => i.name == 'Eldritch Blast');
+            [damage, type, label] = getDamageFormulaAndType(eldritch_blast, false)
+            damage[0].should.equal('1d10')
+            type[0].should.equal('Force')
+            label[0].should.equal('force')
           })
           it('should handle manually set weapon ability (CHA)', function () {
             const weapon = testItems.find(i => i.name == 'Handaxe (CHA)');
@@ -360,6 +400,12 @@ export function initQuenchTests() {
             const weapon = testItems.find(i => i.name == 'Fire Bolt');
             [damage, type, label] = getDamageFormulaAndType(weapon, false)
             damage[0].should.equal('1d10')
+            type[0].should.equal('Fire')
+            label[0].should.equal('fire')
+
+            const fire_bolt_scaling = canvas.tokens.placeables.find(t => t.name == 'Archmage').actor.items.find(i => i.name == 'Fire Bolt');
+            [damage, type, label] = getDamageFormulaAndType(fire_bolt_scaling, false)
+            damage[0].should.equal('4d10')
             type[0].should.equal('Fire')
             label[0].should.equal('fire')
           })
