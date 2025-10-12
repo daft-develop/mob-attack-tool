@@ -143,7 +143,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
     let diceFormula = diceFormulas.join(' + ')
     let damageType = damageTypes.join(', ')
-    let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+    let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
     await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true }).roll()
 
     if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
@@ -236,10 +236,10 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     }
     else {
       // Condense the damage rolls.
-      let [diceFormulas, damageTypes] = getDamageFormulaAndType(weaponData, isVersatile)
+      let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
       let diceFormula = diceFormulas.join(' + ')
       let damageType = damageTypes.join(', ')
-      let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+      let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
       await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true })
       damageRoll = await damageRoll.evaluate()
       await damageRoll.toMessage(

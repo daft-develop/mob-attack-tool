@@ -244,7 +244,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 
           let diceFormula = diceFormulas.join(' + ')
           let damageType = damageTypes.join(', ')
-          let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+          let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
 
           if (numCrits > 0) {
             // Add critical damage dice on each successful attack, up to the number of crits
@@ -301,7 +301,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 
         let diceFormula = diceFormulas.join(' + ')
         let damageType = damageTypes.join(', ')
-        let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+        let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
 
         // Add critical damage dice
         let critDice = [], critDie
@@ -413,10 +413,10 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
       }
       else {
         // Condense the damage rolls.
-        let [diceFormulas, damageTypes] = getDamageFormulaAndType(weaponData, isVersatile)
+        let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
         let diceFormula = diceFormulas.join(' + ')
         let damageType = damageTypes.join(', ')
-        let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
+        let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
 
         // Add critical damage dice
         let critDice = [], critDie
