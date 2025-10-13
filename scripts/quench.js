@@ -1,4 +1,4 @@
-import { getAttackBonus, getDamageFormulaAndType } from './utils.js'
+import { getAttackBonus, getDamageFormulaAndType, simplifyFormula } from './utils.js'
 import { systemEqualOrNewerThan, foundryEqualOrNewerThan } from './versions.js'
 
 export function initQuenchTests() {
@@ -269,7 +269,7 @@ export function initQuenchTests() {
           it('should handle manually set weapon ability (CHA)', function () {
             const weapon = testItems.find(i => i.name == 'Handaxe (CHA)');
             [damage, type, label] = getDamageFormulaAndType(weapon, false)
-            damage[0].should.equal('1d6 + 0')
+            damage[0].should.equal('1d6')
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
           })
@@ -378,14 +378,14 @@ export function initQuenchTests() {
           it('should handle default melee @mod', function () {
             const weapon = testItems.find(i => i.name == 'Longsword');
             [damage, type, label] = getDamageFormulaAndType(weapon, false)
-            damage[0].should.equal('1d8 + 0')
+            damage[0].should.equal('1d8')
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
           })
           it('should handle versatile melee @mod', function () {
             const weapon = testItems.find(i => i.name == 'Longsword');
             [damage, type, label] = getDamageFormulaAndType(weapon, true)
-            damage[0].should.equal('1d10 + 0')
+            damage[0].should.equal('1d10')
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
           })
@@ -440,14 +440,14 @@ export function initQuenchTests() {
           it('should handle magical enhancement flat attack modified', function () {
             const weapon = testItems.find(i => i.name == 'Handaxe, +5');
             [damage, type, label] = getDamageFormulaAndType(weapon, false)
-            damage[0].should.equal('1d6 + 0')
+            damage[0].should.equal('1d6')
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
           })
           it('should handle damage without a damage type', function () {
             const weapon = testItems.find(i => i.name == 'Handaxe, No Damage Type');
             [damage, type, label] = getDamageFormulaAndType(weapon, false)
-            damage[0].should.equal('1d6 + 0')
+            damage[0].should.equal('1d6')
             type[0].should.equal('')
             label[0].should.equal('')
           })
@@ -483,6 +483,22 @@ export function initQuenchTests() {
             expect(systemEqualOrNewerThan('3')).to.equal(true)
 
             expect(foundryEqualOrNewerThan('11.0')).to.equal(true)
+          })
+        })
+
+        describe('Formula Simplification', function () {
+          it('should simplify formulas correctly', function () {
+            expect(simplifyFormula('1d6'), 'no simplification, die').to.equal('1d6')
+            expect(simplifyFormula('-3'), 'no simplification, neg const').to.equal('-3')
+            expect(simplifyFormula('1d6 + 3'), 'simplify + 3').to.equal('1d6 + 3')
+            expect(simplifyFormula('1d6+3'), 'simplify + 3').to.equal('1d6 + 3')
+            expect(simplifyFormula('1d6 +3'), 'simplify + 3').to.equal('1d6 + 3')
+            expect(simplifyFormula('1d6 + 0'), 'simplify + 0').to.equal('1d6')
+            expect(simplifyFormula('1d6 + -3'), 'simplify + -3').to.equal('1d6 - 3')
+            expect(simplifyFormula('1d6 - -3'), 'simplify - -3').to.equal('1d6 + 3')
+            expect(simplifyFormula('1d6 + +3'), 'simplify + +3').to.equal('1d6 + 3')
+            expect(simplifyFormula('1d6 + 4 + 1d4 + -3'), 'simplify + 4 + 1d4 + -3').to.equal('1d6 + 4 + 1d4 - 3')
+            expect(simplifyFormula('1d6 + (2+-3)'), 'simplify with brackets').to.equal('1d6 + (2 - 3)')
           })
         })
       },

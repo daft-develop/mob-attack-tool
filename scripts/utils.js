@@ -647,14 +647,14 @@ export function getDamageFormulaAndType(weaponData, isVersatile = false) {
       if (attackData.scaling?.mode == 'cantrip') {
         let rollFormula = new Roll(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]), { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
         rollFormula.alter(0, cantripScalingFactor, { multiplyNumeric: false })
-        diceFormulas.push(rollFormula.formula)
+        diceFormulas.push(simplifyFormula(rollFormula.formula))
       }
       else {
-        diceFormulas.push(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
+        diceFormulas.push(simplifyFormula((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
       }
     }
     else {
-      diceFormulas.push(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
+      diceFormulas.push(simplifyFormula(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod)))
     }
     lengthIndex++
   }
@@ -803,4 +803,36 @@ export function getTextFromAttackBonus(finalAttackBonus) {
   let finalAttackBonusText = finalAttackBonus.toString()
   // add a '+' for positive attack bonuses if it's not already there
   return !/^[+-]/.test(finalAttackBonusText) ? `+${finalAttackBonusText}` : finalAttackBonusText
+}
+
+/**
+ * Simplifies a dice term formula by removing unnecessary terms. (mostly negative modifiers)
+ * Reformats to provide spaces between terms
+ *
+ * Mostly use to replace @mod generating formulas like `1d6 + -3`
+ *
+ * @param {string} formula - The formula to simplify.
+ * @returns {string} - The simplified formula.
+ */
+export function simplifyFormula(formula) {
+  // strip out spaces (to make pattern matching easier)
+  formula = formula.replace(/\s+/g, '')
+
+  // if pattern matches '+-', sub with '-'
+  formula = formula.replace(/\+-/g, '-')
+
+  // if pattern matches '--', sub with '+'
+  formula = formula.replace(/--/g, '+')
+
+  // remove '+0' terms
+  formula = formula.replace(/\+0/g, '')
+
+  // if pattern matches '++', sub with '+'
+  formula = formula.replace(/\+\+/g, '+')
+
+  // insert spaces around operators, unless it's the first term
+  // this provides a consistent formatting look after stripping spaces
+  formula = formula.replace(/(?<!^)([+-])/g, ' $1 ')
+
+  return formula
 }
