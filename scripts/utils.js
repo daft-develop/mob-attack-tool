@@ -806,33 +806,9 @@ export function getTextFromAttackBonus(finalAttackBonus) {
 }
 
 /**
- * Simplifies a dice term formula by removing unnecessary terms. (mostly negative modifiers)
- * Reformats to provide spaces between terms
- *
- * Mostly use to replace @mod generating formulas like `1d6 + -3`
- *
  * @param {string} formula - The formula to simplify.
  * @returns {string} - The simplified formula.
  */
 export function simplifyFormula(formula) {
-  // strip out spaces (to make pattern matching easier)
-  formula = formula.replace(/\s+/g, '')
-
-  // if pattern matches '+-', sub with '-'
-  formula = formula.replace(/\+-/g, '-')
-
-  // if pattern matches '--', sub with '+'
-  formula = formula.replace(/--/g, '+')
-
-  // remove '+0' terms
-  formula = formula.replace(/\+0/g, '')
-
-  // if pattern matches '++', sub with '+'
-  formula = formula.replace(/\+\+/g, '+')
-
-  // insert spaces around operators, unless it's the first term
-  // this provides a consistent formatting look after stripping spaces
-  formula = formula.replace(/(?<!^)([+-])/g, ' $1 ')
-
-  return formula
+  return dnd5e.dice.simplifyRollFormula(formula, { preserveFlavor: true })
 }

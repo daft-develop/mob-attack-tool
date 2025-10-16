@@ -489,7 +489,8 @@ export function initQuenchTests() {
         describe('Formula Simplification', function () {
           it('should simplify formulas correctly', function () {
             expect(simplifyFormula('1d6'), 'no simplification, die').to.equal('1d6')
-            expect(simplifyFormula('-3'), 'no simplification, neg const').to.equal('-3')
+            expect(simplifyFormula('3'), 'simple simplification, pos const').to.equal('3')
+            expect(simplifyFormula('-3'), 'simple simplification, neg const').to.equal(' - 3')
             expect(simplifyFormula('1d6 + 3'), 'simplify + 3').to.equal('1d6 + 3')
             expect(simplifyFormula('1d6+3'), 'simplify + 3').to.equal('1d6 + 3')
             expect(simplifyFormula('1d6 +3'), 'simplify + 3').to.equal('1d6 + 3')
@@ -497,8 +498,9 @@ export function initQuenchTests() {
             expect(simplifyFormula('1d6 + -3'), 'simplify + -3').to.equal('1d6 - 3')
             expect(simplifyFormula('1d6 - -3'), 'simplify - -3').to.equal('1d6 + 3')
             expect(simplifyFormula('1d6 + +3'), 'simplify + +3').to.equal('1d6 + 3')
-            expect(simplifyFormula('1d6 + 4 + 1d4 + -3'), 'simplify + 4 + 1d4 + -3').to.equal('1d6 + 4 + 1d4 - 3')
-            expect(simplifyFormula('1d6 + (2+-3)'), 'simplify with brackets').to.equal('1d6 + (2 - 3)')
+            expect(simplifyFormula('1d6 + 4 + 1d4 + -3'), 'simplify + 4 + 1d4 + -3').to.equal('1d6 + 1d4 + 1')
+            expect(simplifyFormula('2 + 1d6 + (2 + -3)'), 'simplify with brackets').to.equal('1d6 + 1')
+            expect(simplifyFormula('2[ice] + 1d4[fire] + 1d6[ice]'), 'simplify with flavor').to.equal('1d4[fire] + 1d6[ice] + 2[ice]')
           })
         })
       },
