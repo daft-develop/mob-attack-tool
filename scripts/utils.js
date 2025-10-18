@@ -810,5 +810,13 @@ export function getTextFromAttackBonus(finalAttackBonus) {
  * @returns {string} - The simplified formula.
  */
 export function simplifyFormula(formula) {
-  return dnd5e.dice.simplifyRollFormula(formula, { preserveFlavor: true })
+  if (systemEqualOrNewerThan('5.0.0')) {
+    return dnd5e.dice.simplifyRollFormula(formula, { preserveFlavor: true })
+  }
+  // pre 5.0, negative modifiers didn't get the same leading/trailing space of positive modifiers
+  else {
+    let simplified = dnd5e.dice.simplifyRollFormula(formula, { preserveFlavor: true })
+    // regex replace in case we missed a case
+    return simplified.replaceAll(/(?<! )-(\d)/g, ' - $1')
+  }
 }
