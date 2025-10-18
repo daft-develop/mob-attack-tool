@@ -761,7 +761,10 @@ export function getAttackBonus(actorItem) {
     attackData = actorItem
   }
   // return the labels.modifier if it exists, otherwise modifier is 0
-  return parseInt(attackData?.labels?.modifier ?? 0)
+  let modifierString = attackData?.labels?.modifier ?? 0
+  // remove spaces between leading - and number to prevent NaN results
+  modifierString = modifierString.replaceAll(' ', '')
+  return parseInt(modifierString)
 }
 
 /**
