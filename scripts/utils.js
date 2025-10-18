@@ -654,7 +654,12 @@ export function getDamageFormulaAndType(weaponData, isVersatile = false) {
       }
     }
     else {
-      diceFormulas.push(simplifyFormula(((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod)))
+      // for non-spell damage formulas, the first available formula should add the magicalBonus, if it exists
+      let formula = (((isVersatile && lengthIndex === 0) ? attackData.damage.versatile : diceFormulaParts[0]).replace('@mod', attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod))
+      if (lengthIndex === 0 && weaponData.system.magicAvailable) {
+        formula += '+ ' + weaponData.system.magicalBonus
+      }
+      diceFormulas.push(simplifyFormula(formula))
     }
     lengthIndex++
   }
