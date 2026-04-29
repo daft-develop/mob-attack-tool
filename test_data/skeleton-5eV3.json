@@ -527,22 +527,10 @@
     "name": "Skeleton",
     "displayName": 20,
     "actorLink": false,
-    "appendNumber": false,
-    "prependAdjective": false,
-    "texture": {
-      "src": "systems/dnd5e/tokens/undead/Skeleton.webp",
-      "scaleX": 1,
-      "scaleY": 1,
-      "offsetX": 0,
-      "offsetY": 0,
-      "rotation": 0,
-      "tint": "#ffffff"
-    },
     "width": 1,
     "height": 1,
     "lockRotation": false,
     "rotation": 0,
-    "alpha": 1,
     "disposition": -1,
     "displayBars": 40,
     "bar1": {
@@ -551,43 +539,55 @@
     "bar2": {
       "attribute": null
     },
+    "flags": {},
+    "randomImg": false,
+    "alpha": 1,
     "light": {
       "alpha": 1,
       "angle": 360,
       "bright": 0,
       "coloration": 1,
       "dim": 0,
-      "attenuation": 0.5,
       "luminosity": 0.5,
       "saturation": 0,
       "contrast": 0,
       "shadows": 0,
       "animation": {
-        "type": null,
         "speed": 5,
         "intensity": 5,
+        "type": null,
         "reverse": false
       },
       "darkness": {
         "min": 0,
         "max": 1
       },
+      "attenuation": 0.5,
       "color": null
+    },
+    "texture": {
+      "src": "systems/dnd5e/tokens/undead/Skeleton.webp",
+      "tint": "#ffffff",
+      "scaleX": 1,
+      "scaleY": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "rotation": 0
     },
     "sight": {
+      "angle": 360,
       "enabled": false,
       "range": 60,
-      "angle": 360,
-      "visionMode": "basic",
-      "attenuation": 0.1,
       "brightness": 0,
+      "visionMode": "basic",
+      "color": null,
+      "attenuation": 0.1,
       "saturation": 0,
-      "contrast": 0,
-      "color": null
+      "contrast": 0
     },
     "detectionModes": [],
-    "flags": {},
-    "randomImg": false
+    "appendNumber": false,
+    "prependAdjective": false
   },
   "items": [
     {
@@ -2301,6 +2301,10 @@
             [
               "1d8 + @mod",
               "slashing"
+            ],
+            [
+              "1d6",
+              "cold"
             ]
           ],
           "versatile": "1d10 + @mod"
@@ -2354,12 +2358,12 @@
       },
       "flags": {},
       "_stats": {
-        "coreVersion": "12.331",
+        "coreVersion": "11.315",
         "systemId": "dnd5e",
         "systemVersion": "3.3.1",
         "createdTime": 1742330766853,
-        "modifiedTime": 1742330766853,
-        "lastModifiedBy": "32he8aS0BkTNI8qT"
+        "modifiedTime": 1777857630194,
+        "lastModifiedBy": "OOIpY3n1XOz2FB0n"
       }
     },
     {
@@ -2910,7 +2914,7 @@
     "systemVersion": "3.3.1",
     "coreVersion": "11.315",
     "createdTime": 1742330728396,
-    "modifiedTime": 1742439742921,
+    "modifiedTime": 1760762208858,
     "lastModifiedBy": "OOIpY3n1XOz2FB0n"
   }
 }

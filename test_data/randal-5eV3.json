@@ -6044,6 +6044,10 @@
             [
               "1d8 + @mod",
               "slashing"
+            ],
+            [
+              "1d6",
+              "cold"
             ]
           ],
           "versatile": "1d10 + @mod"
@@ -6064,8 +6068,8 @@
           "conditions": ""
         },
         "properties": [
-          "ver",
-          "mgc"
+          "mgc",
+          "ver"
         ],
         "type": {
           "value": "martialM",
@@ -6096,12 +6100,12 @@
       },
       "flags": {},
       "_stats": {
-        "coreVersion": "12.331",
+        "coreVersion": "11.315",
         "systemId": "dnd5e",
         "systemVersion": "3.3.1",
         "createdTime": 1742076571649,
-        "modifiedTime": 1742076571649,
-        "lastModifiedBy": "eRSp8HH9Y1okv7tV"
+        "modifiedTime": 1777857304136,
+        "lastModifiedBy": "OOIpY3n1XOz2FB0n"
       }
     },
     {
@@ -6285,7 +6289,7 @@
     "systemVersion": "3.3.1",
     "coreVersion": "11.315",
     "createdTime": 1742075839994,
-    "modifiedTime": 1748807020206,
+    "modifiedTime": 1777857288593,
     "lastModifiedBy": "OOIpY3n1XOz2FB0n"
   }
 }

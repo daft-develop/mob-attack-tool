@@ -1,4 +1,4 @@
-import { getAttackBonus, getDamageFormulaAndType, simplifyFormula } from './utils.js'
+import { damageFormulaWithFlavor, getAttackBonus, getDamageFormulaAndType, simplifyFormula } from './utils.js'
 import { systemEqualOrNewerThan, foundryEqualOrNewerThan } from './versions.js'
 
 export function initQuenchTests() {
@@ -279,6 +279,9 @@ export function initQuenchTests() {
             damage[0].should.equal('1d8 + 7')
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
+            damage[1].should.equal('1d6')
+            type[1].should.equal('Cold')
+            label[1].should.equal('cold')
           })
           it('should handle magic bonus in details, versatile', function () {
             const weapon = testItems.find(i => i.name == 'Battleaxe +3');
@@ -422,6 +425,9 @@ export function initQuenchTests() {
             damage[0].should.equal('1d8 + 3')
             type[0].should.equal('Slashing')
             label[0].should.equal('slashing')
+            damage[1].should.equal('1d6')
+            type[1].should.equal('Cold')
+            label[1].should.equal('cold')
           })
           it('should handle magic bonus in details, versatile', function () {
             const weapon = testItems.find(i => i.name == 'Battleaxe +3');
@@ -502,6 +508,12 @@ export function initQuenchTests() {
             expect(simplifyFormula('1d6 + 4 + 1d4 + -3'), 'simplify + 4 + 1d4 + -3').to.equal('1d6 + 1d4 + 1')
             expect(simplifyFormula('2 + 1d6 + (2 + -3)'), 'simplify with brackets').to.equal('1d6 + 1')
             expect(simplifyFormula('2[ice] + 1d4[fire] + 1d6[ice]'), 'simplify with flavor').to.equal('1d4[fire] + 1d6[ice] + 2[ice]')
+          })
+
+          it('should stringify damage formulas and types', function () {
+            const formulas = ['1d8 + 2', '2d6']
+            const flavors = ['fire', 'cold']
+            expect(damageFormulaWithFlavor(formulas, flavors)).to.equal('1d8[fire] + 2d6[cold] + 2[fire]')
           })
         })
       },
