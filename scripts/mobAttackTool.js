@@ -570,7 +570,13 @@ export class MobAttackDialog extends FormApplication {
         }
       }
 
-      let dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+      let dialogMobList = ''
+      if (foundryEqualOrNewerThan('13.0.0')) {
+        dialogMobList = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+      }
+      else {
+        dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+      }
 
       let selectedMob = await new Promise((resolve) => {
         new Dialog({
@@ -754,7 +760,15 @@ export class MobAttackDialog extends FormApplication {
       else {
         macroName = `${mobAttackData.weapons[key].name} ${game.i18n.localize('MAT.macroNamePrefix')} ${mobList[Object.keys(mobList)[0]].numSelected} ${Object.keys(mobList)[0]}${game.i18n.localize('MAT.macroNamePostfix')}`
       }
-      let macroNameTemplate = await renderTemplate('modules/mob-attack-tool/templates/mat-macro-name-dialog.hbs', { macroName: macroName })
+
+      let macroNameTemplate = ''
+      if (foundryEqualOrNewerThan('13.0.0')) {
+        macroNameTemplate = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-macro-name-dialog.hbs', { macroName: macroName })
+      }
+      else {
+        macroNameTemplate = await renderTemplate('modules/mob-attack-tool/templates/mat-macro-name-dialog.hbs', { macroName: macroName })
+      }
+
       let selectedName = await new Promise((resolve) => {
         new Dialog({
           title: game.i18n.localize('Macro Name'),

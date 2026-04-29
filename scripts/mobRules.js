@@ -1,5 +1,6 @@
 import { moduleName } from './mobAttack.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
+import { foundryEqualOrNewerThan } from './versions.js'
 
 export async function rollMobAttack(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
@@ -112,7 +113,15 @@ export async function rollMobAttack(data) {
   else {
     let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
     messageData['totalPluralOrNot'] = totalPluralOrNot
-    let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
+
+    let messageText = ''
+    if (foundryEqualOrNewerThan('13.0.0')) {
+      messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
+    }
+    else {
+      messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
+    }
+
     if (!game.settings.get(moduleName, 'noResultsMessage')) {
       await sendChatMessage(messageText)
     }

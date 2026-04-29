@@ -1,5 +1,6 @@
 import { moduleName } from './mobAttack.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
+import { foundryEqualOrNewerThan } from './versions.js'
 
 export async function rollMobAttackIndividually(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
@@ -183,13 +184,14 @@ export async function rollMobAttackIndividually(data) {
   let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
-  // Send message
-  /*
-  You are accessing the global "renderTemplate" which is now namespaced under foundry.applications.handlebars.renderTemplate
-  Deprecated since Version 13
-  Backwards-compatible support will be removed in Version 15
-  */
-  let messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
+  let messageText = ''
+  if (foundryEqualOrNewerThan('13.0.0')) {
+    messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
+  }
+  else {
+    messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
+  }
+
   if (!game.settings.get(moduleName, 'noResultsMessage')) {
     await sendChatMessage(messageText)
   }
