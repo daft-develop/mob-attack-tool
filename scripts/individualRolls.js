@@ -1,5 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus, damageFormulaWithFlavor } from './utils.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 
 export async function rollMobAttackIndividually(data) {
@@ -223,7 +223,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 
   // Process attack and damage rolls
   // let showAttackRolls = game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls')
-  let showDamageRolls = game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls')
+  let showIndividualDamageRolls = game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls')
 
   // Determine target token
   let targetToken = canvas.tokens.get(targetId)
@@ -240,13 +240,13 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
   if (numHitAttacks != 0) {
     // midi active
     if (midi_QOL_Active) {
-      if (showDamageRolls) {
+      if (showIndividualDamageRolls) {
         for (let i = 0; i < numHitAttacks; i++) {
           let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
 
-          let diceFormula = diceFormulas.join(' + ')
-          let damageType = damageTypes.join(', ')
-          let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
+          let fullFlavorString = damageFormulaWithFlavor(diceFormulas, damageTypeLabels)
+
+          let damageRoll = new CONFIG.Dice.DamageRoll(fullFlavorString, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
 
           if (numCrits > 0) {
             // Add critical damage dice on each successful attack, up to the number of crits
@@ -273,15 +273,13 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
 
           await new MidiQOL.DamageOnlyWorkflow(
             weaponData.actor,
-            // (targetToken) ? targetToken : undefined,
-            targetToken ?? undefined,
-            damageRoll.total,
-            damageTypeLabels[0],
-            // (targetToken) ? [targetToken] : [],
+            undefined, // actor token
+            undefined, // damage total (without damage Roll)
+            undefined, // damage type (without damage roll)
             targetToken ? [targetToken] : [],
             damageRoll,
             {
-              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
+              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageTypes})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
               item: weaponData,
               itemCardUuid: `new`,
             },
@@ -301,9 +299,9 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         await new Promise(resolve => setTimeout(resolve, 300))
         let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
 
-        let diceFormula = diceFormulas.join(' + ')
-        let damageType = damageTypes.join(', ')
-        let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
+        let fullFlavorString = damageFormulaWithFlavor(diceFormulas, damageTypeLabels)
+
+        let damageRoll = new CONFIG.Dice.DamageRoll(fullFlavorString, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
 
         // Add critical damage dice
         let critDice = [], critDie
@@ -339,7 +337,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           targetToken ? [targetToken] : [],
           damageRoll,
           {
-            flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
+            flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageTypes})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
             item: weaponData,
             itemCardUuid: `new`,
           },
@@ -399,7 +397,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
       // Midi-QOL not active
     }
     else {
-      if (showDamageRolls) {
+      if (showIndividualDamageRolls) {
         for (let i = 0; i < numHitAttacks; i++) {
           await new Promise(resolve => setTimeout(resolve, 300))
           let damageOptions = {}
@@ -416,9 +414,10 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
       else {
         // Condense the damage rolls.
         let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
-        let diceFormula = diceFormulas.join(' + ')
-        let damageType = damageTypes.join(', ')
-        let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
+
+        let fullFlavorString = damageFormulaWithFlavor(diceFormulas, damageTypeLabels)
+
+        let damageRoll = new CONFIG.Dice.DamageRoll(fullFlavorString, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod })
 
         // Add critical damage dice
         let critDice = [], critDie
@@ -444,7 +443,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           damageRoll = await damageRoll.evaluate()
           await damageRoll.toMessage(
             {
-              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
+              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageTypes})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
               flags: {
                 dnd5e: {
                   messageType: 'roll',

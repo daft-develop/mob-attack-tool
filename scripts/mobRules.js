@@ -1,5 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus, damageFormulaWithFlavor } from './utils.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 
 export async function rollMobAttack(data) {
@@ -142,7 +142,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
   let midi_QOL_Active = false
   if (game.modules.get('midi-qol')?.active && game.settings.get(moduleName, 'enableMidi')) midi_QOL_Active = true
 
-  let showDamageRolls = game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls')
+  let showIndividualDamageRolls = game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls')
 
   const attackData = getAttackData(weaponData)
 
@@ -150,9 +150,10 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     await new Promise(resolve => setTimeout(resolve, 100))
 
     let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
-    let diceFormula = diceFormulas.join(' + ')
-    let damageType = damageTypes.join(', ')
-    let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
+
+    let fullFlavorString = damageFormulaWithFlavor(diceFormulas, damageTypeLabels)
+
+    let damageRoll = new CONFIG.Dice.DamageRoll(fullFlavorString, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
     await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true }).roll()
 
     if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
@@ -169,13 +170,13 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
 
     let workflow = await new MidiQOL.DamageOnlyWorkflow(
       weaponData.actor,
-      targetToken ?? undefined,
-      damageRoll.total,
-      damageTypeLabels[0],
+      undefined, // actor token
+      undefined, // damage total
+      undefined, // damage type
       targetToken ? [targetToken] : [],
       damageRoll,
       {
-        flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
+        flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageTypes})`,
         item: weaponData,
         itemCardUuid: `new`,
       },
@@ -235,7 +236,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     // midi-qol not active
   }
   else {
-    if (showDamageRolls) {
+    if (showIndividualDamageRolls) {
       await new Promise(resolve => setTimeout(resolve, 100))
       for (let i = 0; i < numHitAttacks; i++) {
         const damageOptions = getDamageOptions(false, targetId)
@@ -246,14 +247,13 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     else {
       // Condense the damage rolls.
       let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
-      let diceFormula = diceFormulas.join(' + ')
-      let damageType = damageTypes.join(', ')
-      let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
+      let fullFlavorString = damageFormulaWithFlavor(diceFormulas, damageTypeLabels)
+      let damageRoll = new CONFIG.Dice.DamageRoll(fullFlavorString, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
       await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true })
       damageRoll = await damageRoll.evaluate()
       await damageRoll.toMessage(
         {
-          flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
+          flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageTypes})`,
           flags: {
             dnd5e: {
               messageType: 'roll',

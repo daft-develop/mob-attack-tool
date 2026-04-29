@@ -828,3 +828,24 @@ export function simplifyFormula(formula) {
     return simplified.replaceAll(/(?<! )-(\d)/g, ' - $1')
   }
 }
+
+/**
+ * Convert arrays of damage formulas and damage types to a single long string
+ * This is more reliably parsed by the chat cards and some 3rd party modules instead of
+ * Discrete collections of damage and damage type
+ *
+ * @param {string[]} diceFormulas Array of damage formulas, e.g. 1d8 + 3, 1d6
+ * @param {string[]} damageTypeLabels matching array of damage type labels, e.g. 'cold', 'fire'
+ * @returns Combination string of all damages after applying damage types, e.g. '1d8[cold] + 3[cold] + 1d6[fire]'
+ */
+export function damageFormulaWithFlavor(diceFormulas, damageTypeLabels) {
+  let flavoredFormulas = diceFormulas.map(f => new CONFIG.Dice.DamageRoll(f))
+
+  flavoredFormulas[0].propagateFlavor(damageTypeLabels[0])
+  let fullFlavorString = flavoredFormulas[0].formula
+  for (let i = 1; i < flavoredFormulas.length; i++) {
+    flavoredFormulas[i].propagateFlavor(damageTypeLabels[i])
+    fullFlavorString += '+ ' + flavoredFormulas[i].formula
+  }
+  return simplifyFormula(fullFlavorString)
+}
