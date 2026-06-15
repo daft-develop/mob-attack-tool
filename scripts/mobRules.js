@@ -2,6 +2,8 @@ import { moduleName } from './mobAttack.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 
+const { getProperty } = foundry.utils
+
 export async function rollMobAttack(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
   if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
@@ -182,7 +184,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     )
 
     // prepare data for Midi's On Use Macro feature
-    if (game.settings.get(moduleName, 'enableMidiOnUseMacro') && foundry.utils.getProperty(weaponData, 'flags.midi-qol.onUseMacroName')) {
+    if (game.settings.get(moduleName, 'enableMidiOnUseMacro') && getProperty(weaponData, 'flags.midi-qol.onUseMacroName')) {
       await new Promise(resolve => setTimeout(resolve, 300))
       const macroData = {
         actor: weaponData.actor,
@@ -213,7 +215,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
         uuid: workflow.uuid,
         rollData: weaponData.actor.getRollData(),
         tag: 'OnUse',
-        concentrationData: foundry.utils.getProperty(weaponData.actor.flags, 'midi-qol.concentration-data'),
+        concentrationData: getProperty(weaponData.actor.flags, 'midi-qol.concentration-data'),
         templateId: workflow.templateId,
         templateUuid: workflow.templateUuid,
       }

@@ -1,3 +1,5 @@
+const { isNewerVersion } = foundry.utils
+
 /**
  * @param {String} checkVersion string representing the reference version we're checking against. Expect '1.2.3' format for consistency
  * @param {String} actualVersion default to actual system version. Added as a default to allow injection for testing, normally not used
@@ -6,7 +8,7 @@
 export function systemEqualOrNewerThan(checkVersion, actualVersion = game.system.version) {
   if (checkVersion === actualVersion) return true
 
-  return foundry.utils.isNewerVersion(actualVersion, checkVersion)
+  return isNewerVersion(actualVersion, checkVersion)
 }
 
 /**
@@ -17,5 +19,5 @@ export function systemEqualOrNewerThan(checkVersion, actualVersion = game.system
 export function foundryEqualOrNewerThan(checkVersion, actualVersion = game.version) {
   if (checkVersion === actualVersion) return true
 
-  return foundry.utils.isNewerVersion(actualVersion, checkVersion)
+  return isNewerVersion(actualVersion, checkVersion)
 }

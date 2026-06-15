@@ -1,4 +1,8 @@
 import { moduleName } from './mobAttack.js'
+import { foundryEqualOrNewerThan } from './versions.js'
+
+const { expandObject, mergeObject } = foundry.utils
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
 const matSettings = {
   playerAccess: {
@@ -289,12 +293,15 @@ export function initSettings() {
     },
   })
 
+  // Use the AppV2 menu on v13+, fall back to the legacy FormApplication on older (v12) versions.
+  const menuType = foundryEqualOrNewerThan('13.0.0') ? RollSettingsMenuV2 : RollSettingsMenu
+
   game.settings.registerMenu(moduleName, 'rollSettingsMenu', {
     name: 'SETTINGS.MAT.advancedSettings',
     label: 'SETTINGS.MAT.openSettings',
     hint: 'SETTINGS.MAT.advancedSettingsHint',
     icon: 'fas fa-dice-d20',
-    type: RollSettingsMenu,
+    type: menuType,
     restricted: false,
   })
 
@@ -303,11 +310,419 @@ export function initSettings() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared data-building helper used by both menu implementations
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds the context/data object for the settings template.
+ * Extracted so both AppV2 and FormApplication can share identical logic.
+ */
+function buildSettingsData() {
+  const data = {
+    settings: {
+      roll: {
+        showIndividualAttackRolls: {
+          name: matSettings.showIndividualAttackRolls.name,
+          hint: matSettings.showIndividualAttackRolls.hint,
+          value: game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls'),
+          id: 'showIndividualAttackRolls',
+          isCheckbox: true,
+          client: true,
+        },
+        showAllAttackRolls: {
+          name: matSettings.showAllAttackRolls.name,
+          hint: matSettings.showAllAttackRolls.hint,
+          value: game.user.getFlag(moduleName, 'showAllAttackRolls') ?? game.settings.get(moduleName, 'showAllAttackRolls'),
+          id: 'showAllAttackRolls',
+          isCheckbox: true,
+          client: true,
+        },
+        showIndividualDamageRolls: {
+          name: matSettings.showIndividualDamageRolls.name,
+          hint: matSettings.showIndividualDamageRolls.hint,
+          value: game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls'),
+          id: 'showIndividualDamageRolls',
+          isCheckbox: true,
+          client: true,
+        },
+        showMobAttackResultsToPlayers: {
+          name: matSettings.showMobAttackResultsToPlayers.name,
+          hint: matSettings.showMobAttackResultsToPlayers.hint,
+          value: game.user.getFlag(moduleName, 'showMobAttackResultsToPlayers') ?? game.settings.get(moduleName, 'showMobAttackResultsToPlayers'),
+          id: 'showMobAttackResultsToPlayers',
+          isCheckbox: true,
+          client: true,
+        },
+        noResultsMessage: {
+          name: matSettings.noResultsMessage.name,
+          hint: matSettings.noResultsMessage.hint,
+          value: game.user.getFlag(moduleName, 'noResultsMessage') ?? game.settings.get(moduleName, 'noResultsMessage'),
+          id: 'noResultsMessage',
+          isCheckbox: true,
+          client: true,
+        },
+        askRollType: {
+          name: matSettings.askRollType.name,
+          hint: matSettings.askRollType.hint,
+          value: game.user.getFlag(moduleName, 'askRollType') ?? game.settings.get(moduleName, 'askRollType'),
+          id: 'askRollType',
+          isCheckbox: true,
+          client: true,
+        },
+        rollTypeValue: {
+          name: matSettings.rollTypeValue.name,
+          hint: matSettings.rollTypeValue.hint,
+          value: game.settings.get(moduleName, 'rollTypeValue'),
+          id: 'rollTypeValue',
+          isNumber: true,
+          client: game.user.isGM,
+          type: Number,
+        },
+      },
+      multiattack: {
+        showMultiattackDescription: {
+          name: matSettings.showMultiattackDescription.name,
+          hint: matSettings.showMultiattackDescription.hint,
+          value: game.user.getFlag(moduleName, 'showMultiattackDescription') ?? game.settings.get(moduleName, 'showMultiattackDescription'),
+          id: 'showMultiattackDescription',
+          isCheckbox: true,
+          client: true,
+        },
+        autoDetectMultiattacks: {
+          name: matSettings.autoDetectMultiattacks.name,
+          hint: matSettings.autoDetectMultiattacks.hint,
+          value: game.user.getFlag(moduleName, 'autoDetectMultiattacks') ?? game.settings.get(moduleName, 'autoDetectMultiattacks'),
+          id: 'autoDetectMultiattacks',
+          isSelect: true,
+          choices: matSettings.autoDetectMultiattacks.choices,
+          client: true,
+        },
+      },
+      targets: {
+        persistACmod: {
+          name: matSettings.persistACmod.name,
+          hint: matSettings.persistACmod.hint,
+          value: game.user.getFlag(moduleName, 'persistACmod') ?? game.settings.get(moduleName, 'persistACmod'),
+          id: 'persistACmod',
+          isCheckbox: true,
+          client: true,
+        },
+      },
+      module: {
+        enableAutoAnimations: {
+          name: matSettings.enableAutoAnimations.name,
+          hint: matSettings.enableAutoAnimations.hint,
+          value: game.settings.get(moduleName, 'enableAutoAnimations'),
+          id: 'enableAutoAnimations',
+          isCheckbox: true,
+          client: game.user.isGM,
+        },
+        enableDiceSoNice: {
+          name: matSettings.enableDiceSoNice.name,
+          hint: matSettings.enableDiceSoNice.hint,
+          value: game.settings.get(moduleName, 'enableDiceSoNice'),
+          id: 'enableDiceSoNice',
+          isCheckbox: true,
+          client: game.user.isGM,
+        },
+        hideDSNAttackRoll: {
+          name: matSettings.hideDSNAttackRoll.name,
+          hint: matSettings.hideDSNAttackRoll.hint,
+          value: game.settings.get(moduleName, 'hideDSNAttackRoll'),
+          id: 'hideDSNAttackRoll',
+          isCheckbox: true,
+          client: game.user.isGM,
+        },
+        autoSaveCTGgroups: {
+          name: matSettings.autoSaveCTGgroups.name,
+          hint: matSettings.autoSaveCTGgroups.hint,
+          value: game.settings.get(moduleName, 'autoSaveCTGgroups'),
+          id: 'autoSaveCTGgroups',
+          isCheckbox: true,
+          client: game.user.isGM,
+        },
+        enableMidi: {
+          name: matSettings.enableMidi.name,
+          hint: matSettings.enableMidi.hint,
+          value: game.settings.get(moduleName, 'enableMidi'),
+          id: 'enableMidi',
+          isCheckbox: true,
+          client: game.user.isGM,
+        },
+        enableMidiOnUseMacro: {
+          name: matSettings.enableMidiOnUseMacro.name,
+          hint: matSettings.enableMidiOnUseMacro.hint,
+          value: game.settings.get(moduleName, 'enableMidiOnUseMacro'),
+          id: 'enableMidiOnUseMacro',
+          isCheckbox: true,
+          client: game.user.isGM,
+        },
+        // onUseMacroOnlyOnHits: {
+        //   name: matSettings.onUseMacroOnlyOnHits.name,
+        //   hint: matSettings.onUseMacroOnlyOnHits.hint,
+        //   value: game.settings.get(moduleName, "onUseMacroOnlyOnHits"),
+        //   id: "onUseMacroOnlyOnHits",
+        //   isCheckbox: true,
+        //   client: game.user.isGM
+        // },
+        dontSendItemCardUuid: {
+          name: matSettings.dontSendItemCardUuid.name,
+          hint: matSettings.dontSendItemCardUuid.hint,
+          value: game.settings.get(moduleName, 'dontSendItemCardUuid'),
+          id: 'dontSendItemCardUuid',
+          isCheckbox: true,
+          client: game.user.isGM,
+        },
+      },
+      mobTable: {
+        hiddenTableCheckBox: {
+          name: matSettings.hiddenTableCheckBox.name,
+          hint: matSettings.hiddenTableCheckBox.hint,
+          id: 'hiddenTableCheckBox',
+          value: game.settings.get(moduleName, 'hiddenTableCheckBox'),
+        },
+        hiddenTable: {
+          rows: {},
+        },
+      },
+    },
+  }
+
+  const customTable = game.settings.get(moduleName, 'tempSetting')
+  for (let i = 0; i < Math.floor(customTable.length / 3); i++) {
+    data.settings.mobTable.hiddenTable.rows[i] = {
+      d20RollMinId: 'tempSetting',
+      d20RollMinValue: customTable[3 * i],
+      d20RollMaxId: 'tempSetting',
+      d20RollMaxValue: customTable[3 * i + 1],
+      attackersNeededId: 'tempSetting',
+      attackersNeededValue: customTable[3 * i + 2],
+    }
+  }
+
+  data.isGM = game.user.isGM
+  data.removeRowDisabled = customTable.length < 6
+
+  return data
+}
+
+/**
+ * Validates and corrects the custom mob table array submitted via the form,
+ * then persists each setting key. Used by both menu implementations.
+ */
+async function saveFormData(formData) {
+  for (let [settingKey, value] of Object.entries(formData)) {
+    if (settingKey === 'tempSetting') {
+      const customTable = game.settings.get(moduleName, 'tempSetting')
+      const tableArray = {}
+      const correctionLoops = 2
+      for (let j = 0; j < correctionLoops; j++) {
+        for (let i = 0; i < Math.floor(customTable.length / 3); i++) {
+          tableArray[i] = value.slice(3 * i, 3 * i + 3)
+          if (parseInt(tableArray[i][1]) < parseInt(tableArray[i][0])) {
+            ui.notifications.warn(
+              game.i18n.format('MAT.warnCustomTableUpperLimit', {
+                upperLimit: tableArray[i][1],
+                lowerLimit: tableArray[i][0],
+              })
+            )
+            value[3 * i + 1] = value[3 * i]
+          }
+          if (i > 0) {
+            if (parseInt(tableArray[i][0]) <= parseInt(tableArray[i - 1][1])) {
+              value[3 * i] = parseInt(value[3 * (i - 1) + 1]) + 1
+              if (value[3 * i] > 20) value[3 * i] = 20
+            }
+            if (parseInt(tableArray[i][0]) - 1 >= parseInt(tableArray[i - 1][1])) {
+              value[3 * i] = parseInt(value[3 * (i - 1) + 1]) + 1
+              if (value[3 * i] > 20) value[3 * i] = 20
+              if (parseInt(tableArray[i][1]) < value[3 * i]) value[3 * i + 1] = value[3 * i]
+            }
+          }
+          if (i === Math.floor(customTable.length / 3) - 1) {
+            if (parseInt(tableArray[i][1]) < 20) value[3 * i + 1] = 20
+          }
+        }
+      }
+    }
+    await game.user.setFlag(moduleName, settingKey, value)
+    await game.settings.set(moduleName, settingKey, value)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AppV2 implementation (Foundry v13+)
+// ---------------------------------------------------------------------------
+
+class RollSettingsMenuV2 extends HandlebarsApplicationMixin(ApplicationV2) {
+
+  static DEFAULT_OPTIONS = {
+    id: 'mob-attack-tool-roll-settings',
+    classes: ['standard-form'],
+    tag: 'form',
+    window: {
+      title: 'Mob Attack Tool Settings',
+      icon: 'fas fa-cogs',
+      resizable: true,
+      contentClasses: ['standard-form'],
+    },
+    position: {
+      width: 530,
+      height: 'auto',
+    },
+    form: {
+      handler: RollSettingsMenuV2._onSubmit,
+      submitOnChange: false,
+      closeOnSubmit: true,
+    },
+    actions: {
+      addRow: RollSettingsMenuV2._onAddRow,
+      removeRow: RollSettingsMenuV2._onRemoveRow,
+      resetTable: RollSettingsMenuV2._onResetTable,
+    },
+  }
+
+  static TABS = {
+    primary: {
+      tabs: [
+        {
+          id: "roll",
+          icon: "fas fa-dice-d20",
+          label: "SETTINGS.MAT.rollSettings"
+        },
+        {
+          id: "multiattack",
+          icon: "fas fa-fist-raised",
+          label: "SETTINGS.MAT.multiattackSettings"
+        },
+        {
+          id: "targets",
+          icon: "fas fa-crosshairs",
+          label: "SETTINGS.MAT.targetSettings"
+        },
+        {
+          id: "module",
+          icon: "fas fa-cogs",
+          label: "SETTINGS.MAT.moduleSpecificSettings"
+        },
+        {
+          id: "mobTable",
+          icon: "fas fa-bars",
+          label: "SETTINGS.MAT.mobTableSettings"
+        }
+      ],
+      initial: "roll"
+    }
+  }
+
+  static PARTS = {
+    tabs: {
+      // Foundry-provided generic template
+      template: 'templates/generic/tab-navigation.hbs',
+    },
+    roll: {
+      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-roll.hbs',
+      scrollable: ['scrollable']
+    },
+    multiattack: {
+      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-multiattack.hbs',
+      scrollable: ['scrollable']
+    },
+    targets: {
+      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-target.hbs',
+      scrollable: ['scrollable']
+    },
+    module: {
+      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-module.hbs',
+      scrollable: ['scrollable']
+    },
+    mobTable: {
+      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-mobtable.hbs',
+      scrollable: ['scrollable']
+    },
+    footer: {
+      template: 'templates/generic/form-footer.hbs',
+    },
+  }
+
+  async _prepareContext(options) {
+    const context = buildSettingsData()
+    let tabsPrep = this._prepareTabs('primary')
+    // drop GM tabs for non-GM players
+    if (!context.isGM) {
+      delete tabsPrep.module
+      delete tabsPrep.mobTable
+    }
+    context.tabs = tabsPrep
+    context.buttons = [
+      { type: 'submit', icon: 'fa-solid fa-save', label: 'SETTINGS.Save' },
+    ]
+    return context
+  }
+
+  async _preparePartContext(partId, context) {
+    switch (partId) {
+      case 'roll':
+      case 'multiattack':
+      case 'targets':
+      case 'module':
+      case 'mobTable':
+        context.tab = context.tabs[partId]
+      default:
+    }
+    return context;
+  }
+
+  static async _onSubmit(event, form, formData) {
+    await saveFormData(expandObject(formData.object))
+  }
+
+  /** Read current input values from the live DOM rather than saved settings,
+   *  so unsaved edits in other tabs are preserved when adding/removing rows. */
+  static _readTableFromDOM(element) {
+    return Array.from(element.querySelectorAll('input[name="tempSetting"]'))
+      .map(input => parseInt(input.value))
+  }
+
+  static async _onAddRow() {
+    let customTable = RollSettingsMenuV2._readTableFromDOM(this.element)
+    if (customTable[customTable.length - 2] >= 20) {
+      customTable[customTable.length - 2] = parseInt(customTable[customTable.length - 2]) - 1
+    }
+    customTable = customTable.concat([
+      parseInt(customTable[customTable.length - 2]) + 1,
+      parseInt(customTable[customTable.length - 2]) + 1,
+      parseInt(customTable[customTable.length - 1]),
+    ])
+    await game.settings.set(moduleName, 'tempSetting', customTable)
+    this.render()
+  }
+
+  static async _onRemoveRow() {
+    let customTable = RollSettingsMenuV2._readTableFromDOM(this.element)
+    if (customTable.length >= 6) {
+      customTable = customTable.slice(0, customTable.length - 3)
+      await game.settings.set(moduleName, 'tempSetting', customTable)
+    }
+    this.render()
+  }
+
+  static async _onResetTable() {
+    await game.settings.set(moduleName, 'tempSetting', matSettings.tempSetting.default)
+    this.render()
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Legacy FormApplication implementation (Foundry v12 and below)
+// ---------------------------------------------------------------------------
+
 class RollSettingsMenu extends FormApplication {
   static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      title: 'Mob Attack Tool Settings',
+    return mergeObject(super.defaultOptions, {
       id: 'mob-attack-tool-roll-settings',
+      title: 'Mob Attack Tool Settings',
       template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu.hbs',
       width: '530',
       height: 'auto',
@@ -317,232 +732,11 @@ class RollSettingsMenu extends FormApplication {
   }
 
   getData() {
-    const data = {
-      settings: {
-        roll: {
-          showIndividualAttackRolls: {
-            name: matSettings.showIndividualAttackRolls.name,
-            hint: matSettings.showIndividualAttackRolls.hint,
-            value: game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls'),
-            id: 'showIndividualAttackRolls',
-            isCheckbox: true,
-            client: true,
-          },
-          showAllAttackRolls: {
-            name: matSettings.showAllAttackRolls.name,
-            hint: matSettings.showAllAttackRolls.hint,
-            value: game.user.getFlag(moduleName, 'showAllAttackRolls') ?? game.settings.get(moduleName, 'showAllAttackRolls'),
-            id: 'showAllAttackRolls',
-            isCheckbox: true,
-            client: true,
-          },
-          showIndividualDamageRolls: {
-            name: matSettings.showIndividualDamageRolls.name,
-            hint: matSettings.showIndividualDamageRolls.hint,
-            value: game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls'),
-            id: 'showIndividualDamageRolls',
-            isCheckbox: true,
-            client: true,
-          },
-          showMobAttackResultsToPlayers: {
-            name: matSettings.showMobAttackResultsToPlayers.name,
-            hint: matSettings.showMobAttackResultsToPlayers.hint,
-            value: game.user.getFlag(moduleName, 'showMobAttackResultsToPlayers') ?? game.settings.get(moduleName, 'showMobAttackResultsToPlayers'),
-            id: 'showMobAttackResultsToPlayers',
-            isCheckbox: true,
-            client: true,
-          },
-          noResultsMessage: {
-            name: matSettings.noResultsMessage.name,
-            hint: matSettings.noResultsMessage.hint,
-            value: game.user.getFlag(moduleName, 'noResultsMessage') ?? game.settings.get(moduleName, 'noResultsMessage'),
-            id: 'noResultsMessage',
-            isCheckbox: true,
-            client: true,
-          },
-          askRollType: {
-            name: matSettings.askRollType.name,
-            hint: matSettings.askRollType.hint,
-            value: game.user.getFlag(moduleName, 'askRollType') ?? game.settings.get(moduleName, 'askRollType'),
-            id: 'askRollType',
-            isCheckbox: true,
-            client: true,
-          },
-          rollTypeValue: {
-            name: matSettings.rollTypeValue.name,
-            hint: matSettings.rollTypeValue.hint,
-            value: game.settings.get(moduleName, 'rollTypeValue'),
-            id: 'rollTypeValue',
-            isNumber: true,
-            client: game.user.isGM,
-            type: Number,
-          },
-        },
-        multiattack: {
-          showMultiattackDescription: {
-            name: matSettings.showMultiattackDescription.name,
-            hint: matSettings.showMultiattackDescription.hint,
-            value: game.user.getFlag(moduleName, 'showMultiattackDescription') ?? game.settings.get(moduleName, 'showMultiattackDescription'),
-            id: 'showMultiattackDescription',
-            isCheckbox: true,
-            client: true,
-          },
-          autoDetectMultiattacks: {
-            name: matSettings.autoDetectMultiattacks.name,
-            hint: matSettings.autoDetectMultiattacks.hint,
-            value: game.user.getFlag(moduleName, 'autoDetectMultiattacks') ?? game.settings.get(moduleName, 'autoDetectMultiattacks'),
-            id: 'autoDetectMultiattacks',
-            isSelect: true,
-            choices: matSettings.autoDetectMultiattacks.choices,
-            client: true,
-          },
-        },
-        targets: {
-          persistACmod: {
-            name: matSettings.persistACmod.name,
-            hint: matSettings.persistACmod.hint,
-            value: game.user.getFlag(moduleName, 'persistACmod') ?? game.settings.get(moduleName, 'persistACmod'),
-            id: 'persistACmod',
-            isCheckbox: true,
-            client: true,
-          },
-        },
-        module: {
-          enableAutoAnimations: {
-            name: matSettings.enableAutoAnimations.name,
-            hint: matSettings.enableAutoAnimations.hint,
-            value: game.settings.get(moduleName, 'enableAutoAnimations'),
-            id: 'enableAutoAnimations',
-            isCheckbox: true,
-            client: game.user.isGM,
-          },
-          enableDiceSoNice: {
-            name: matSettings.enableDiceSoNice.name,
-            hint: matSettings.enableDiceSoNice.hint,
-            value: game.settings.get(moduleName, 'enableDiceSoNice'),
-            id: 'enableDiceSoNice',
-            isCheckbox: true,
-            client: game.user.isGM,
-          },
-          hideDSNAttackRoll: {
-            name: matSettings.hideDSNAttackRoll.name,
-            hint: matSettings.hideDSNAttackRoll.hint,
-            value: game.settings.get(moduleName, 'hideDSNAttackRoll'),
-            id: 'hideDSNAttackRoll',
-            isCheckbox: true,
-            client: game.user.isGM,
-          },
-          autoSaveCTGgroups: {
-            name: matSettings.autoSaveCTGgroups.name,
-            hint: matSettings.autoSaveCTGgroups.hint,
-            value: game.settings.get(moduleName, 'autoSaveCTGgroups'),
-            id: 'autoSaveCTGgroups',
-            isCheckbox: true,
-            client: game.user.isGM,
-          },
-          enableMidi: {
-            name: matSettings.enableMidi.name,
-            hint: matSettings.enableMidi.hint,
-            value: game.settings.get(moduleName, 'enableMidi'),
-            id: 'enableMidi',
-            isCheckbox: true,
-            client: game.user.isGM,
-          },
-          enableMidiOnUseMacro: {
-            name: matSettings.enableMidiOnUseMacro.name,
-            hint: matSettings.enableMidiOnUseMacro.hint,
-            value: game.settings.get(moduleName, 'enableMidiOnUseMacro'),
-            id: 'enableMidiOnUseMacro',
-            isCheckbox: true,
-            client: game.user.isGM,
-          },
-          // onUseMacroOnlyOnHits: {
-          //   name: matSettings.onUseMacroOnlyOnHits.name,
-          //   hint: matSettings.onUseMacroOnlyOnHits.hint,
-          //   value: game.settings.get(moduleName,"onUseMacroOnlyOnHits"),
-          //   id: "onUseMacroOnlyOnHits",
-          //   isCheckbox: true,
-          //   client: game.user.isGM
-          // },
-          dontSendItemCardUuid: {
-            name: matSettings.dontSendItemCardUuid.name,
-            hint: matSettings.dontSendItemCardUuid.hint,
-            value: game.settings.get(moduleName, 'dontSendItemCardUuid'),
-            id: 'dontSendItemCardUuid',
-            isCheckbox: true,
-            client: game.user.isGM,
-          },
-        },
-        mobTable: {
-          hiddenTableCheckBox: {
-            name: matSettings.hiddenTableCheckBox.name,
-            hint: matSettings.hiddenTableCheckBox.hint,
-            id: 'hiddenTableCheckBox',
-            value: game.settings.get(moduleName, 'hiddenTableCheckBox'),
-          },
-          hiddenTable: {
-            rows: {},
-          },
-        },
-      },
-    }
-    let customTable = game.settings.get(moduleName, 'tempSetting')
-    for (let i = 0; i < Math.floor(customTable.length / 3); i++) {
-      data.settings.mobTable.hiddenTable.rows[i] = {
-        d20RollMinId: 'tempSetting',
-        d20RollMinValue: customTable[3 * i],
-        d20RollMaxId: 'tempSetting',
-        d20RollMaxValue: customTable[3 * i + 1],
-        attackersNeededId: 'tempSetting',
-        attackersNeededValue: customTable[3 * i + 2],
-      }
-    }
-    data.isGM = game.user.isGM
-    data.removeRowDisabled = (customTable.length < 6)
-    return data
+    return buildSettingsData()
   }
 
   async _updateObject(event, formData) {
-    for (let [settingKey, value] of Object.entries(formData)) {
-      if (settingKey === 'tempSetting') {
-        let customTable = game.settings.get(moduleName, 'tempSetting')
-        let tableArray = {}
-        let correctionLoops = 2
-        for (let j = 0; j < correctionLoops; j++) {
-          for (let i = 0; i < Math.floor(customTable.length / 3); i++) {
-            tableArray[i] = value.slice(3 * i, 3 * i + 3)
-            if (parseInt(tableArray[i][1]) < parseInt(tableArray[i][0])) {
-              ui.notifications.warn(game.i18n.format('MAT.warnCustomTableUpperLimit', { upperLimit: tableArray[i][1], lowerLimit: tableArray[i][0] }))
-              value[3 * i + 1] = value[3 * i]
-            }
-            if (i > 0) {
-              if (parseInt(tableArray[i][0]) <= parseInt(tableArray[i - 1][1])) {
-                value[3 * i] = parseInt(value[3 * (i - 1) + 1]) + 1
-                if (value[3 * i] > 20) {
-                  value[3 * i] = 20
-                }
-              }
-              if (parseInt(tableArray[i][0]) - 1 >= parseInt(tableArray[i - 1][1])) {
-                value[3 * i] = parseInt(value[3 * (i - 1) + 1]) + 1
-                if (value[3 * i] > 20) {
-                  value[3 * i] = 20
-                }
-                if (parseInt(tableArray[i][1]) < value[3 * i]) {
-                  value[3 * i + 1] = value[3 * i]
-                }
-              }
-            }
-            if (i === Math.floor(customTable.length / 3) - 1) {
-              if (parseInt(tableArray[i][1]) < 20) {
-                value[3 * i + 1] = 20
-              }
-            }
-          }
-        }
-      }
-      await game.user.setFlag(moduleName, settingKey, value)
-      await game.settings.set(moduleName, settingKey, value)
-    }
+    await saveFormData(formData)
   }
 
   activateListeners(html) {
@@ -550,7 +744,7 @@ class RollSettingsMenu extends FormApplication {
 
     html.on('click', '.MATaddRow', async () => {
       let tableData = []
-      let tableDataHtml = html.find(`input[name="tempSetting"]`)
+      const tableDataHtml = html.find('input[name="tempSetting"]')
       for (let input of tableDataHtml) {
         tableData.push(parseInt(input.value))
       }
@@ -558,14 +752,18 @@ class RollSettingsMenu extends FormApplication {
       if (customTable[customTable.length - 2] >= 20) {
         customTable[customTable.length - 2] = parseInt(customTable[customTable.length - 2]) - 1
       }
-      customTable = customTable.concat([parseInt(customTable[customTable.length - 2]) + 1, parseInt(customTable[customTable.length - 2]) + 1, parseInt(customTable[customTable.length - 1])])
+      customTable = customTable.concat([
+        parseInt(customTable[customTable.length - 2]) + 1,
+        parseInt(customTable[customTable.length - 2]) + 1,
+        parseInt(customTable[customTable.length - 1]),
+      ])
       await game.settings.set(moduleName, 'tempSetting', customTable)
       this.render()
     })
 
     html.on('click', '.MATremoveRow', async () => {
       let tableData = []
-      let tableDataHtml = html.find(`input[name="tempSetting"]`)
+      const tableDataHtml = html.find('input[name="tempSetting"]')
       for (let input of tableDataHtml) {
         tableData.push(parseInt(input.value))
       }

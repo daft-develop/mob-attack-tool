@@ -2,6 +2,8 @@ import { systemEqualOrNewerThan } from './versions.js'
 import { moduleName } from './mobAttack.js'
 import { getMultiattackFromActor } from './multiattack.js'
 
+const { getProperty, duplicate } = foundry.utils
+
 /**
  * For a given weapon/spell/item, return the data required to perform an attack
  * This was part of "WeaponData" in v3 and migrated to "AttackActivity" on the
@@ -79,7 +81,7 @@ export function getDamageOptions(allowCritical = true, targetId = null) {
 
 // This is based in large part on midi-qol's callMacro method
 export async function callMidiMacro(item, midiMacroData) {
-  const macroName = foundry.utils.getProperty(item, 'flags.midi-qol.onUseMacroName')
+  const macroName = getProperty(item, 'flags.midi-qol.onUseMacroName')
   if (!macroName) {
     console.log(`No On Use Macro found at ${item.name}.`)
     return
@@ -97,15 +99,15 @@ export async function callMidiMacro(item, midiMacroData) {
     if (macroName.startsWith('ItemMacro')) {
       var itemMacro
       if (macroName === 'ItemMacro') {
-        itemMacro = foundry.utils.getProperty(item.flags, 'itemacro.macro')
+        itemMacro = getProperty(item.flags, 'itemacro.macro')
         macroData.sourceItemUuid = item?.uuid
       }
       else {
         const parts = macroName.split('.')
         const itemName = parts.slice(1).join('.')
-        item = macroData.actor.items.find(i => i.name === itemName && foundry.utils.getProperty(i.flags, 'itemacro.macro'))
+        item = macroData.actor.items.find(i => i.name === itemName && getProperty(i.flags, 'itemacro.macro'))
         if (item) {
-          itemMacro = foundry.utils.getProperty(item.flags, 'itemacro.macro')
+          itemMacro = getProperty(item.flags, 'itemacro.macro')
           macroData.sourceItemUuid = item?.uuid
         }
         else return {}
@@ -169,7 +171,7 @@ export async function getTargetData(monsters) {
     }
   }
   let weaponsOnTarget = {}
-  for (let [, monsterData] of Object.entries(foundry.utils.duplicate(monsters))) {
+  for (let [, monsterData] of Object.entries(duplicate(monsters))) {
     Object.assign(weaponsOnTarget, monsterData.weapons)
     for (let i = 0; i < monsterData.amount - 1; i++) {
       for (let weaponID of Object.keys(monsterData.weapons)) {
@@ -187,7 +189,7 @@ export async function getTargetData(monsters) {
     }
     else {
       for (let j = 0; j < weaponData.numAttack; j++) {
-        let singleWeaponData = foundry.utils.duplicate(weaponData)
+        let singleWeaponData = duplicate(weaponData)
         singleWeaponData.numAttack = 1
         weaponsOnTargetArray.push(singleWeaponData)
       }

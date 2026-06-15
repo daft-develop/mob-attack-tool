@@ -4,6 +4,8 @@ import { rollMobAttackIndividually } from './individualRolls.js'
 import { rollMobAttack } from './mobRules.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 
+const { mergeObject } = foundry.utils
+
 export function addMobAttackToolButton() {
   Hooks.on('getSceneControlButtons', (controls) => {
     const playerAccess = game.settings.get(moduleName, 'playerAccess')
@@ -86,7 +88,7 @@ export class MobAttackDialog extends FormApplication {
   }
 
   static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
+    return mergeObject(super.defaultOptions, {
       title: 'Mob Attack Tool',
       id: 'mob-attack-tool-dialog',
       template: 'modules/mob-attack-tool/templates/mat-dialog.hbs',

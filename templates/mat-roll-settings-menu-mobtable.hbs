@@ -1,0 +1,59 @@
+<section class="tab mobTable scrollable {{tab.cssClass}}" data-group="primary" data-tab="mobTable">
+	{{#if this.isGM}}
+	<div class="settings-list">
+		<div class="form-group">
+			<label style="flex-grow: 5;">{{localize this.settings.mobTable.hiddenTableCheckBox.name}}</label>
+			<div class="form-fields">
+				<input type="checkbox" name="{{this.settings.mobTable.hiddenTableCheckBox.id}}" data-dtype="Boolean"
+					{{checked this.settings.mobTable.hiddenTableCheckBox.value}} />
+			</div>
+			<p class="hint">{{localize this.settings.mobTable.hiddenTableCheckBox.hint}}</p>
+		</div>
+		<table>
+			<thead>
+				<tr>
+					<td colspan="2" style="text-align:center;">{{localize 'MAT.d20rollNeeded'}}</td>
+					<td style="text-align:center;">{{localize 'MAT.attackersNeededForOneHit'}}</td>
+				</tr>
+				<tr>
+					<td style="text-align:center;">Min</td>
+					<td style="text-align:center;">Max</td>
+					<td style="text-align:center;"></td>
+				</tr>
+			</thead>
+			<tbody>
+				{{#each this.settings.mobTable.hiddenTable.rows}}
+				<tr>
+					<td style="text-align:center;">
+						<input type="number" class="numTable" name="{{this.d20RollMinId}}"
+							value="{{this.d20RollMinValue}}" min="1" max="20" />
+					</td>
+					<td style="text-align:center;">
+						<input type="number" class="numTable" name="{{this.d20RollMaxId}}"
+							value="{{this.d20RollMaxValue}}" min="1" max="20" />
+					</td>
+					<td style="text-align:center; width: calc(50%);">
+						<input type="number" class="numTable" name="{{this.attackersNeededId}}"
+							value="{{this.attackersNeededValue}}" min="1" />
+					</td>
+				</tr>
+				{{/each}}
+			</tbody>
+		</table>
+	</div>
+	<div style="display:grid; grid-template-columns: 33% 33% 33%; column-gap:2px;">
+		<button type="button" name="addRow" class="MATaddRow" data-action="addRow"
+			style="grid-column-start:1; grid-column-end:1; align-self:center">
+			<i class="fas fa-plus"></i> {{localize 'MAT.addRow'}}
+		</button>
+		<button type="button" name="removeRow" class="MATremoveRow" data-action="removeRow" {{#if removeRowDisabled}}
+			disabled {{/if}} style="grid-column-start:2; grid-column-end:2; align-self:center">
+			<i class="fas fa-minus"></i> {{localize 'MAT.removeRow'}}
+		</button>
+		<button type="button" name="resetTable" class="MATresetTable" data-action="resetTable"
+			style="grid-column-start:3; grid-column-end:3; align-self:center">
+			<i class="fas fa-undo"></i> {{localize 'MAT.resetTable'}}
+		</button>
+	</div>
+	{{/if}}
+</section>

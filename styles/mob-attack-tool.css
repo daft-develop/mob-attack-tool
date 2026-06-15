@@ -296,3 +296,23 @@ input[type="number"].numTable {
 	color: inherit;
 	filter: sepia(0.5) contrast(0.75) opacity(0.4);
 }
+
+section .mobTable input[type=number] {
+	background: rgba(0, 0, 0, 0);
+}
+
+.theme-dark section .mobTable input[type=number] {
+	/* Fallback for browsers that don't support color-mix (Chrome <111, iOS Safari <16.2) */
+	border: 1px solid #e7d1b166;
+}
+
+/* Use color-mix when supported to respect theme variable */
+@supports (border: color-mix(in srgb, var(--input-text-color) 40%, transparent)) {
+	.theme-dark section .mobTable input[type=number] {
+		border: 1px solid color-mix(in srgb, var(--input-text-color) 40%, transparent);
+	}
+}
+
+section .mobTable td {
+	padding: 0.5rem 0.25rem;
+}
