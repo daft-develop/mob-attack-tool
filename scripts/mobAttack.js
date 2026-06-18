@@ -11,14 +11,15 @@ Hooks.once('init', async () => {
 
   if (foundryEqualOrNewerThan('13.0.0')) {
     await foundry.applications.handlebars.loadTemplates({
-      "mat.setting": "modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs",
-    })
-  } else {
-    loadTemplates({
-      "mat.setting": "modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs",
+      'mat.setting': 'modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs',
     })
   }
-   
+  else {
+    loadTemplates({
+      'mat.setting': 'modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs',
+    })
+  }
+
   initSettings()
   addMobAttackToolButton()
   // initQuenchTests() }
