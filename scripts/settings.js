@@ -622,23 +622,23 @@ class RollSettingsMenuV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       template: 'templates/generic/tab-navigation.hbs',
     },
     roll: {
-      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-roll.hbs',
+      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-roll.hbs',
       scrollable: ['scrollable']
     },
     multiattack: {
-      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-multiattack.hbs',
+      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-multiattack.hbs',
       scrollable: ['scrollable']
     },
     targets: {
-      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-target.hbs',
+      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-target.hbs',
       scrollable: ['scrollable']
     },
     module: {
-      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-module.hbs',
+      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-module.hbs',
       scrollable: ['scrollable']
     },
     mobTable: {
-      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu-mobtable.hbs',
+      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-mobtable.hbs',
       scrollable: ['scrollable']
     },
     footer: {
@@ -723,7 +723,7 @@ class RollSettingsMenu extends FormApplication {
     return mergeObject(super.defaultOptions, {
       id: 'mob-attack-tool-roll-settings',
       title: 'Mob Attack Tool Settings',
-      template: 'modules/mob-attack-tool/templates/mat-roll-settings-menu.hbs',
+      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu.hbs',
       width: '530',
       height: 'auto',
       closeOnSubmit: true,

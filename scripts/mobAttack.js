@@ -9,10 +9,13 @@ export const moduleName = 'mob-attack-tool'
 Hooks.once('init', async () => {
   console.log('Mob Attack Tool | Adding Mob Attack Tool.')
 
-  // v12 doesn't have partial template loading
   if (foundryEqualOrNewerThan('13.0.0')) {
     await foundry.applications.handlebars.loadTemplates({
-      "mat.setting": "modules/mob-attack-tool/templates/mat-settings-partial.hbs",
+      "mat.setting": "modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs",
+    })
+  } else {
+    loadTemplates({
+      "mat.setting": "modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs",
     })
   }
    

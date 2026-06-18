@@ -1,31 +1,3 @@
-{{! This partial is based on the foundry settings partial}}
-{{#*inline "settingPartial"}}
-<div class="form-group">
-	<label style="flex-grow: 5;">{{localize this.name}}</label>
-	<div class="form-fields">
-		{{#if this.isCheckbox}}
-		<input type="checkbox" name="{{this.id}}" data-dtype="Boolean" {{checked this.value}} {{#if
-			this.disabled}}disabled{{/if}} />
-		{{else if this.isSelect}}
-		<select name="{{this.id}}">
-			{{selectOptions this.choices selected=this.value localize=true}}
-		</select>
-		{{else if this.isRange}}
-		<input type="range" name="{{this.id}}" data-dtype="Number" value="{{ this.value }}" min="{{ this.range.min }}"
-			max="{{ this.range.max }}" step="{{ this.range.step }}" />
-		<span class="range-value">{{this.value}}</span>
-		{{else if this.isColor}}
-		<input type="color" name="{{this.id}}" value="{{this.value}}" data-dtype="{{this.type}}" />
-		{{else if this.isNumber}}
-		<input type="number" name="{{this.id}}" value="{{this.value}}" data-dtype="{{this.type}}" />
-		{{else}}
-		<input type="text" name="{{this.id}}" value="{{localize this.value}}" data-dtype="{{this.type}}" />
-		{{/if}}
-	</div>
-	<p class="notes">{{localize this.hint}}</p>
-</div>
-{{/inline}}
-
 <form class="flexcol" autocomplete="off">
 	<nav class="sheet-tabs tabs">
 		<a class="item active" data-tab="roll"><i class="fas fa-dice-d20"></i> {{localize
@@ -49,7 +21,7 @@
 				<div class="form-group">
 					{{#with this}}
 					{{#if this.client}}
-					{{> settingPartial}}
+					{{> mat.setting}}
 					{{/if}}
 					{{/with}}
 				</div>
@@ -62,7 +34,7 @@
 				<div class="form-group">
 					{{#with this}}
 					{{#if this.client}}
-					{{> settingPartial}}
+					{{> mat.setting}}
 					{{/if}}
 					{{/with}}
 				</div>
@@ -75,7 +47,7 @@
 				<div class="form-group">
 					{{#with this}}
 					{{#if this.client}}
-					{{> settingPartial}}
+					{{> mat.setting}}
 					{{/if}}
 					{{/with}}
 				</div>
@@ -89,7 +61,7 @@
 				<div class="form-group">
 					{{#with this}}
 					{{#if this.client}}
-					{{> settingPartial}}
+					{{> mat.setting}}
 					{{/if}}
 					{{/with}}
 				</div>
