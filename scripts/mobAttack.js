@@ -1,6 +1,6 @@
 import { initSettings } from './settings.js'
-import { addMobAttackToolButton, MobAttackDialog } from './mobAttackTool.js'
-import { MobAttacks } from './mobAttackTool.js'
+import { createAndRenderDialog } from './mobAttackDialog.js'
+import { macroObject } from './macroObject.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 // import { initQuenchTests } from './quench.js'
 
@@ -25,18 +25,15 @@ Hooks.once('init', async () => {
   // initQuenchTests() }
 
   const dialogs = new Map()
-  const storedHooks = {}
   game.mobAttackTool = {
-    applications: {
-      MobAttackDialog,
-    },
     dialogs,
-    storedHooks,
   }
 })
 
 Hooks.on('ready', async () => {
-  window.MobAttacks = MobAttacks()
+  // register global MobAttacks macro object
+  // for running mat via user macros
+  window.MobAttacks = macroObject()
 
   // check if CTG's groups have changed
   Hooks.on('ctgGroupUpdate', async (args) => {
@@ -50,7 +47,7 @@ Hooks.on('ready', async () => {
     if (!game.settings.get(moduleName, 'autoSaveCTGgroups')) return
     if (groups[0]) {
       if (groups[0].filter(c => c.initiative).length > 0) {
-        await MobAttacks().createSavedMobsFromCTGgroups(groups)
+        await macroObject().createSavedMobsFromCTGgroups(groups)
         const dialogId = game.settings.get(moduleName, 'currentDialogId')
         let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
         if (mobDialog) mobDialog.render()
@@ -66,7 +63,7 @@ Hooks.on('ready', async () => {
       // delete existing CTG groups
       for (let ctgMobName of Object.keys(mobList)) {
         if (mobList[ctgMobName]?.type === 'ctg') {
-          await MobAttacks().deleteSavedMob(ctgMobName)
+          await macroObject().deleteSavedMob(ctgMobName)
         }
       }
     }
@@ -152,3 +149,31 @@ Hooks.on('diceSoNiceRollStart', (messageId, context) => {
   // Hide this roll
   context.blind = true
 })
+
+function addMobAttackToolButton() {
+  Hooks.on('getSceneControlButtons', (controls) => {
+    const playerAccess = game.settings.get(moduleName, 'playerAccess')
+    if (foundryEqualOrNewerThan('13.0')) {
+      const tokenBar = controls['tokens']
+      tokenBar.tools[game.i18n.localize('MAT.name')] = {
+        name: game.i18n.localize('MAT.name'),
+        title: game.i18n.localize('MAT.mobAttack'),
+        icon: 'fas fa-dice',
+        visible: (playerAccess ? true : game.user.isGM),
+        onChange: () => createAndRenderDialog(),
+        button: true,
+      }
+    }
+    else {
+      const bar = controls.find(c => c.name === 'token')
+      bar.tools.push({
+        name: game.i18n.localize('MAT.name'),
+        title: game.i18n.localize('MAT.mobAttack'),
+        icon: 'fas fa-dice',
+        visible: (playerAccess ? true : game.user.isGM),
+        onClick: async () => createAndRenderDialog(),
+        button: true,
+      })
+    }
+  })
+}
