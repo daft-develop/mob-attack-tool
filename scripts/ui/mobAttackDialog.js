@@ -1,8 +1,8 @@
-import { moduleName } from './mobAttack.js'
-import { checkTarget, getTargetData, prepareMonsters, prepareMobAttack, loadMob } from './utils.js'
-import { rollMobAttackIndividually } from './individualRolls.js'
-import { rollMobAttack } from './mobRules.js'
-import { foundryEqualOrNewerThan } from './versions.js'
+import { moduleName } from '../mobAttack.js'
+import { checkTarget, getTargetData, prepareMonsters, prepareMobAttack, loadMob } from '../utils.js'
+import { rollMobAttackIndividually } from '../individualRolls.js'
+import { rollMobAttack } from '../mobRules.js'
+import { foundryEqualOrNewerThan } from '../versions.js'
 
 const { mergeObject } = foundry.utils
 
@@ -63,7 +63,7 @@ export class MobAttackDialog extends FormApplication {
     return mergeObject(super.defaultOptions, {
       title: 'Mob Attack Tool',
       id: 'mob-attack-tool-dialog',
-      template: 'modules/mob-attack-tool/templates/mat-dialog.hbs',
+      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog.hbs',
       width: '505',
       height: 'auto',
       closeOnSubmit: false,

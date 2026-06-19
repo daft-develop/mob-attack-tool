@@ -1,6 +1,6 @@
 import { rollMobAttackIndividually } from './individualRolls.js'
 import { moduleName } from './mobAttack.js'
-import { createAndRenderDialog } from './mobAttackDialog.js'
+import { createAndRenderDialog } from './ui/mobAttackDialog.js'
 import { rollMobAttack } from './mobRules.js'
 import { checkTarget, getTargetData, prepareMonsters } from './utils.js'
 

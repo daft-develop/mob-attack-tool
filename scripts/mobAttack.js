@@ -1,5 +1,5 @@
 import { initSettings } from './settings.js'
-import { createAndRenderDialog } from './mobAttackDialog.js'
+import { createAndRenderDialog } from './ui/mobAttackDialog.js'
 import { macroObject } from './macroObject.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 // import { initQuenchTests } from './quench.js'
@@ -11,12 +11,16 @@ Hooks.once('init', async () => {
 
   if (foundryEqualOrNewerThan('13.0.0')) {
     await foundry.applications.handlebars.loadTemplates({
-      'mat.setting': 'modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs',
+      'mat.setting': 'modules/mob-attack-tool/templates/partials/mat-settings-partial.hbs',
+      'mat.formatMonster': 'modules/mob-attack-tool/templates/partials/mat-format-monster-partial.hbs',
+      'mat.formatWeapon': 'modules/mob-attack-tool/templates/partials/mat-format-weapon-partial.hbs',
     })
   }
   else {
     loadTemplates({
-      'mat.setting': 'modules/mob-attack-tool/templates/settings/mat-settings-partial.hbs',
+      'mat.setting': 'modules/mob-attack-tool/templates/partials/mat-settings-partial.hbs',
+      'mat.formatMonster': 'modules/mob-attack-tool/templates/partials/mat-format-monster-partial.hbs',
+      'mat.formatWeapon': 'modules/mob-attack-tool/templates/partials/mat-format-weapon-partial.hbs',
     })
   }
 
