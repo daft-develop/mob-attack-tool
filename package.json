@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "createSymlinks": "node ./tools/create-symlinks.mjs"
   },
   "author": "",
   "license": "GPL-3.0-or-later",
