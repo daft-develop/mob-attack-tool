@@ -1,10 +1,9 @@
 import { moduleName } from './mobAttack.js'
+import { RollSettingsMenu } from './ui/RollSettingsMenu.js'
+import { RollSettingsMenuV2 } from './ui/RollSettingsMenuV2.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 
-const { expandObject, mergeObject } = foundry.utils
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
-
-const matSettings = {
+export const matSettings = {
   playerAccess: {
     name: 'SETTINGS.MAT.playerAccess',
     hint: 'SETTINGS.MAT.playerAccessHint',
@@ -318,7 +317,7 @@ export function initSettings() {
  * Builds the context/data object for the settings template.
  * Extracted so both AppV2 and FormApplication can share identical logic.
  */
-function buildSettingsData() {
+export function buildSettingsData() {
   const data = {
     settings: {
       roll: {
@@ -511,7 +510,7 @@ function buildSettingsData() {
  * Validates and corrects the custom mob table array submitted via the form,
  * then persists each setting key. Used by both menu implementations.
  */
-async function saveFormData(formData) {
+export async function saveFormData(formData) {
   for (let [settingKey, value] of Object.entries(formData)) {
     if (settingKey === 'tempSetting') {
       const customTable = game.settings.get(moduleName, 'tempSetting')
@@ -548,236 +547,5 @@ async function saveFormData(formData) {
     }
     await game.user.setFlag(moduleName, settingKey, value)
     await game.settings.set(moduleName, settingKey, value)
-  }
-}
-
-// ---------------------------------------------------------------------------
-// AppV2 implementation (Foundry v13+)
-// ---------------------------------------------------------------------------
-
-class RollSettingsMenuV2 extends HandlebarsApplicationMixin(ApplicationV2) {
-  static DEFAULT_OPTIONS = {
-    id: 'mob-attack-tool-roll-settings',
-    classes: ['standard-form'],
-    tag: 'form',
-    window: {
-      title: 'Mob Attack Tool Settings',
-      icon: 'fas fa-cogs',
-      resizable: true,
-      contentClasses: ['standard-form'],
-    },
-    position: {
-      width: 530,
-      height: 'auto',
-    },
-    form: {
-      handler: RollSettingsMenuV2._onSubmit,
-      submitOnChange: false,
-      closeOnSubmit: true,
-    },
-    actions: {
-      addRow: RollSettingsMenuV2._onAddRow,
-      removeRow: RollSettingsMenuV2._onRemoveRow,
-      resetTable: RollSettingsMenuV2._onResetTable,
-    },
-  }
-
-  static TABS = {
-    primary: {
-      tabs: [
-        {
-          id: 'roll',
-          icon: 'fas fa-dice-d20',
-          label: 'SETTINGS.MAT.rollSettings',
-        },
-        {
-          id: 'multiattack',
-          icon: 'fas fa-fist-raised',
-          label: 'SETTINGS.MAT.multiattackSettings',
-        },
-        {
-          id: 'targets',
-          icon: 'fas fa-crosshairs',
-          label: 'SETTINGS.MAT.targetSettings',
-        },
-        {
-          id: 'module',
-          icon: 'fas fa-cogs',
-          label: 'SETTINGS.MAT.moduleSpecificSettings',
-        },
-        {
-          id: 'mobTable',
-          icon: 'fas fa-bars',
-          label: 'SETTINGS.MAT.mobTableSettings',
-        },
-      ],
-      initial: 'roll',
-    },
-  }
-
-  static PARTS = {
-    tabs: {
-      // Foundry-provided generic template
-      template: 'templates/generic/tab-navigation.hbs',
-    },
-    roll: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-roll.hbs',
-      scrollable: ['scrollable'],
-    },
-    multiattack: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-multiattack.hbs',
-      scrollable: ['scrollable'],
-    },
-    targets: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-target.hbs',
-      scrollable: ['scrollable'],
-    },
-    module: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-module.hbs',
-      scrollable: ['scrollable'],
-    },
-    mobTable: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-mobtable.hbs',
-      scrollable: ['scrollable'],
-    },
-    footer: {
-      template: 'templates/generic/form-footer.hbs',
-    },
-  }
-
-  async _prepareContext() {
-    const context = buildSettingsData()
-    let tabsPrep = this._prepareTabs('primary')
-    // drop GM tabs for non-GM players
-    if (!context.isGM) {
-      delete tabsPrep.module
-      delete tabsPrep.mobTable
-    }
-    context.tabs = tabsPrep
-    context.buttons = [
-      { type: 'submit', icon: 'fa-solid fa-save', label: 'SETTINGS.Save' },
-    ]
-    return context
-  }
-
-  async _preparePartContext(partId, context) {
-    switch (partId) {
-      case 'roll':
-      case 'multiattack':
-      case 'targets':
-      case 'module':
-      case 'mobTable':
-        context.tab = context.tabs[partId]
-        break
-      default:
-    }
-    return context
-  }
-
-  static async _onSubmit(event, form, formData) {
-    await saveFormData(expandObject(formData.object))
-  }
-
-  /** Read current input values from the live DOM rather than saved settings,
-   *  so unsaved edits in other tabs are preserved when adding/removing rows. */
-  static _readTableFromDOM(element) {
-    return Array.from(element.querySelectorAll('input[name="tempSetting"]'))
-      .map(input => parseInt(input.value))
-  }
-
-  static async _onAddRow() {
-    let customTable = RollSettingsMenuV2._readTableFromDOM(this.element)
-    if (customTable[customTable.length - 2] >= 20) {
-      customTable[customTable.length - 2] = parseInt(customTable[customTable.length - 2]) - 1
-    }
-    customTable = customTable.concat([
-      parseInt(customTable[customTable.length - 2]) + 1,
-      parseInt(customTable[customTable.length - 2]) + 1,
-      parseInt(customTable[customTable.length - 1]),
-    ])
-    await game.settings.set(moduleName, 'tempSetting', customTable)
-    this.render()
-  }
-
-  static async _onRemoveRow() {
-    let customTable = RollSettingsMenuV2._readTableFromDOM(this.element)
-    if (customTable.length >= 6) {
-      customTable = customTable.slice(0, customTable.length - 3)
-      await game.settings.set(moduleName, 'tempSetting', customTable)
-    }
-    this.render()
-  }
-
-  static async _onResetTable() {
-    await game.settings.set(moduleName, 'tempSetting', matSettings.tempSetting.default)
-    this.render()
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Legacy FormApplication implementation (Foundry v12 and below)
-// ---------------------------------------------------------------------------
-
-class RollSettingsMenu extends FormApplication {
-  static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
-      id: 'mob-attack-tool-roll-settings',
-      title: 'Mob Attack Tool Settings',
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu.hbs',
-      width: '530',
-      height: 'auto',
-      closeOnSubmit: true,
-      tabs: [{ navSelector: '.tabs', contentSelector: 'form', initial: 'roll' }],
-    })
-  }
-
-  getData() {
-    return buildSettingsData()
-  }
-
-  async _updateObject(event, formData) {
-    await saveFormData(formData)
-  }
-
-  activateListeners(html) {
-    super.activateListeners(html)
-
-    html.on('click', '.MATaddRow', async () => {
-      let tableData = []
-      const tableDataHtml = html.find('input[name="tempSetting"]')
-      for (let input of tableDataHtml) {
-        tableData.push(parseInt(input.value))
-      }
-      let customTable = tableData
-      if (customTable[customTable.length - 2] >= 20) {
-        customTable[customTable.length - 2] = parseInt(customTable[customTable.length - 2]) - 1
-      }
-      customTable = customTable.concat([
-        parseInt(customTable[customTable.length - 2]) + 1,
-        parseInt(customTable[customTable.length - 2]) + 1,
-        parseInt(customTable[customTable.length - 1]),
-      ])
-      await game.settings.set(moduleName, 'tempSetting', customTable)
-      this.render()
-    })
-
-    html.on('click', '.MATremoveRow', async () => {
-      let tableData = []
-      const tableDataHtml = html.find('input[name="tempSetting"]')
-      for (let input of tableDataHtml) {
-        tableData.push(parseInt(input.value))
-      }
-      let customTable = tableData
-      if (customTable.length >= 6) {
-        customTable = customTable.slice(0, customTable.length - 3)
-        await game.settings.set(moduleName, 'tempSetting', customTable)
-      }
-      this.render()
-    })
-
-    html.on('click', '.MATresetTable', async () => {
-      await game.settings.set(moduleName, 'tempSetting', matSettings.tempSetting.default)
-      this.render()
-    })
   }
 }
