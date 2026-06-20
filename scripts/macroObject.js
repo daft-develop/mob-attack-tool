@@ -1,8 +1,10 @@
 import { rollMobAttackIndividually } from './individualRolls.js'
 import { moduleName } from './mobAttack.js'
 import { createAndRenderDialog } from './ui/mobAttackDialog.js'
+import { createAndRenderDialog as renderV2 } from './ui/mobAttackDialogV2.js'
 import { rollMobAttack } from './mobRules.js'
 import { checkTarget, getTargetData, prepareMonsters } from './utils.js'
+import { foundryEqualOrNewerThan } from './versions.js'
 
 export function macroObject() {
   function quickRoll(data) {
@@ -44,7 +46,12 @@ export function macroObject() {
   }
 
   async function createDialog() {
-    await createAndRenderDialog()
+    if (foundryEqualOrNewerThan('13.0.0')) {
+      await renderV2()
+    }
+    else {
+      await createAndRenderDialog()
+    }
   }
 
   /*

@@ -6,6 +6,35 @@
 	cursor: default;
 }
 
+#mob-attack-tool-dialog.mat-dialog-content2 {
+	row-gap: 0.1rem;
+}
+
+.mat-dialog-content2 .tabs {
+	margin-bottom: 0.5rem;
+}
+
+.mat-dialog-content2 .window-content {
+	row-gap: 0.25rem;
+}
+
+.mat-dialog-content2 .tab {
+	row-gap: 0.25rem;
+}
+
+.mat-dialog-content2 hr {
+	margin-top: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.mat-dialog-content2 button[type=submit] {
+	margin-top: 0.5rem;
+}
+
+.mat-dialog-content2 .mat-collapsible-content-open div {
+	margin: 0.25rem;
+}
+
 .mat-mob-rules-line {
 	border-bottom: 1px solid gray;
 }
@@ -21,11 +50,28 @@
 	column-gap: 5px;
 }
 
+.mat-dialog-content2 .mat-rolltype {
+	grid-template-columns: auto 120px;
+}
+
 .mat-macro-export {
 	display: grid;
 	grid-template-columns: 360px 120px;
 	margin: 0px 0px 3px 0px;
 	column-gap: 5px;
+}
+
+.mat-dialog-content2 .mat-macro-export {
+	grid-template-columns: auto 120px;
+}
+
+.mat-dialog-content2 .mat-collapsible-content-open div .mat-col1 {
+	place-self: center start;
+}
+
+.mat-dialog-content2 .mat-collapsible-content-open div :is(button, select) {
+	place-self: center end;
+	width: 120px;
 }
 
 .mat-end-turn {
@@ -94,8 +140,12 @@ input[type="number"].numTable {
 
 .mat-weapon-name-label {
 	display: grid;
-	grid-template-columns: 120px 50px 60px 125px;
+	grid-template-columns: 120px 50px 80px 125px;
 	column-gap: 5px;
+}
+
+.mat-dialog-content2 .mat-weapon-name-label {
+	grid-template-columns: 120px 60px 80px 125px;
 }
 
 .mat-num-group {

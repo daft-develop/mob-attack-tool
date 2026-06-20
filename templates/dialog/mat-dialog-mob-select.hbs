@@ -1,0 +1,27 @@
+<section>
+	<div class="form-group">
+		<label>
+			{{localize 'MAT.mobNameDialog'}}:
+		</label>
+		<div class="form-fields">
+			<label>
+				<a data-action="previousMob" title="{{localize 'Switch to previous saved mob'}}">
+					<i class="fas fa-arrow-left"></i>
+				</a>
+			</label>
+			<input type="text" name="mobName" class="MAT-mobName" value="{{mat.mobName}}" onClick="this.select();" />
+			<label>
+				<a data-action="nextMob" title="{{localize 'Switch to next saved mob'}}">
+					<i class="fas fa-arrow-right"></i>
+				</a>
+			</label>
+			<button type="button" title="{{localize 'MAT.saveMobButtonTitle'}}" name="saveMob" data-action="saveMob">
+				<i class="far fa-save"></i>
+			</button>
+			<button type="button" title="{{localize 'MAT.selectMobButtonTitle'}}" name="selectMob" data-action="selectMob">
+				<i class="fas fa-file-import fa-fw"></i>
+			</button>
+		</div>
+	</div>
+	<hr>
+</section>

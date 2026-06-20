@@ -25,7 +25,7 @@ export async function rollMobAttackIndividually(data) {
       const actorName = weaponData.actor.name
       const finalAttackBonus = getAttackBonus(weaponData)
 
-      let attackFormula = ''
+      let attackFormula
 
       if (data.withAdvantage || (!data.withDisadvantage && data.event?.altKey)) {
         data.withAdvantage = true
@@ -186,7 +186,7 @@ export async function rollMobAttackIndividually(data) {
   let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
-  let messageText = ''
+  let messageText
   if (foundryEqualOrNewerThan('13.0.0')) {
     messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
   }
@@ -404,7 +404,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
       if (showDamageRolls) {
         for (let i = 0; i < numHitAttacks; i++) {
           await new Promise(resolve => setTimeout(resolve, 300))
-          let damageOptions = {}
+          let damageOptions
           if (successfulAttackRolls[i].total - finalAttackBonus >= critThreshold && numCrits > 0) {
             damageOptions = getDamageOptions(true, targetId)
             numCrits--

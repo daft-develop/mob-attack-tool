@@ -1,5 +1,5 @@
 import { moduleName } from '../mobAttack.js'
-import { checkTarget, getTargetData, prepareMonsters, prepareMobAttack, loadMob } from '../utils.js'
+import { checkTarget, getTargetData, prepareMonsters, prepareMobAttack } from '../utils.js'
 import { rollMobAttackIndividually } from '../individualRolls.js'
 import { rollMobAttack } from '../mobRules.js'
 import { foundryEqualOrNewerThan } from '../versions.js'
@@ -109,7 +109,7 @@ export class MobAttackDialog extends FormApplication {
 
     // determine relevant actor list and mob name
     let actorList = []
-    let mobName = game.settings.get(moduleName, 'hiddenMobName')
+    let mobName
     if (game.settings.get(moduleName, 'hiddenChangedMob')) {
       mobName = Object.keys(mobList)[this.mobListIndex]
       let mobData = mobList[mobName]
@@ -174,9 +174,9 @@ export class MobAttackDialog extends FormApplication {
       }
     }
 
-    let monsters = {}
-    let weapons = {}
-    let availableAttacks = {};
+    let monsters
+    let weapons
+    let availableAttacks
     [monsters, weapons, availableAttacks] = await prepareMonsters(actorList)
 
     // determine if newly determined monsters (+ weapons) should be used, or the already stored (and posssibly modified) data
@@ -400,10 +400,6 @@ export class MobAttackDialog extends FormApplication {
 
     // increase number of monsters
     html.on('click', '.increaseNumMonster', async (event) => {
-      let numMonster = parseInt(event.currentTarget.parentNode.previousElementSibling.value)
-      if (Number.isNaN(numMonster) || numMonster == null || numMonster == undefined) {
-        numMonster = 1
-      }
       let monsterId = event.currentTarget.parentNode.previousElementSibling.getAttribute('name')
       for (let monsterKey of Object.keys(this.monsters)) {
         if (monsterKey === monsterId) {
@@ -546,10 +542,10 @@ export class MobAttackDialog extends FormApplication {
 
       let dialogMobList = ''
       if (foundryEqualOrNewerThan('13.0.0')) {
-        dialogMobList = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+        dialogMobList = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
       }
       else {
-        dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+        dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
       }
 
       let selectedMob = await new Promise((resolve) => {
@@ -824,4 +820,39 @@ export class MobAttackDialog extends FormApplication {
     // console.log(formData);
     console.log('Mob Attack Tool | Executed Mob Attack')
   }
+}
+
+async function loadMob(event, selectedMob) {
+  let dialogId = game.settings.get(moduleName, 'currentDialogId')
+  let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
+
+  let mobList = game.settings.get(moduleName, 'hiddenMobList')
+
+  await game.settings.set(moduleName, 'hiddenChangedMob', true)
+  await game.settings.set(moduleName, 'hiddenMobName', selectedMob)
+
+  let mobData = mobList[selectedMob]
+  if (mobData === undefined || mobData === null) return
+  let weapons
+  let actorList = []
+  for (let monster of mobData.monsters) {
+    for (let i = 0; i < monster.amount; i++) {
+      actorList.push(game.actors.get(monster.id))
+    }
+  }
+  [, weapons] = await prepareMonsters(actorList)
+
+  mobList[selectedMob]['weapons'] = weapons
+  mobDialog.actorList = actorList
+  await game.settings.set(moduleName, 'hiddenMobList', mobList)
+  Hooks.call('mobUpdate', { mobList, mobName: selectedMob, type: 'load' })
+  if (game.combat) await game.combat.update()
+
+  for (let i = 0; i < Object.keys(mobList).length; i++) {
+    if (Object.keys(mobList)[i] === selectedMob) {
+      mobDialog.mobListIndex = i
+      break
+    }
+  }
+  mobDialog.render(true)
 }

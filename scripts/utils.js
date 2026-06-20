@@ -1,4 +1,4 @@
-import { systemEqualOrNewerThan } from './versions.js'
+import { foundryEqualOrNewerThan, systemEqualOrNewerThan } from './versions.js'
 import { moduleName } from './mobAttack.js'
 import { getMultiattackFromActor } from './multiattack.js'
 
@@ -199,7 +199,7 @@ export async function getTargetData(monsters) {
   let targets = []
   let targetCount = 0
   let arrayStart = 0
-  let targetAC = 10
+  let targetAC
   let arrayLength = Math.floor(weaponsOnTargetArray.length / targetTokens.length)
   let armorClassMod = game.settings.get(moduleName, 'savedArmorClassMod')
   if (arrayLength === 0) arrayLength = 1
@@ -217,8 +217,15 @@ export async function getTargetData(monsters) {
       targetAC = targetToken?.actor.system.attributes.ac.value
     }
     let targetImg = targetToken?.document.texture.src ?? 'icons/svg/mystery-man.svg'
-    if (VideoHelper.hasVideoExtension(targetImg)) {
-      targetImg = await game.video.createThumbnail(targetImg, { width: 100, height: 100 })
+    if (foundryEqualOrNewerThan('13.0.0')) {
+      if (foundry.helpers.media.VideoHelper.hasVideoExtension(targetImg)) {
+        targetImg = await game.video.createThumbnail(targetImg, { width: 100, height: 100 })
+      }
+    }
+    else {
+      if (VideoHelper.hasVideoExtension(targetImg)) {
+        targetImg = await game.video.createThumbnail(targetImg, { width: 100, height: 100 })
+      }
     }
     targets.push({
       targetId: targetToken?.id,
@@ -261,6 +268,13 @@ export async function getTargetData(monsters) {
 
 export async function prepareMonsters(actorList, keepCheckboxes = false, oldMonsters = {}, weapons = {}, availableAttacks = {}) {
   let monsters = {}
+
+  // safety block to set actorList to an empty iterable
+  // if it wasn't passed in correctly
+  if (actorList == null || actorList == undefined) {
+    actorList = []
+  }
+
   for (let actor of actorList) {
     if (monsters[actor.id]) {
       if (monsters[actor.id].id === actor.id) {
@@ -301,13 +315,10 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     let actorWeapons = {}
     let items = actor.items.contents
     for (let item of items) {
-      let isAttack = false
-      if (systemEqualOrNewerThan('4.0.0')) {
-        isAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
-      }
-      else {
-        isAttack = item.type == 'weapon' || (item.type == 'spell' && (item.system.level === 0 || item.system.preparation.mode === 'atwill') && item.system.damage.parts.length > 0 && item.system.save.ability === '')
-      }
+      const isAttack = systemEqualOrNewerThan('4.0.0')
+        ? item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
+        : item.type == 'weapon' || (item.type == 'spell' && (item.system.level === 0 || item.system.preparation.mode === 'atwill') && item.system.damage.parts.length > 0 && item.system.save.ability === '')
+
       if (isAttack) {
         if (weapons[item.id]?.id === item.id) {
           availableAttacks[item.id] += 1
@@ -371,7 +382,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
         autoDetect = game.settings.get(moduleName, 'autoDetectMultiattacks')
         if (autoDetect > 0) [numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
         if (autoDetect === 1 || isVersatile) preChecked = false
-        let weaponRangeText = ``
+        let weaponRangeText
         if (attackData.range.long > 0) {
           weaponRangeText = `${attackData.range.value}/${attackData.range.long} ${attackData.range.units}.`
         }
@@ -425,17 +436,17 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
     let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
     let actorList = mobDialog.actorList
 
-    monsters = {}
-    weapons = {}
-    availableAttacks = {}
-    numSelected = mobData.numSelected;
+    monsters
+    weapons
+    availableAttacks
+    numSelected = mobData?.numSelected ?? 0;
     [monsters, weapons, availableAttacks] = await prepareMonsters(actorList)
   }
 
   let attacks = {}
   let weaponLocators = []
-  let numAttacksMultiplier = 1
-  let isVersatile = false
+  let numAttacksMultiplier
+  let isVersatile
   for (let [weaponID, weaponData] of Object.entries(weapons)) {
     isVersatile = getAttackData(weaponData).damage.versatile != ''
     weaponID += ((isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``)
@@ -508,41 +519,6 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
   }
 
   return mobAttackData
-}
-
-export async function loadMob(event, selectedMob) {
-  let dialogId = game.settings.get(moduleName, 'currentDialogId')
-  let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
-
-  let mobList = game.settings.get(moduleName, 'hiddenMobList')
-
-  await game.settings.set(moduleName, 'hiddenChangedMob', true)
-  await game.settings.set(moduleName, 'hiddenMobName', selectedMob)
-
-  let mobData = mobList[selectedMob]
-  if (mobData === undefined || mobData === null) return
-  let weapons = {}
-  let actorList = []
-  for (let monster of mobData.monsters) {
-    for (let i = 0; i < monster.amount; i++) {
-      actorList.push(game.actors.get(monster.id))
-    }
-  }
-  [, weapons] = await prepareMonsters(actorList)
-
-  mobList[selectedMob]['weapons'] = weapons
-  mobDialog.actorList = actorList
-  await game.settings.set(moduleName, 'hiddenMobList', mobList)
-  Hooks.call('mobUpdate', { mobList, mobName: selectedMob, type: 'load' })
-  if (game.combat) await game.combat.update()
-
-  for (let i = 0; i < Object.keys(mobList).length; i++) {
-    if (Object.keys(mobList)[i] === selectedMob) {
-      mobDialog.mobListIndex = i
-      break
-    }
-  }
-  mobDialog.render(true)
 }
 
 export async function endGroupedMobTurn(data) {
@@ -782,7 +758,7 @@ function getActivityFromItem(actorItem) {
 export function getScalingFactor(weaponData) {
   let cantripScalingFactor = 1
   if (weaponData.type == 'spell') {
-    let casterLevel = 0
+    let casterLevel
     if (systemEqualOrNewerThan('4.3.0') && weaponData.actor.type === 'npc') {
       casterLevel = weaponData.actor.system.attributes.spell.level
     }

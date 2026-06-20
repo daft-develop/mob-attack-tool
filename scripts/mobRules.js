@@ -116,13 +116,9 @@ export async function rollMobAttack(data) {
     let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
     messageData['totalPluralOrNot'] = totalPluralOrNot
 
-    let messageText = ''
-    if (foundryEqualOrNewerThan('13.0.0')) {
-      messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
-    }
-    else {
-      messageText = await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
-    }
+    const messageText = foundryEqualOrNewerThan('13.0.0')
+      ? await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
+      : await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
 
     if (!game.settings.get(moduleName, 'noResultsMessage')) {
       await sendChatMessage(messageText)

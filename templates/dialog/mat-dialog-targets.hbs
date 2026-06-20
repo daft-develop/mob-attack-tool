@@ -1,0 +1,53 @@
+<div class="scrollable tab {{tab.cssClass}}" data-group="primary" data-tab="targets">
+  {{#if this.mat.multipleTargets}}
+  <p class="hint">{{localize 'MAT.clickDragAttackIconsTargets'}}</p>
+  <hr>
+  {{/if}}
+  {{#each this.mat.targets}}
+  {{#with this}}
+  <div class="mat-target-label">
+    <label class="mat-label mat-col1">
+      <img class="mat-target-icon" src="{{this.targetImg}}" title="Targeted token" width="54" height="54"
+        data-item-id="{{this.targetId}}" data-target-index="{{this.targetIndex}}">
+    </label>
+    <div class="mat-label mat-col2">
+      {{#if this.isGM}}{{this.targetImgName}}{{/if}}
+      <p class="hint">{{localize 'MAT.thisTarget'}}{{#if this.isGM}}{{this.targetACtext}}
+        <strong>{{this.targetAC}}</strong> {{localize 'and'}}{{/if}} {{localize 'MAT.willBeAttacked'}}
+        <strong>{{this.targetTotalNumAttacks}}</strong> {{localize 'MAT.times'}}.<br>{{localize
+        'MAT.averageDamageIfAllAttacksHit'}}: <strong>{{this.targetTotalAverageDamage}}</strong>
+        {{localize 'MAT.pointsOfDamage'}}.
+      </p>
+      <div class="mat-attacks-on-target-box">
+        {{#each this.weapons}}
+        <label class="mat-label target-attack-box" data-drag="true">
+          <img class="mat-weapon-icon mat-weapon " src="{{this.weaponImg}}"
+            title="Open {{this.weaponNameImg}} ({{this.weaponActorName}}) sheet" width="30" height="30"
+            data-item-id="{{this.weaponId}}">
+        </label>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+  <hr>
+  {{/with}}
+  {{/each}}
+  {{#if this.mat.noTargetACtext}}
+  <p class="hint">{{this.mat.noTargetACtext}}</p>
+  <hr>
+  {{/if}}
+  <div class="form-group">
+    <label>{{localize 'MAT.acMod'}}:</label>
+    <div class="form-fields">
+      <input type="number" name="armorClassMod" class="acModInput" value="{{this.mat.armorClassMod}}"
+        onClick="this.select()" />
+      <button type="button" name="increaseACmod" class="increaseACmod" data-action="increaseACmod">
+        <i class="fas fa-plus"></i>
+      </button>
+      <button type="button" name="decreaseACmod" class="decreaseACmod" data-action="decreaseACmod">
+        <i class="fas fa-minus"></i>
+      </button>
+    </div>
+    <p class="hint">{{localize 'MAT.acModNotes'}}</p>
+  </div>
+</div>
