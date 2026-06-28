@@ -1,0 +1,13 @@
+<section class='tab targets scrollable {{tab.cssClass}}' data-group='primary' data-tab='targets'>
+    <div class="settings-list">
+        {{#each this.settings.targets}}
+        <div class="form-group">
+            {{#with this}}
+            {{#if this.client}}
+            {{> mat.setting}}
+            {{/if}}
+            {{/with}}
+        </div>
+        {{/each}}
+    </div>
+</section>

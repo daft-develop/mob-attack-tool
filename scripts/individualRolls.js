@@ -2,6 +2,8 @@ import { moduleName } from './mobAttack.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 
+const { getProperty } = foundry.utils
+
 export async function rollMobAttackIndividually(data) {
   // Temporarily disable DSN 3d dice from rolling, per settings
   if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
@@ -23,7 +25,7 @@ export async function rollMobAttackIndividually(data) {
       const actorName = weaponData.actor.name
       const finalAttackBonus = getAttackBonus(weaponData)
 
-      let attackFormula = ''
+      let attackFormula
 
       if (data.withAdvantage || (!data.withDisadvantage && data.event?.altKey)) {
         data.withAdvantage = true
@@ -184,7 +186,7 @@ export async function rollMobAttackIndividually(data) {
   let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
-  let messageText = ''
+  let messageText
   if (foundryEqualOrNewerThan('13.0.0')) {
     messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-msg-individual-rolls.hbs', messageData)
   }
@@ -346,7 +348,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         )
 
         // prepare data for Midi's On Use Macro feature
-        if (game.settings.get(moduleName, 'enableMidiOnUseMacro') && foundry.utils.getProperty(weaponData, 'flags.midi-qol.onUseMacroName')) {
+        if (game.settings.get(moduleName, 'enableMidiOnUseMacro') && getProperty(weaponData, 'flags.midi-qol.onUseMacroName')) {
           await new Promise(resolve => setTimeout(resolve, 300))
           const macroData = {
             actor: weaponData.actor,
@@ -377,7 +379,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             uuid: workflow.uuid,
             rollData: weaponData.actor.getRollData(),
             tag: 'OnUse',
-            concentrationData: foundry.utils.getProperty(weaponData.actor.flags, 'midi-qol.concentration-data'),
+            concentrationData: getProperty(weaponData.actor.flags, 'midi-qol.concentration-data'),
             templateId: workflow.templateId,
             templateUuid: workflow.templateUuid,
           }
@@ -402,7 +404,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
       if (showDamageRolls) {
         for (let i = 0; i < numHitAttacks; i++) {
           await new Promise(resolve => setTimeout(resolve, 300))
-          let damageOptions = {}
+          let damageOptions
           if (successfulAttackRolls[i].total - finalAttackBonus >= critThreshold && numCrits > 0) {
             damageOptions = getDamageOptions(true, targetId)
             numCrits--

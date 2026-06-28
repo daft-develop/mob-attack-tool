@@ -6,7 +6,7 @@ import stylistic from '@stylistic/eslint-plugin'
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
-    ignores: ['foundry.js'],
+    ignores: ['foundry.js', 'foundry/**/*'],
   },
   {
     languageOptions: {

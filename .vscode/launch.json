@@ -8,8 +8,16 @@
       "type": "chrome",
       "request": "launch",
       "name": "Launch Chrome against localhost",
-      "url": "http://localhost:30000",
+      "url": "http://localhost:${input:port}",
       "webRoot": "${workspaceFolder}"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "port",
+      "type": "promptString",
+      "default": "30000",
+      "description": "Debug on which port?"
     }
   ]
 }

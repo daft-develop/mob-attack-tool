@@ -17,6 +17,7 @@ export default [
         ui: 'readonly',
         Die: 'readonly',
         renderTemplate: 'readonly',
+        loadTemplates: 'readonly',
         FormApplication: 'readonly',
         Dialog: 'readonly',
         Macro: 'readonly',

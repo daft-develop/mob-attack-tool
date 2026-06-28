@@ -1,0 +1,30 @@
+<div class="mat-weapon-label">
+	<div class="mat-label mat-col1">
+		<label class="mat-label mat-num-group">
+			<input type="number" class="mat-label mat-col1 numAttack" title="{{localize 'MAT.numAttacksTitle'}}"
+				name="{{this.numAttacksName}}" width="20" min="1" value="{{this.numAttack}}" onClick="this.select();" />
+			<label class="mat-label mat-col2 mat-num-buttons">
+				<a name="decreaseNumAttack" class="increaseNumAttack" data-action="increaseNumAttack"><i class="fas fa-chevron-up"></i></a>
+				<a name="increaseNumAttack" class="decreaseNumAttack" data-action="decreaseNumAttack"><i class="fas fa-chevron-down"></i></a>
+			</label>
+		</label>
+	</div>
+	<label class="mat-label mat-col2">
+		<img class="mat-weapon-icon mat-weapon" src="{{this.weaponImg}}" title="Open {{this.weaponNameImg}} sheet"
+			width="30" height="30" data-item-id="{{this.weaponId}}" data-action="displayWeapon">
+	</label>
+	<div class="mat-label mat-col3 mat-weapon" title="Open {{this.weaponName}} sheet" data-item-id="{{this.weaponId}}" data-action="displayWeapon">
+		<a class="mat-weapon-name-label">
+			<label class="mat-label mat-col1 mat-weapon-name"
+				title="Open {{this.weaponName}} sheet">{{this.weaponName}}</label>
+			<label class="hint mat-label mat-col2 mat-attack-bonus"
+				title="Open {{this.weaponName}} sheet">{{this.weaponAttackBonusText}} {{localize 'MAT.toHit'}}</label>
+			<label class="hint mat-label mat-col3 mat-weapon-range"
+				title="Open {{this.weaponName}} sheet">{{this.weaponRange}}</label>
+			<label class="hint mat-label mat-col4 mat-damage-text"
+				title="Open {{this.weaponName}} sheet">{{{this.weaponDamageText}}}</label>
+		</a>
+	</div>
+	<input class="mat-label mat-col4 useWeapon" title="{{localize 'MAT.useWeaponTitle'}}" type="checkbox"
+		name="{{this.useButtonName}}" {{{this.useButtonValue}}} />
+</div>

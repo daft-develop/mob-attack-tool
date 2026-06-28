@@ -7,14 +7,15 @@
   "scripts": {
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "createSymlinks": "node ./tools/create-symlinks.mjs"
   },
   "author": "",
   "license": "GPL-3.0-or-later",
   "devDependencies": {
-    "@eslint/js": "^9.20.0",
-    "@stylistic/eslint-plugin": "^3.1.0",
-    "eslint": "^9.20.1",
-    "globals": "^15.15.0"
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.5.0",
+    "globals": "^17.6.0"
   }
 }

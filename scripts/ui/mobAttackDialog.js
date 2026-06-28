@@ -1,38 +1,12 @@
-import { moduleName } from './mobAttack.js'
-import { checkTarget, getTargetData, prepareMonsters, prepareMobAttack, loadMob } from './utils.js'
-import { rollMobAttackIndividually } from './individualRolls.js'
-import { rollMobAttack } from './mobRules.js'
-import { foundryEqualOrNewerThan } from './versions.js'
+import { moduleName } from '../mobAttack.js'
+import { checkTarget, getTargetData, prepareMonsters, prepareMobAttack } from '../utils.js'
+import { rollMobAttackIndividually } from '../individualRolls.js'
+import { rollMobAttack } from '../mobRules.js'
+import { foundryEqualOrNewerThan } from '../versions.js'
 
-export function addMobAttackToolButton() {
-  Hooks.on('getSceneControlButtons', (controls) => {
-    const playerAccess = game.settings.get(moduleName, 'playerAccess')
-    if (foundryEqualOrNewerThan('13.0')) {
-      const tokenBar = controls['tokens']
-      tokenBar.tools[game.i18n.localize('MAT.name')] = {
-        name: game.i18n.localize('MAT.name'),
-        title: game.i18n.localize('MAT.mobAttack'),
-        icon: 'fas fa-dice',
-        visible: (playerAccess ? true : game.user.isGM),
-        onChange: () => mobAttackTool(),
-        button: true,
-      }
-    }
-    else {
-      const bar = controls.find(c => c.name === 'token')
-      bar.tools.push({
-        name: game.i18n.localize('MAT.name'),
-        title: game.i18n.localize('MAT.mobAttack'),
-        icon: 'fas fa-dice',
-        visible: (playerAccess ? true : game.user.isGM),
-        onClick: async () => mobAttackTool(),
-        button: true,
-      })
-    }
-  })
-}
+const { mergeObject } = foundry.utils
 
-async function mobAttackTool() {
+export async function createAndRenderDialog() {
   // Check selected tokens
   let mobList = game.settings.get(moduleName, 'hiddenMobList')
   let mobLength = 0
@@ -86,10 +60,10 @@ export class MobAttackDialog extends FormApplication {
   }
 
   static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
+    return mergeObject(super.defaultOptions, {
       title: 'Mob Attack Tool',
       id: 'mob-attack-tool-dialog',
-      template: 'modules/mob-attack-tool/templates/mat-dialog.hbs',
+      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog.hbs',
       width: '505',
       height: 'auto',
       closeOnSubmit: false,
@@ -135,7 +109,7 @@ export class MobAttackDialog extends FormApplication {
 
     // determine relevant actor list and mob name
     let actorList = []
-    let mobName = game.settings.get(moduleName, 'hiddenMobName')
+    let mobName
     if (game.settings.get(moduleName, 'hiddenChangedMob')) {
       mobName = Object.keys(mobList)[this.mobListIndex]
       let mobData = mobList[mobName]
@@ -200,9 +174,9 @@ export class MobAttackDialog extends FormApplication {
       }
     }
 
-    let monsters = {}
-    let weapons = {}
-    let availableAttacks = {};
+    let monsters
+    let weapons
+    let availableAttacks
     [monsters, weapons, availableAttacks] = await prepareMonsters(actorList)
 
     // determine if newly determined monsters (+ weapons) should be used, or the already stored (and posssibly modified) data
@@ -426,10 +400,6 @@ export class MobAttackDialog extends FormApplication {
 
     // increase number of monsters
     html.on('click', '.increaseNumMonster', async (event) => {
-      let numMonster = parseInt(event.currentTarget.parentNode.previousElementSibling.value)
-      if (Number.isNaN(numMonster) || numMonster == null || numMonster == undefined) {
-        numMonster = 1
-      }
       let monsterId = event.currentTarget.parentNode.previousElementSibling.getAttribute('name')
       for (let monsterKey of Object.keys(this.monsters)) {
         if (monsterKey === monsterId) {
@@ -572,10 +542,10 @@ export class MobAttackDialog extends FormApplication {
 
       let dialogMobList = ''
       if (foundryEqualOrNewerThan('13.0.0')) {
-        dialogMobList = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+        dialogMobList = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
       }
       else {
-        dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
+        dialogMobList = await renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list.hbs', { mobList: mobList, isGM: game.user.isGM, noSelectMob: noSelectMob })
       }
 
       let selectedMob = await new Promise((resolve) => {
@@ -852,159 +822,37 @@ export class MobAttackDialog extends FormApplication {
   }
 }
 
-export function MobAttacks() {
-  function quickRoll(data) {
-    // Collect necessary data for mob attack
-    if (!checkTarget()) return
-    let selectedTokenIds = []
-    for (let token of canvas.tokens.controlled) {
-      selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
+async function loadMob(event, selectedMob) {
+  let dialogId = game.settings.get(moduleName, 'currentDialogId')
+  let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
+
+  let mobList = game.settings.get(moduleName, 'hiddenMobList')
+
+  await game.settings.set(moduleName, 'hiddenChangedMob', true)
+  await game.settings.set(moduleName, 'hiddenMobName', selectedMob)
+
+  let mobData = mobList[selectedMob]
+  if (mobData === undefined || mobData === null) return
+  let weapons
+  let actorList = []
+  for (let monster of mobData.monsters) {
+    for (let i = 0; i < monster.amount; i++) {
+      actorList.push(game.actors.get(monster.id))
     }
-    data['selectedTokenIds'] = selectedTokenIds;
-
-    (async () => {
-      let targets = await getTargetData(data.monsters)
-      data['targets'] = targets
-
-      let weapons = {}
-      let attacker, weapon
-      let attacks = {}
-      data.weaponLocators.forEach((locator) => {
-        attacker = game.actors.get(locator['actorID'])
-        weapon = attacker.items.getName(locator['weaponName'])
-        weapons[weapon.id] = weapon
-        attacks[locator.weaponID] = []
-        for (let target of targets) {
-          attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === weapon.id).length })
-        }
-      })
-
-      data['weapons'] = weapons
-      if (targets.length) data['attacks'] = attacks
-
-      if (game.settings.get(moduleName, 'mobRules') === 0) {
-        return rollMobAttack(data)
-      }
-      else {
-        return rollMobAttackIndividually(data)
-      }
-    })()
   }
+  [, weapons] = await prepareMonsters(actorList)
 
-  async function createDialog() {
-    await mobAttackTool()
+  mobList[selectedMob]['weapons'] = weapons
+  mobDialog.actorList = actorList
+  await game.settings.set(moduleName, 'hiddenMobList', mobList)
+  Hooks.call('mobUpdate', { mobList, mobName: selectedMob, type: 'load' })
+  if (game.combat) await game.combat.update()
+
+  for (let i = 0; i < Object.keys(mobList).length; i++) {
+    if (Object.keys(mobList)[i] === selectedMob) {
+      mobDialog.mobListIndex = i
+      break
+    }
   }
-
-  /*
-  This asynchronous function saves a mob.
-
-  input:
-  - mobName [String]          The name of the mob
-  - actorList [Array]         An array of the each actor linked to tokens that are part the mob to be saved. If multiple tokens are linked to the same actor, duplicate that actor in the array to match.
-  - selectedTokenIds [Array]    An array of the ids of the tokens of the mob.
-  - numSelected [Integer]      The integer number or amount of tokens that make up the mob.
-
-  output:
-  - mobList [Object (Promise)]    The complete data object of all saved mobs, including the one that was just saved to it.
-
-   */
-  async function saveMob(mobName, actorList, selectedTokenIds, numSelected, type = '') {
-    let mobList = game.settings.get(moduleName, 'hiddenMobList')
-    let monsters;
-    [monsters, ,] = await prepareMonsters(actorList)
-    let monsterArray = []
-    for (let [, monsterData] of Object.entries(monsters)) {
-      monsterArray.push(monsterData)
-    }
-    mobList[mobName] = { mobName: mobName, monsters: monsterArray, selectedTokenIds: selectedTokenIds, numSelected: numSelected, userId: game.user.id, type: type }
-    await game.settings.set(moduleName, 'hiddenMobList', mobList)
-
-    Hooks.call('matMobUpdate', { mobList, mobName, type: 'save' })
-    if (game.combat) await game.combat.update()
-
-    const dialogId = game.settings.get(moduleName, 'currentDialogId')
-    let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
-    if (mobDialog) {
-      mobDialog.localUpdate = true
-      mobDialog.render()
-    }
-
-    return mobList
-  }
-
-  /*
-  This asynchronous function deletes a saved mob.
-
-  input:
-  - mobName [String]        The name of the mob
-
-  output:
-  - mobList [Object (Promise)]  The complete data object of all saved mobs, now without the just deleted mob.
-
-   */
-
-  async function deleteSavedMob(mobName) {
-    let mobList = game.settings.get(moduleName, 'hiddenMobList')
-    for (let nameOfMob of Object.keys(mobList)) {
-      if ((mobList[nameOfMob].userId === game.user.id || game.user.isGM) && mobList[nameOfMob].mobName === mobName) {
-        delete mobList[nameOfMob]
-        break
-      }
-    }
-    await game.settings.set('mob-attack-tool', 'hiddenMobList', mobList)
-    Hooks.call('matMobUpdate', { mobList, mobName, type: 'delete' })
-    const dialogId = game.settings.get(moduleName, 'currentDialogId')
-    let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
-    if (mobDialog) {
-      mobDialog.localUpdate = true
-      await game.settings.set(moduleName, 'hiddenChangedMob', false)
-      mobDialog.render()
-    }
-    if (game.combat) await game.combat.update()
-    return mobList
-  }
-
-  async function createSavedMobsFromCTGgroups(groups, mobNames = []) {
-    let mobList = game.settings.get(moduleName, 'hiddenMobList')
-
-    // delete existing CTG groups first
-    for (let ctgMobName of Object.keys(mobList)) {
-      if (mobList[ctgMobName]?.type === 'ctg') {
-        await deleteSavedMob(ctgMobName)
-      }
-    }
-    let dupNameNum = 2
-    if (!groups.length || !groups[0].length) return
-
-    for (let i = 0; i < groups.length; i++) {
-      let numSelected = groups[i].length
-      let actorList = [], selectedTokenIds = []
-      if (!mobNames[i]) {
-        mobNames[i] = `${game.settings.get(moduleName, 'defaultMobPrefix')} ${groups[i][0]?.name}${game.settings.get(moduleName, 'defaultMobSuffix')}`
-        if (i > 0) {
-          if (mobNames[i - 1] === mobNames[i]) {
-            mobNames[i] += ` ${dupNameNum.toString()}`
-          }
-          else if (mobNames[i - 1].endsWith(dupNameNum.toString())) {
-            dupNameNum++
-            mobNames[i] += ` ${dupNameNum.toString()}`
-          }
-        }
-      }
-      for (let combatant of groups[i]) {
-        actorList.push(combatant?.actor)
-        selectedTokenIds.push(combatant?.tokenId)
-      }
-      mobList = await saveMob(mobNames[i], actorList, selectedTokenIds, numSelected, 'ctg')
-    }
-    return mobList
-  }
-
-  return {
-    quickRoll: quickRoll,
-    createDialog: createDialog,
-    saveMob: saveMob,
-    deleteSavedMob: deleteSavedMob,
-    createSavedMobsFromCTGgroups: createSavedMobsFromCTGgroups,
-  }
+  mobDialog.render(true)
 }

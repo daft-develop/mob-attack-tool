@@ -1,0 +1,50 @@
+<div class="scrollable tab {{tab.cssClass}}" data-group="primary" data-tab="weapons">
+	{{#with this.mat}}
+	<p class="hint">{{localize 'MAT.dialogNumSelected'}} <strong>{{this.numSelected}}</strong>
+		token{{this.pluralTokensOrNot}}. {{localize 'MAT.totalNumberOfAttacks'}}:
+		<strong>{{this.numTotalAttacks}}</strong>.
+		<br>
+		{{localize 'MAT.averageDamageIfAllAttacksHit'}}: <strong>{{this.totalAverageDamage}}</strong> {{localize 'MAT.pointsOfDamage'}}.
+	</p>
+	<div name="mobListOptions">
+		<hr>
+		{{#each this.monsters}}
+		{{#with this}}
+		{{> mat.formatMonster}}
+		{{/with}}
+		<div style="border:2px groove var(--color-text-primary); padding: 5px; margin: 0.5rem 0rem;">
+			{{#each this.weapons}}
+			{{#with this}}
+			{{> mat.formatWeapon}}
+			{{/with}}
+			{{/each}}
+		</div>
+		{{/each}}
+	</div>
+	<hr>
+	<a class="mat-collapsible" data-action="toggleCollapse">
+		<i class="far fa-{{this.collapsiblePlusMinus}}-square"></i> {{this.hiddenCollapsibleName}}
+	</a>
+	<div class="{{this.hiddenCollapsibleCSS}}">
+		{{#if this.selectRollType}}
+		<div class="mat-rolltype">
+			<label class="mat-label mat-col1">{{localize 'MAT.selectRollType'}}: </label>
+			<select class="mat-label mat-col2" name="rollType">
+				<option value="advantage" {{this.rollTypeSelection.advantage}}>{{localize 'Advantage'}}</option>
+				<option value="normal" {{this.rollTypeSelection.normal}}>{{localize 'Normal'}}</option>
+				<option value="disadvantage" {{this.rollTypeSelection.disadvantage}}>{{localize 'Disadvantage'}}
+				</option>
+			</select>
+		</div>
+		{{/if}}
+		<div class="mat-macro-export">
+			<label class="mat-label mat-col1">{{localize 'MAT.exportToMacro'}}: </label>
+			<button type="button" class="mat-label exportMobAttack" name="exportMobAttack" data-action="exportMacro"
+				title="{{localize 'Export Mob Attack to Macro'}}">
+				<i class="fas fa-folder"></i>
+				<span> Export</span>
+			</button>
+		</div>
+	</div>
+	{{/with}}
+</div>

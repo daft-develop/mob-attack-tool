@@ -1,34 +1,44 @@
 import { initSettings } from './settings.js'
-import { addMobAttackToolButton, MobAttackDialog } from './mobAttackTool.js'
-import { MobAttacks } from './mobAttackTool.js'
+import { createAndRenderDialog } from './ui/mobAttackDialog.js'
+import { createAndRenderDialog as renderV2 } from './ui/mobAttackDialogV2.js'
+import { macroObject } from './macroObject.js'
+import { foundryEqualOrNewerThan } from './versions.js'
 // import { initQuenchTests } from './quench.js'
 
 export const moduleName = 'mob-attack-tool'
 
-/* The {{select}} handlebars helper is deprecated in favor of using the {{selectOptions}} helper or the foundry.applications.fields.createSelectInput, foundry.applications.fields.createMultiSelectElement, or foundry.applications.fields.prepareSelectOptionGroups methods.
-Deprecated since Version 12
-Backwards-compatible support will be removed in Version 14 */
-
-Hooks.once('init', () => {
+Hooks.once('init', async () => {
   console.log('Mob Attack Tool | Adding Mob Attack Tool.')
+
+  if (foundryEqualOrNewerThan('13.0.0')) {
+    await foundry.applications.handlebars.loadTemplates({
+      'mat.setting': 'modules/mob-attack-tool/templates/partials/mat-settings-partial.hbs',
+      'mat.formatMonster': 'modules/mob-attack-tool/templates/partials/mat-format-monster-partial.hbs',
+      'mat.formatWeapon': 'modules/mob-attack-tool/templates/partials/mat-format-weapon-partial.hbs',
+    })
+  }
+  else {
+    loadTemplates({
+      'mat.setting': 'modules/mob-attack-tool/templates/partials/mat-settings-partial.hbs',
+      'mat.formatMonster': 'modules/mob-attack-tool/templates/partials/mat-format-monster-partial.hbs',
+      'mat.formatWeapon': 'modules/mob-attack-tool/templates/partials/mat-format-weapon-partial.hbs',
+    })
+  }
 
   initSettings()
   addMobAttackToolButton()
   // initQuenchTests()
 
   const dialogs = new Map()
-  const storedHooks = {}
   game.mobAttackTool = {
-    applications: {
-      MobAttackDialog,
-    },
     dialogs,
-    storedHooks,
   }
 })
 
 Hooks.on('ready', async () => {
-  window.MobAttacks = MobAttacks()
+  // register global MobAttacks macro object
+  // for running mat via user macros
+  window.MobAttacks = macroObject()
 
   // check if CTG's groups have changed
   Hooks.on('ctgGroupUpdate', async (args) => {
@@ -42,7 +52,7 @@ Hooks.on('ready', async () => {
     if (!game.settings.get(moduleName, 'autoSaveCTGgroups')) return
     if (groups[0]) {
       if (groups[0].filter(c => c.initiative).length > 0) {
-        await MobAttacks().createSavedMobsFromCTGgroups(groups)
+        await macroObject().createSavedMobsFromCTGgroups(groups)
         const dialogId = game.settings.get(moduleName, 'currentDialogId')
         let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
         if (mobDialog) mobDialog.render()
@@ -58,7 +68,7 @@ Hooks.on('ready', async () => {
       // delete existing CTG groups
       for (let ctgMobName of Object.keys(mobList)) {
         if (mobList[ctgMobName]?.type === 'ctg') {
-          await MobAttacks().deleteSavedMob(ctgMobName)
+          await macroObject().deleteSavedMob(ctgMobName)
         }
       }
     }
@@ -72,9 +82,14 @@ Hooks.on('controlToken', async () => {
   if (mobDialog) {
     if (mobDialog.rendered && !mobDialog.currentlySelectingTokens) {
       await game.settings.set(moduleName, 'hiddenChangedMob', false)
-      let mobList = game.settings.get(moduleName, 'hiddenMobList')
-      if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
+      if (foundryEqualOrNewerThan('13.0.0')) {
         mobDialog.render()
+      }
+      else {
+        let mobList = game.settings.get(moduleName, 'hiddenMobList')
+        if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
+          mobDialog.render()
+        }
       }
     }
   }
@@ -86,10 +101,15 @@ Hooks.on('targetToken', async () => {
   let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
   if (mobDialog) {
     if (mobDialog.rendered) {
-      // await game.settings.set(moduleName, "hiddenChangedMob", false);
-      let mobList = game.settings.get(moduleName, 'hiddenMobList')
-      if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
+      if (foundryEqualOrNewerThan('13.0.0')) {
         mobDialog.render()
+      }
+      else {
+        // await game.settings.set(moduleName, "hiddenChangedMob", false);
+        let mobList = game.settings.get(moduleName, 'hiddenMobList')
+        if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
+          mobDialog.render()
+        }
       }
     }
   }
@@ -144,3 +164,31 @@ Hooks.on('diceSoNiceRollStart', (messageId, context) => {
   // Hide this roll
   context.blind = true
 })
+
+function addMobAttackToolButton() {
+  Hooks.on('getSceneControlButtons', (controls) => {
+    const playerAccess = game.settings.get(moduleName, 'playerAccess')
+    if (foundryEqualOrNewerThan('13.0')) {
+      const tokenBar = controls['tokens']
+      tokenBar.tools[game.i18n.localize('MAT.name')] = {
+        name: game.i18n.localize('MAT.name'),
+        title: game.i18n.localize('MAT.mobAttack'),
+        icon: 'fas fa-dice',
+        visible: (playerAccess ? true : game.user.isGM),
+        onChange: () => renderV2(),
+        button: true,
+      }
+    }
+    else {
+      const bar = controls.find(c => c.name === 'token')
+      bar.tools.push({
+        name: game.i18n.localize('MAT.name'),
+        title: game.i18n.localize('MAT.mobAttack'),
+        icon: 'fas fa-dice',
+        visible: (playerAccess ? true : game.user.isGM),
+        onClick: async () => createAndRenderDialog(),
+        button: true,
+      })
+    }
+  })
+}
