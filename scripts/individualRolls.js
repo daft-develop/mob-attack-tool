@@ -244,6 +244,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
     if (midi_QOL_Active) {
       if (showDamageRolls) {
         for (let i = 0; i < numHitAttacks; i++) {
+          let hasCrit = false
           let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
 
           let diceFormula = diceFormulas.join(' + ')
@@ -257,6 +258,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             for (let term of damageRollDiceTerms) {
               critDie = new FoundryDie({ number: term.number, faces: term.faces })
               critDice.push(critDie)
+              hasCrit = true
             }
             for (let i = 0; i < critDice.length; i++) {
               if (damageRollDiceTerms[i].faces === critDice[i].faces) {
@@ -273,21 +275,30 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
           }
 
+          // Custom weapon clone to remove activity description
+          // DamageOnlyWorkflow may attempt to show [[/attack extended]]
+          // in some activity descriptions, which won't exist on a damage only roll
+          let weaponCloneData = {
+            name: weaponData.name,
+            type: weaponData.type,
+            img: weaponData.img,
+          }
+          let weaponClone = await Item.implementation.create(weaponCloneData)
+
           await new MidiQOL.DamageOnlyWorkflow(
             weaponData.actor,
-            // (targetToken) ? targetToken : undefined,
-            targetToken ?? undefined,
-            damageRoll.total,
-            damageTypeLabels[0],
-            // (targetToken) ? [targetToken] : [],
+            undefined, // actorToken
+            undefined, // damage total
+            undefined, // damage types
             targetToken ? [targetToken] : [],
             damageRoll,
             {
-              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-              item: weaponData,
+              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(hasCrit) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
               itemCardUuid: `new`,
+              item: weaponClone,
             },
           )
+
           // after issuing the workflow, wait until it signals complete, or 4 seconds has passed, whichever is first
           let waiting = 4000
           Hooks.once('midi-qol.RollComplete', () => {
@@ -317,7 +328,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true })
         if (numCrits > 0) {
           for (let i = 0; i < critDice.length; i++) {
-            await critDice[i].alter(numCrits, 0, { multiplyNumeric: false })
+            critDice[i].alter(numCrits, 0, { multiplyNumeric: false })
             if (damageRollDiceTerms[i].faces === critDice[i].faces) {
               damageRollDiceTerms[i].number += critDice[i].number
             }
@@ -331,19 +342,27 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
         }
 
+        // Custom weapon clone to remove activity description
+        // DamageOnlyWorkflow may attempt to show [[/attack extended]]
+        // in some activity descriptions, which won't exist on a damage only roll
+        let weaponCloneData = {
+          name: weaponData.name,
+          type: weaponData.type,
+          img: weaponData.img,
+        }
+        let weaponClone = await Item.implementation.create(weaponCloneData)
+
         let workflow = await new MidiQOL.DamageOnlyWorkflow(
           weaponData.actor,
-          // (targetToken) ? targetToken : undefined,
-          targetToken ?? undefined,
-          damageRoll.total,
-          damageTypeLabels[0],
-          // (targetToken) ? [targetToken] : [],
+          undefined, // actorToken
+          undefined, // damage total
+          undefined, // damage types
           targetToken ? [targetToken] : [],
           damageRoll,
           {
             flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-            item: weaponData,
             itemCardUuid: `new`,
+            item: weaponClone,
           },
         )
 
@@ -432,7 +451,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true })
         if (numCrits > 0) {
           for (let i = 0; i < critDice.length; i++) {
-            await critDice[i].alter(numCrits, 0, { multiplyNumeric: false })
+            critDice[i].alter(numCrits, 0, { multiplyNumeric: false })
             if (damageRollDiceTerms[i].faces === critDice[i].faces) {
               damageRollDiceTerms[i].number += critDice[i].number
             }

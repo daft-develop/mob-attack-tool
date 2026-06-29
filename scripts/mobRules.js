@@ -172,17 +172,27 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       }
     }
 
+    // Custom weapon clone to remove activity description
+    // DamageOnlyWorkflow may attempt to show [[/attack extended]]
+    // in some activity descriptions, which won't exist on a damage only roll
+    let weaponCloneData = {
+      name: weaponData.name,
+      type: weaponData.type,
+      img: weaponData.img,
+    }
+    let weaponClone = await Item.implementation.create(weaponCloneData)
+
     let workflow = await new MidiQOL.DamageOnlyWorkflow(
       weaponData.actor,
-      targetToken ?? undefined,
-      damageRoll.total,
-      damageTypeLabels[0],
+      undefined, // actorToken
+      undefined, // damage total
+      undefined, // damage types
       targetToken ? [targetToken] : [],
       damageRoll,
       {
         flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
-        item: weaponData,
         itemCardUuid: `new`,
+        item: weaponClone,
       },
     )
 

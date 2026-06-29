@@ -1,6 +1,6 @@
-import { getScalingFactor } from './utils.js'
+import { flattenMultiExtraDesc, getScalingFactor } from './utils.js'
 
-export function getMultiattackFromActor(weaponName, actorData, weapons, options) {
+export async function getMultiattackFromActor(weaponName, actorData, weapons, options) {
   // If attacker has only one weapon and no multiattack, autoselect it
   let multiattack = [1, Object.keys(weapons).length === 1]
   let weaponData = actorData.items.getName(weaponName)
@@ -16,16 +16,7 @@ export function getMultiattackFromActor(weaponName, actorData, weapons, options)
     }
 
     // Find Multiattack description
-    let desc = actorData.items.contents.filter(i => i.name.startsWith('Multiattack'))[0].system.description.value
-    if (desc.endsWith('.</p>')) {
-      desc = desc.slice(0, -5)
-    }
-
-    // Strip description of html tags
-    desc = desc.replace(/(<([^>]+)>)/gi, '')
-
-    // Remove &nbsp; and trailing whitespaces
-    desc = desc.replace(/&nbsp;/g, ' ').trim()
+    let desc = await flattenMultiExtraDesc(actorData)
 
     // First split multiattack description in general and specific parts
     let attackIndex = desc.indexOf(`attack`)

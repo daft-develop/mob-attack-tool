@@ -302,11 +302,8 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
         monsters[actor.id] = { ...monsterData }
         monsters[actor.id].optionVisible = true
         if (game.settings.get(moduleName, 'showMultiattackDescription')) {
-          if (actor.items.contents.filter(i => i.name.startsWith('Multiattack')).length > 0) {
-            monsters[actor.id]['multiattackDesc'] = $(actor.items.filter(i => i.name.startsWith('Multiattack'))[0].system.description.value)[0].textContent
-          }
-          else if (actor.items.contents.filter(i => i.name.startsWith('Extra Attack')).length > 0) {
-            monsters[actor.id]['multiattackDesc'] = $(actor.items.filter(i => i.name.startsWith('Extra Attack'))[0].system.description.value)[0].textContent
+          if (hasMultiOrExtra(actor)) {
+            monsters[actor.id]['multiattackDesc'] = await flattenMultiExtraDesc(actor)
           }
         }
       }
@@ -339,7 +336,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     let autoDetect = game.settings.get(moduleName, 'autoDetectMultiattacks')
     for (let [weaponID, weaponData] of Object.entries(actorWeapons)) {
       if (autoDetect === 2) {
-        [numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
+        [numAttacksTotal, preChecked] = await getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
         if (preChecked) numCheckedWeapons++
       }
       let damageData = getDamageFormulaAndType(weaponData, false)
@@ -380,7 +377,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
         }
         numAttacksTotal = 1, preChecked = false
         autoDetect = game.settings.get(moduleName, 'autoDetectMultiattacks')
-        if (autoDetect > 0) [numAttacksTotal, preChecked] = getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
+        if (autoDetect > 0) [numAttacksTotal, preChecked] = await getMultiattackFromActor(weaponData.name, weaponData.actor, weapons, options)
         if (autoDetect === 1 || isVersatile) preChecked = false
         let weaponRangeText
         if (attackData.range.long > 0) {
@@ -424,6 +421,34 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     }
   }
   return [monsters, weapons, availableAttacks]
+}
+
+export async function flattenMultiExtraDesc(actor) {
+  const multiAttackItem = actor.items.contents.find(
+    i => i.name.startsWith('Multiattack') || i.name.startsWith('Extra Attack'),
+  )
+
+  if (!multiAttackItem?.system?.description?.value) {
+    return ''
+  }
+
+  const TextEditorClass
+    = foundry?.applications?.ux?.TextEditor ?? globalThis.TextEditor
+
+  let description = multiAttackItem.system.description.value
+
+  if (TextEditorClass?.enrichHTML) {
+    description = await TextEditorClass.enrichHTML(
+      multiAttackItem.system.description.value,
+      { relativeTo: multiAttackItem },
+    )
+  }
+
+  return description.replace(/<[^>]*>?/gm, '')
+}
+
+function hasMultiOrExtra(actor) {
+  return actor.items.contents.filter(i => i.name.startsWith('Multiattack') || i.name.startsWith('Extra Attack')).length > 0
 }
 
 export async function prepareMobAttack(html, selectedTokenIds, weapons, availableAttacks, targets, targetAC, numSelected, monsters) {
