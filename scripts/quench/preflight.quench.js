@@ -1,4 +1,4 @@
-import { expectAbilityScores, expectBattleaxeDetails, expectItemCount, getTokenByName } from './helpers.js'
+import { expectAbilityScores, expectBattleaxeDetails, expectItemCount, getTokenByName } from './helpers.quench.js'
 import { systemEqualOrNewerThan } from '../versions.js'
 
 export function registerPreflightBatch(quench) {

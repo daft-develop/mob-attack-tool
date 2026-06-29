@@ -1,78 +1,147 @@
-import { flattenMultiExtraDesc, getScalingFactor } from './utils.js'
+// @ts-check
 
+import { flattenMultiExtraDesc } from './utils.js'
+import { getFighterScalingFactor, getSpellScalingFactor } from './scaling.js'
+
+/**
+ * Parse out preferred weapons for a given actor
+ * Upstream, this function is called twice. First to flag number of attacks and pre-select weapons matching mutliattack description
+ * A second pass if no multi was found to auto-select the max damage weapon instead
+ * Note: A weapon description giving options (or, alternatively, instead, etc.) returns false so the second pass picks the most damaging option
+ * A weapon description that's inclusive (two x AND three y) chooses all of them
+ * @param {string} weaponName name of weapon currently being evaluated
+ * @param {*} actorData actor currently being evaluated
+ * @param {*} weapons array of actor's items with attack activity
+ * @param {*} options option to select/check weapon with the highest damage
+ * @returns {Promise<[number, boolean]>} number of attacks with this weapon, bool if this should be one of the auto-selected weapons
+ */
 export async function getMultiattackFromActor(weaponName, actorData, weapons, options) {
-  // If attacker has only one weapon and no multiattack, autoselect it
-  let multiattack = [1, Object.keys(weapons).length === 1]
+  /** @type [ number, boolean ] */
+  let multiattack
   let weaponData = actorData.items.getName(weaponName)
+  let multiItem = actorData.items.contents.find(i => i.name.toLowerCase().startsWith('multiattack'))
+  let extraItem = actorData.items.contents.find(i => i.name.toLowerCase().startsWith('extra attack'))
 
-  // Otherwise, find out details about multiattack
-  let dictStrNum = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }
-  if (actorData.items.contents.filter(i => i.name.startsWith('Multiattack')).length > 0) {
-    // Check for eldritch blast
-    if (weaponData.type === 'spell') {
-      if (weaponName === 'Eldritch Blast') {
-        multiattack = [getScalingFactor(weaponData), false]
-      }
+  // Skip test if weapon not found on actor
+  if (weaponData == undefined) {
+    multiattack = [0, false]
+  }
+  // Check for eldritch blast first, it takes priority over multi/extra attack
+  else if (weaponData.type === 'spell' && weaponName === 'Eldritch Blast') {
+    multiattack = [getSpellScalingFactor(weaponData), false]
+  }
+  else if (multiItem != undefined) {
+    // Otherwise, find out details about multiattack
+    multiattack = await parseMultiAttack(actorData, weaponData)
+  }
+  else if (extraItem != undefined) {
+    // look for Fighter-specific triggers
+    if (extraItem.name.toLowerCase().includes('fighter')
+      || extraItem?.system?.description?.value.toLowerCase().includes('number of attacks increases')) {
+      let actorLevel = actorData.system.details.level
+      multiattack = [getFighterScalingFactor(actorLevel), false]
     }
-
-    // Find Multiattack description
-    let desc = await flattenMultiExtraDesc(actorData)
-
-    // First split multiattack description in general and specific parts
-    let attackIndex = desc.indexOf(`attack`)
-    let attackType = ``
-    if (desc.indexOf(`melee attacks`) !== -1) {
-      attackIndex = desc.indexOf(`melee attacks`)
-      if (desc.indexOf(`ranged attacks`) !== -1) {
-        attackType = `choose`
-      }
-      else {
-        attackType = `melee`
-      }
+    else if (extraItem?.system?.description?.value.toLowerCase().includes('can attack three times')) {
+      multiattack = [3, false]
     }
-    else if (desc.indexOf(`ranged attacks`) !== -1) {
-      attackIndex = desc.indexOf(`ranged attacks`)
-      attackType = `ranged`
+    else if (extraItem?.system?.description?.value.toLowerCase().includes('can attack four times')) {
+      multiattack = [4, false]
     }
-    else if (desc.indexOf(`${weaponName.toLowerCase()} attacks`) !== -1 || desc.indexOf(`${weaponName.toLowerCase()}s attacks`) !== -1) {
-      attackIndex = desc.indexOf(`${weaponName.toLowerCase()} attacks`)
-      attackType = `specific`
+    else {
+      multiattack = [2, false]
     }
+  }
+  else {
+    // default behavior
+    // If attacker has only one weapon and no multiattack, autoselect it
+    multiattack = [1, Object.keys(weapons).length === 1]
+  }
 
-    // Split up description into words for analysis
-    let initialWords = desc.slice(0, attackIndex).split(' ')
+  // select this weapon if it deals the most damage and no other weapons or spells are selected
+  if (options?.checkMaxDamageWeapon) {
+    if (weaponData === options?.maxDamageWeapon) {
+      multiattack[1] = true
+    }
+  }
 
-    // Then detect overall number of multiattack attacks
-    let numAttacksTotal = 0
-    let numAttacksWeapon = 0
-    for (let word of initialWords) {
-      if (dictStrNum[word]) {
-        if (attackType !== ``) {
-          numAttacksWeapon = dictStrNum[word]
-        }
-        numAttacksTotal = dictStrNum[word]
-        break
+  return multiattack
+}
+
+/**
+ * Parse out as many variations of Multi Attack as practical
+ * @param {*} actorData actor being parsed
+ * @param {*} weaponData active weapon being parsed
+ * @returns {Promise<[number, boolean]>} same as above
+ */
+async function parseMultiAttack(actorData, weaponData) {
+  const dictStrNum = /** @type {Record<string, number>} */ ({ one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 })
+
+  /** @type { string } */
+  let weaponName = weaponData.name.toLowerCase()
+
+  // Find Multiattack description, lower case to make case insensitive
+  /** @type { string } */
+  let desc = (await flattenMultiExtraDesc(actorData)).toLowerCase()
+
+  // classify the weapon further
+  /** @type { 'unknown' | 'melee' | 'ranged' } */
+  let weaponType
+  if ([`mwak`, `msak`].includes(weaponData.system.actionType)) {
+    weaponType = `melee`
+  }
+  else if ([`rwak`, `rsak`].includes(weaponData.system.actionType)) {
+    weaponType = `ranged`
+  }
+  else {
+    weaponType = `unknown`
+  }
+
+  // First split multiattack description before/after the portion
+  // referreing to `weaponName`
+  let attackIndex = desc.indexOf(`attack`)
+
+  /** @type { 'choose' | 'melee' | 'ranged' | 'specific' | 'unknown' } */
+  let attackDescType
+  // check first if the weapon is called out directly in the description
+  if (desc.indexOf(`${weaponName.toLowerCase()}`) !== -1) {
+    attackIndex = desc.indexOf(`${weaponName.toLowerCase()}`)
+    attackDescType = `specific`
+  }
+
+  // then look for category matches (melee or ranged)
+  else if (weaponType == `melee` && desc.indexOf(`melee attack`) != -1) {
+    attackIndex = desc.indexOf(`melee attack`)
+    attackDescType = `melee`
+  }
+  else if (weaponType == `ranged` && desc.indexOf(`ranged attack`) != -1) {
+    attackIndex = desc.indexOf(`ranged attack`)
+    attackDescType = `ranged`
+  }
+  else {
+    // general case: not specifically melee, ranged, or named in the description
+    attackDescType = `unknown`
+  }
+
+  // Split up description into words for analysis
+  let wordsBeforeAttack = desc.slice(0, attackIndex).split(' ').reverse()
+
+  // work backwards from attack to find count
+  let numAttacksTotal = 0
+  let numAttacksWithThisWeapon = 0
+  for (let word of wordsBeforeAttack) {
+    if (dictStrNum[word]) {
+      if (attackDescType !== `unknown`) {
+        numAttacksWithThisWeapon = dictStrNum[word]
       }
+      numAttacksTotal = dictStrNum[word]
+      break
     }
+  }
 
-    // Next detect specific number of attacks of this weapon
-    // (This is the complicated / messy part.)
-    let remainingWords = desc.slice(attackIndex + attackType.length + 8).split(' ').reverse()
-
-    if (remainingWords.length < 3) {
-      if (attackType === `melee`) {
-        if (![`mwak`, `msak`].includes(weaponData.system.actionType)) {
-          attackType = `choose`
-          numAttacksWeapon = 1
-        }
-      }
-      else if (attackType === `ranged`) {
-        if (![`rwak`, `rsak`].includes(weaponData.system.actionType)) {
-          attackType = `choose`
-          numAttacksWeapon = 1
-        }
-      }
-    }
+  // if desc in front of attack doesn't find a match
+  // check after
+  if (numAttacksTotal == 0) {
+    let remainingWords = desc.slice(attackIndex).split(' ')
 
     let weaponDetected = false
     let twiceAtEnd = false
@@ -100,9 +169,9 @@ export async function getMultiattackFromActor(weaponName, actorData, weapons, op
       const optionKeywordsSingle = [`or`, `alternatively`, `instead`, `while`]
       if (weaponDetected) {
         if (optionKeywordsSingle.includes(word)) {
-          attackType = `choose`
-          if (twiceAtEnd) {
-            numAttacksWeapon = 2
+          attackDescType = `choose`
+          if (twiceAtEnd == true) {
+            numAttacksWithThisWeapon = 2
             break
           }
         }
@@ -110,81 +179,50 @@ export async function getMultiattackFromActor(weaponName, actorData, weapons, op
 
       // match text number to actual value for number of attacks
       if (weaponDetected && dictStrNum[word]) {
-        numAttacksWeapon = dictStrNum[word]
-        break
-      }
-    }
-
-    let typeArray = []
-    let numWeaponsInventory = actorData.items.filter(w => w.type === 'weapon').length
-    if (attackType !== ``) {
-      if (attackType === `melee`) {
-        typeArray = [`simpleM`, `martialM`]
-      }
-      else if (attackType === `ranged`) {
-        typeArray = [`simpleR`, `martialR`]
-      }
-      numWeaponsInventory = actorData.items.filter(w => typeArray.includes(w.system.weaponType)).length
-    }
-
-    // either return the specific or total number of multiattacks
-    if (numAttacksTotal !== 0) {
-      if (numAttacksWeapon !== 0) {
-        multiattack = [(numWeaponsInventory === numAttacksWeapon && numWeaponsInventory === numAttacksTotal) ? 1 : numAttacksWeapon, (attackType !== `choose`) ? true : false]
-      }
-      else if (weaponDetected) {
-        multiattack = [(numWeaponsInventory === numAttacksTotal) ? 1 : numAttacksTotal, (attackType !== `choose`) ? true : false]
-      }
-    }
-
-    // for actors with the Extra Attack item
-  }
-  else if (actorData.items.getName('Extra Attack') !== undefined) {
-    if (weaponData.type === 'spell') {
-      if (weaponName === 'Eldritch Blast') {
-        multiattack = [getScalingFactor(weaponData), false]
-      }
-    }
-    else {
-      multiattack = [2, false]
-    }
-
-    // for fighters
-  }
-  else if (actorData.items.getName('Extra Attack (Fighter)') !== undefined) {
-    if (weaponData.type === 'spell') {
-      if (weaponName === 'Eldritch Blast') {
-        multiattack = [getScalingFactor(weaponData), false]
-      }
-    }
-    else {
-      let actorLevel = actorData.system.details.level
-      if (actorLevel < 11) {
-        multiattack = [2, false]
-      }
-      else if (11 <= actorLevel && actorLevel < 20) {
-        multiattack = [3, false]
-      }
-      else if (actorLevel === 20) {
-        multiattack = [4, false]
-      }
-    }
-
-    // for actors without multiattack
-  }
-  else {
-    if (weaponData.type === 'spell') {
-      if (weaponName === 'Eldritch Blast') {
-        multiattack = [getScalingFactor(weaponData), false]
+        numAttacksWithThisWeapon = dictStrNum[word]
       }
     }
   }
 
-  // select this weapon if it deals the most damage and no other weapons or spells are selected
-  if (options?.checkMaxDamageWeapon) {
-    if (weaponData === options?.maxDamageWeapon) {
-      multiattack[1] = true
+  let typeArray = ['']
+  let numWeaponsInventory = actorData.items.filter(w => w.type === 'weapon').length
+  if (attackDescType !== `unknown`) {
+    if (attackDescType === `melee`) {
+      typeArray = [`simpleM`, `martialM`]
     }
+    else if (attackDescType === `ranged`) {
+      typeArray = [`simpleR`, `martialR`]
+    }
+    numWeaponsInventory = actorData.items.filter(w => typeArray.includes(w.system.weaponType)).length
+  }
+
+  // either return the specific or total number of multiattacks
+  if (numAttacksTotal !== 0) {
+    if (numAttacksWithThisWeapon !== 0) {
+      multiattack = [
+        (numWeaponsInventory === numAttacksWithThisWeapon
+          && numWeaponsInventory === numAttacksTotal)
+          ? 1
+          : numAttacksWithThisWeapon,
+        true
+      ]
+    }
+    else if (weaponDetected) {
+      multiattack = [
+        (numWeaponsInventory === numAttacksTotal)
+          ? 1
+          : numAttacksTotal,
+        true
+      ]
+    }
+  }
+
+  // if anything in the description suggested multiple options,
+  // flag selected as 'false' to trigger a second pass to pick
+  // the max damage option
+  if (attackDescType == `choose`) {
+    multiattack[1] = false
   }
   return multiattack
 }
+

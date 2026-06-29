@@ -1,4 +1,4 @@
-import { registerAttackBonusTests, registerDamageRollTests, getTokenByName, expectDamageRoll } from './helpers.js'
+import { registerAttackBonusTests, registerDamageRollTests, getTokenByName, expectDamageRoll } from './helpers.quench.js'
 
 export function registerNpcBatch(quench) {
   quench.registerBatch(

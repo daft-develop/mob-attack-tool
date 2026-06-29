@@ -1,6 +1,7 @@
 import { foundryEqualOrNewerThan, systemEqualOrNewerThan } from './versions.js'
 import { moduleName } from './mobAttack.js'
 import { getMultiattackFromActor } from './multiattack.js'
+import { getSpellScalingFactor } from './scaling.js'
 
 const { getProperty, duplicate } = foundry.utils
 
@@ -638,7 +639,7 @@ export async function endGroupedMobTurn(data) {
  */
 export function getDamageFormulaAndType(weaponData, isVersatile = false) {
   const attackData = getAttackData(weaponData)
-  let cantripScalingFactor = getScalingFactor(weaponData)
+  let cantripScalingFactor = getSpellScalingFactor(weaponData)
   let diceFormulas = []
   let damageTypes = []
   let damageTypeLabels = []
@@ -789,30 +790,6 @@ export function getAttackBonus(actorItem) {
  */
 function getActivityFromItem(actorItem) {
   return actorItem.system.activities?.getByType('attack')[0]
-}
-
-export function getScalingFactor(weaponData) {
-  let cantripScalingFactor = 1
-  if (weaponData.type == 'spell') {
-    let casterLevel
-    if (systemEqualOrNewerThan('4.3.0') && weaponData.actor.type === 'npc') {
-      casterLevel = weaponData.actor.system.attributes.spell.level
-    }
-    else {
-      casterLevel = weaponData.actor.system.details.level || weaponData.actor.system.details.spellLevel
-    }
-
-    if (5 <= casterLevel && casterLevel <= 10) {
-      cantripScalingFactor = 2
-    }
-    else if (11 <= casterLevel && casterLevel <= 16) {
-      cantripScalingFactor = 3
-    }
-    else if (17 <= casterLevel) {
-      cantripScalingFactor = 4
-    }
-  }
-  return cantripScalingFactor
 }
 
 /**
