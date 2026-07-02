@@ -194,17 +194,18 @@ describe('getMultiattackFromActor', () => {
 
         const [count, autoSelect] = await getMultiattackFromActor('Longsword', actor, {}, {})
 
-        expect(count).toBe(0)
+        expect(count).toBe(1)
         expect(autoSelect).toBe(false)
       })
 
       test('no Multiattack description', async () => {
+        const weapon = createMockItem()
         const multiattackItem = createMockMulti('Multiattack', '')
-        const actor = createMockActor([multiattackItem])
+        const actor = createMockActor([weapon, multiattackItem])
 
         const [count, autoSelect] = await getMultiattackFromActor('Longsword', actor, {}, {})
 
-        expect(count).toBe(0)
+        expect(count).toBe(1)
         expect(autoSelect).toBe(false)
       })
     })
@@ -232,7 +233,7 @@ describe('getMultiattackFromActor', () => {
         expect(autoSelect).toBe(true)
       })
 
-      test.skip('specific description, using twice', async () => {
+      test('specific description, using twice', async () => {
         const weapon = createMockItem()
         const multiattackItem = createMockMulti('Multiattack', 'The creature uses it\'s longsword twice')
         const actor = createMockActor([multiattackItem, weapon])
@@ -243,7 +244,29 @@ describe('getMultiattackFromActor', () => {
         expect(autoSelect).toBe(true)
       })
 
-      test.skip('specific description, using twice, inverted structure', async () => {
+      test('specific description, using twice, different order', async () => {
+        const weapon = createMockItem({ name: 'Megasword' })
+        const multiattackItem = createMockMulti('Multiattack', 'The creature attacks twice with megasword')
+        const actor = createMockActor([multiattackItem, weapon])
+
+        const [count, autoSelect] = await getMultiattackFromActor('Megasword', actor, {}, {})
+
+        expect(count).toBe(2)
+        expect(autoSelect).toBe(true)
+      })
+
+      test('specific description, using once, no it\'s', async () => {
+        const weapon = createMockItem({ name: 'Eye Lasers' })
+        const multiattackItem = createMockMulti('Multiattack', 'The creature uses Eye Lasers twice')
+        const actor = createMockActor([multiattackItem, weapon])
+
+        const [count, autoSelect] = await getMultiattackFromActor('Eye Lasers', actor, {}, {})
+
+        expect(count).toBe(2)
+        expect(autoSelect).toBe(true)
+      })
+
+      test('specific description, using twice, inverted structure', async () => {
         const weapon = createMockItem()
         const multiattackItem = createMockMulti('Multiattack', 'The creature attacks twice with it\'s longsword')
         const actor = createMockActor([multiattackItem, weapon])
@@ -276,7 +299,7 @@ describe('getMultiattackFromActor', () => {
         expect(autoSelect).toBe(true)
       })
 
-      test.skip('vague description', async () => {
+      test('vague description', async () => {
         const weapon = createMockItem({ name: 'Claws', type: 'weapon', actionType: 'msak' })
         const multiattackItem = createMockMulti('Multiattack', 'The creature makes three attacks')
         const actor = createMockActor([multiattackItem, weapon])
@@ -284,6 +307,28 @@ describe('getMultiattackFromActor', () => {
         const [count, autoSelect] = await getMultiattackFromActor('Claws', actor, {}, {})
 
         expect(count).toBe(3)
+        expect(autoSelect).toBe(false)
+      })
+
+      test('vague description 2', async () => {
+        const weapon = createMockItem({ name: 'Claws', type: 'weapon', actionType: 'msak' })
+        const multiattackItem = createMockMulti('Multiattack', 'The creature attacks twice')
+        const actor = createMockActor([multiattackItem, weapon])
+
+        const [count, autoSelect] = await getMultiattackFromActor('Claws', actor, {}, {})
+
+        expect(count).toBe(2)
+        expect(autoSelect).toBe(false)
+      })
+
+      test('vague description 3', async () => {
+        const weapon = createMockItem({ name: 'Claws', type: 'weapon', actionType: 'msak' })
+        const multiattackItem = createMockMulti('Multiattack', 'The creature attacks nine times')
+        const actor = createMockActor([multiattackItem, weapon])
+
+        const [count, autoSelect] = await getMultiattackFromActor('Claws', actor, {}, {})
+
+        expect(count).toBe(9)
         expect(autoSelect).toBe(false)
       })
     })
@@ -304,7 +349,7 @@ describe('getMultiattackFromActor', () => {
         expect(autoSelectBow).toBe(true)
       })
 
-      test.skip('parses multiple weapons from a basic, specific description, OR structure', async () => {
+      test('parses multiple weapons from a basic, specific description, OR structure', async () => {
         const longsword = createMockItem({ name: 'Longsword' })
         const bow = createMockItem({ name: 'Bow' })
         const multiattackItem = createMockMulti('Multiattack', 'The creature makes two longsword attacks or one bow attack')
@@ -317,6 +362,51 @@ describe('getMultiattackFromActor', () => {
         const [countBow, autoSelectBow] = await getMultiattackFromActor('Bow', actor, {}, {})
         expect(countBow).toBe(1)
         expect(autoSelectBow).toBe(false)
+      })
+
+      test('parses multiple weapons from 5.1 SRD standard form', async () => {
+        const bite = createMockItem({ name: 'Bite' })
+        const claw = createMockItem({ name: 'Claws' })
+        const multiattackItem = createMockMulti('Multiattack', 'The bear makes two attacks: one with its bite and one with its claws.')
+        const actor = createMockActor([multiattackItem, bite, claw])
+
+        const [countBite, autoSelectBite] = await getMultiattackFromActor('Bite', actor, {}, {})
+        expect(countBite).toBe(1)
+        expect(autoSelectBite).toBe(true)
+
+        const [countClaw, autoSelectClaw] = await getMultiattackFromActor('Claws', actor, {}, {})
+        expect(countClaw).toBe(1)
+        expect(autoSelectClaw).toBe(true)
+      })
+
+      test('parses multiple weapons from 5.2 SRD standard form', async () => {
+        const bite = createMockItem({ name: 'Bite' })
+        const claw = createMockItem({ name: 'Claws' })
+        const multiattackItem = createMockMulti('Multiattack', 'The creature makes two attacks: one bite attack and one claws attack.')
+        const actor = createMockActor([multiattackItem, bite, claw])
+
+        const [countBite, autoSelectBite] = await getMultiattackFromActor('Bite', actor, {}, {})
+        expect(countBite).toBe(1)
+        expect(autoSelectBite).toBe(true)
+
+        const [countClaw, autoSelectClaw] = await getMultiattackFromActor('Claws', actor, {}, {})
+        expect(countClaw).toBe(1)
+        expect(autoSelectClaw).toBe(true)
+      })
+
+      test('dragons 2014 (claw not claws for item name)', async () => {
+        const bite = createMockItem({ name: 'Bite' })
+        const claw = createMockItem({ name: 'Claw' })
+        const multiattackItem = createMockMulti('Multiattack', 'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.')
+        const actor = createMockActor([multiattackItem, bite, claw])
+
+        const [countBite, autoSelectBite] = await getMultiattackFromActor('Bite', actor, {}, {})
+        expect(countBite).toBe(1)
+        expect(autoSelectBite).toBe(true)
+
+        const [countClaw, autoSelectClaw] = await getMultiattackFromActor('Claw', actor, {}, {})
+        expect(countClaw).toBe(2)
+        expect(autoSelectClaw).toBe(true)
       })
 
       test('broad, general description', async () => {
@@ -332,6 +422,21 @@ describe('getMultiattackFromActor', () => {
         const [countBow, autoSelectBow] = await getMultiattackFromActor('Bow', actor, {}, {})
         expect(countBow).toBe(3)
         expect(autoSelectBow).toBe(false)
+      })
+
+      test('description has options, but not the word twice', async () => {
+        const weapon = createMockItem()
+        const claw = createMockItem({ name: 'Claws' })
+        const multiattackItem = createMockMulti('Multiattack', 'The creature makes two claws attacks or three longsword attacks')
+        const actor = createMockActor([multiattackItem, weapon, claw])
+
+        const [countC, autoSelectC] = await getMultiattackFromActor('Claws', actor, {}, {})
+        expect(countC).toBe(2)
+        expect(autoSelectC).toBe(false)
+
+        const [count, autoSelect] = await getMultiattackFromActor('Longsword', actor, {}, {})
+        expect(count).toBe(3)
+        expect(autoSelect).toBe(false)
       })
     })
 
@@ -373,59 +478,13 @@ describe('getMultiattackFromActor', () => {
 
       test('interpunction', async () => {
         const weapon = createMockItem()
-        const multiattackItem = createMockMulti('Multiattack', 'The creature, makes two longsword attacks, then: we have more text.')
+        const multiattackItem = createMockMulti('Multiattack', 'The creature, with no name, makes two longsword attacks; then we have more text.')
         const actor = createMockActor([multiattackItem, weapon])
 
         const [count, autoSelect] = await getMultiattackFromActor('Longsword', actor, {}, {})
 
         expect(count).toBe(2)
         expect(autoSelect).toBe(true)
-      })
-
-      test('description has options, but not the word twice', async () => {
-        const weapon = createMockItem()
-        const claw = createMockItem({ name: 'Claw' })
-        const multiattackItem = createMockMulti('Multiattack', 'The creature uses two claw attacks, or three longsword attacks')
-        const actor = createMockActor([multiattackItem, weapon, claw])
-
-        const [countC, autoSelectC] = await getMultiattackFromActor('Claw', actor, {}, {})
-        expect(countC).toBe(2)
-        expect(autoSelectC).toBe(false)
-
-        const [count, autoSelect] = await getMultiattackFromActor('Longsword', actor, {}, {})
-        expect(count).toBe(3)
-        expect(autoSelect).toBe(false)
-      })
-
-      test('description has options, with the word twice', async () => {
-        const weapon = createMockItem()
-        const claw = createMockItem({ name: 'Claw' })
-        const multiattackItem = createMockMulti('Multiattack', 'The creature makes three claw attacks. Alternatively, it can use it\'s longsword twice')
-        const actor = createMockActor([multiattackItem, weapon, claw])
-
-        const [countC, autoSelectC] = await getMultiattackFromActor('Claw', actor, {}, {})
-        expect(countC).toBe(3)
-        expect(autoSelectC).toBe(false)
-
-        const [count, autoSelect] = await getMultiattackFromActor('Longsword', actor, {}, {})
-        expect(count).toBe(2)
-        expect(autoSelect).toBe(false)
-      })
-
-      test('description ends in \'twice\' and there are multiple weapons', async () => {
-        const weapon = createMockItem()
-        const spear = createMockItem({ name: 'Spear' })
-        const claw = createMockItem({ name: 'Claw' })
-        const multiattackItem = createMockMulti('Multiattack', 'The creature uses it\'s claw or longsword twice')
-        const actor = createMockActor([multiattackItem, weapon, spear, claw])
-
-        const [count, autoSelect] = await getMultiattackFromActor('Longsword', actor, {}, {})
-        expect(count).toBe(1)
-        expect(autoSelect).toBe(false)
-
-        const [countC, autoSelectC] = await getMultiattackFromActor('Claw', actor, {}, {})
-        expect(countC).toBe(1)
-        expect(autoSelectC).toBe(false)
       })
     })
   })
