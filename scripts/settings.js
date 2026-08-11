@@ -284,11 +284,12 @@ export function initSettings() {
     hint: 'SETTINGS.MAT.mobRulesOrIndividualHint',
     config: true,
     scope: 'client',
-    type: Number,
-    default: 1,
+    type: String,
+    default: 'individual',
     choices: {
-      0: 'SETTINGS.MAT.mobRules',
-      1: 'SETTINGS.MAT.individualAttackRolls',
+      mob2014: 'SETTINGS.MAT.mobRules2014',
+      mob2024: 'SETTINGS.MAT.mobRules2024',
+      individual: 'SETTINGS.MAT.individualAttackRolls',
     },
   })
 
@@ -307,6 +308,12 @@ export function initSettings() {
   for (let [settingKey, value] of Object.entries(matSettings)) {
     game.settings.register(moduleName, settingKey, value)
   }
+}
+
+export async function migrateOldSettings() {
+  const mobRulesSetting = game.settings.get(moduleName, 'mobRules')
+  if (mobRulesSetting === '0') await game.settings.set(moduleName, 'mobRules', 'mob2014')
+  if (mobRulesSetting === '1') await game.settings.set(moduleName, 'mobRules', 'individual')
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { initSettings } from './settings.js'
+import { initSettings, migrateOldSettings } from './settings.js'
 import { createAndRenderDialog } from './ui/mobAttackDialog.js'
 import { createAndRenderDialog as renderV2 } from './ui/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
@@ -36,6 +36,8 @@ Hooks.once('init', async () => {
 })
 
 Hooks.on('ready', async () => {
+  await migrateOldSettings()
+
   // register global MobAttacks macro object
   // for running mat via user macros
   window.MobAttacks = macroObject()

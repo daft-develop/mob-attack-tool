@@ -36,11 +36,12 @@ export function macroObject() {
       data['weapons'] = weapons
       if (targets.length) data['attacks'] = attacks
 
-      if (game.settings.get(moduleName, 'mobRules') === 0) {
-        return rollMobAttack(data)
+      const mobRulesSetting = game.settings.get(moduleName, 'mobRules')
+      if (game.settings.get(moduleName, 'mobRules') === 'individual') {
+        rollMobAttackIndividually(data)
       }
       else {
-        return rollMobAttackIndividually(data)
+        rollMobAttack(data, mobRulesSetting)
       }
     })()
   }

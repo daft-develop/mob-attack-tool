@@ -778,11 +778,12 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters)
       mobAttackData.event = event
-      if (game.settings.get(moduleName, 'mobRules') === 0) {
-        rollMobAttack(mobAttackData)
+      const mobRulesSetting = game.settings.get(moduleName, 'mobRules')
+      if (game.settings.get(moduleName, 'mobRules') === 'individual') {
+        rollMobAttackIndividually(mobAttackData)
       }
       else {
-        rollMobAttackIndividually(mobAttackData)
+        rollMobAttack(mobAttackData, mobRulesSetting)
       }
       if (!game.settings.get(moduleName, 'keepDialogOpen')) {
         this.close()

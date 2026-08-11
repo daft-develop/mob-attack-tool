@@ -143,7 +143,7 @@ export async function callMidiMacro(item, midiMacroData) {
 
 export function checkTarget() {
   let targetToken = canvas.tokens.placeables.find(t => t.isTargeted)
-  if (!targetToken && game.settings.get(moduleName, 'mobRules') === 0) {
+  if (!targetToken && game.settings.get(moduleName, 'mobRules') !== 'individual') {
     ui.notifications.warn(game.i18n.localize('MAT.targetValidACWarning'))
     return false
   }
@@ -693,6 +693,20 @@ export function calcAttackersNeeded(d20Needed) {
     }
   }
   return attackersNeeded
+}
+
+/**
+ * Use the DMG 2024 Mob Results table to calculate successful attacks based on the roll needed and the amount of attacks
+ * The actual table is replaced by equivalent mathematical expressions that can cover all possible values
+ * @param {Number} d20Needed The roll needed for a success
+ * @param {Number} totalAttacks The amount of attacks
+ * @param {Number} [rollType] Whether the attacks are made with advantage (1), disadvantage (-1), or neither (0)
+ * @returns {Number} The amount of successful attacks
+ */
+export function calcSuccessfulAttacks(d20Needed, totalAttacks, rollType = 0) {
+  if (rollType === 1) d20Needed = Math.round(Math.pow((d20Needed - 1), 2) / 20 + 1)
+  if (rollType === -1) d20Needed = Math.round(-1 / 20 * Math.pow((d20Needed - 21), 2) + 21)
+  return Math.max(0, Math.round((20 - d20Needed + 1) / 20 * totalAttacks))
 }
 
 export function isTargeted(token) {
