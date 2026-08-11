@@ -73,6 +73,7 @@ export async function rollMobAttack(data, mobRulesSetting = 'mob2014') {
           targetACtext: targetACtext,
           d20Needed: d20Needed,
           finalAttackBonus: getTextFromAttackBonus(finalAttackBonus),
+          rollTypeMessage: data.rollTypeMessage,
           weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``}`,
           availableAttacks: availableAttacks,
           attackersNeeded: attackersNeeded,
