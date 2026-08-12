@@ -698,11 +698,12 @@ export class MobAttackDialog extends FormApplication {
         }
         let mobAttackData = await prepareMobAttack(html, selectedTokenIds, this.weapons, this.availableAttacks, this.targets, this.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.numSelected, this.monsters)
         mobAttackData.event = event
-        if (game.settings.get(moduleName, 'mobRules') === 0) {
-          rollMobAttack(mobAttackData)
+        const mobRulesSetting = game.settings.get(moduleName, 'mobRules')
+        if (game.settings.get(moduleName, 'mobRules') === 'individual') {
+          rollMobAttackIndividually(mobAttackData)
         }
         else {
-          rollMobAttackIndividually(mobAttackData)
+          rollMobAttack(mobAttackData, mobRulesSetting)
         }
         if (!game.settings.get(moduleName, 'keepDialogOpen')) {
           this.close()

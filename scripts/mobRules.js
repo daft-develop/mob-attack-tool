@@ -1,10 +1,10 @@
 import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 
 const { getProperty } = foundry.utils
 
-export async function rollMobAttack(data) {
+export async function rollMobAttack(data, mobRulesSetting) {
   // Temporarily disable DSN 3d dice from rolling, per settings
   if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
     await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
@@ -36,14 +36,20 @@ export async function rollMobAttack(data) {
         data.rollTypeValue = -1 * Math.floor(game.settings.get(moduleName, 'rollTypeValue'))
         data.rollTypeMessage = ` - ${data.rollTypeValue} [adv]`
       }
-      const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue)
-      const attackersNeeded = calcAttackersNeeded(d20Needed)
+      const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue, mobRulesSetting)
+      let attackersNeeded, numHitAttacks
+      if (mobRulesSetting === 'mob2014') attackersNeeded = calcAttackersNeeded(d20Needed)
 
       // Check whether how many attackers can use this weapon
       let availableAttacks = value[j]?.targetNumAttacks
+      if (mobRulesSetting === 'mob2024') {
+        numHitAttacks = calcSuccessfulAttacks(d20Needed, availableAttacks)
+      }
 
-      if (availableAttacks / attackersNeeded >= 1) {
-        const numHitAttacks = Math.floor(availableAttacks / attackersNeeded)
+      if (numHitAttacks > 0 || availableAttacks / attackersNeeded >= 1) {
+        if (mobRulesSetting === 'mob2014') {
+          numHitAttacks = Math.floor(availableAttacks / attackersNeeded)
+        }
         const pluralOrNot = ` ${game.i18n.localize((numHitAttacks === 1) ? 'MAT.oneAttackSingular' : 'MAT.multipleAttackPlural')}!`
         const sOrNot = ((numHitAttacks > 1) ? 's' : '')
         const targetACtext = game.user.isGM ? `${game.i18n.localize('MAT.targetAC')} ${targetAC}` : ``
@@ -67,6 +73,7 @@ export async function rollMobAttack(data) {
           targetACtext: targetACtext,
           d20Needed: d20Needed,
           finalAttackBonus: getTextFromAttackBonus(finalAttackBonus),
+          rollTypeMessage: data.rollTypeMessage,
           weaponName: `${weaponData.name}${(isVersatile) ? ` (${game.i18n.localize('Versatile')})` : ``}`,
           availableAttacks: availableAttacks,
           attackersNeeded: attackersNeeded,

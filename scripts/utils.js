@@ -143,7 +143,7 @@ export async function callMidiMacro(item, midiMacroData) {
 
 export function checkTarget() {
   let targetToken = canvas.tokens.placeables.find(t => t.isTargeted)
-  if (!targetToken && game.settings.get(moduleName, 'mobRules') === 0) {
+  if (!targetToken && game.settings.get(moduleName, 'mobRules') !== 'individual') {
     ui.notifications.warn(game.i18n.localize('MAT.targetValidACWarning'))
     return false
   }
@@ -644,17 +644,17 @@ export function getDamageFormulaAndType(weaponData, isVersatile = false) {
   return [diceFormulas, damageTypes, damageTypeLabels]
 }
 
-export function calcD20Needed(attackBonus, targetAC, rollTypeValue) {
-  let d20Needed = targetAC - (attackBonus + rollTypeValue)
-  if (d20Needed < 1) {
-    return 1
+export function calcD20Needed(attackBonus, targetAC, rollTypeValue, mobRulesSetting) {
+  let d20Needed = targetAC - attackBonus
+  if (mobRulesSetting === 'mob2014') {
+    d20Needed -= rollTypeValue
   }
-  else if (d20Needed > 20) {
-    return 20
+  else if (mobRulesSetting === 'mob2024') {
+    // Hidden math used in the DMG 2024 mob results table
+    if (rollTypeValue > 0) d20Needed = Math.round(Math.pow((d20Needed - 1), 2) / 20 + 1)
+    if (rollTypeValue < 0) d20Needed = Math.round(-Math.pow((d20Needed - 21), 2) / 20 + 21)
   }
-  else {
-    return d20Needed
-  }
+  return Math.clamp(d20Needed, 1, 20)
 }
 
 export function calcAttackersNeeded(d20Needed) {
@@ -693,6 +693,17 @@ export function calcAttackersNeeded(d20Needed) {
     }
   }
   return attackersNeeded
+}
+
+/**
+ * Use the DMG 2024 Mob Results table to calculate successful attacks based on the roll needed and the amount of attacks
+ * The actual table is replaced by an equivalent mathematical expression that can cover all possible values
+ * @param {Number} d20Needed The roll needed for a success
+ * @param {Number} totalAttacks The amount of attacks
+ * @returns {Number} The amount of successful attacks
+ */
+export function calcSuccessfulAttacks(d20Needed, totalAttacks) {
+  return Math.max(0, Math.round((20 - d20Needed + 1) / 20 * totalAttacks))
 }
 
 export function isTargeted(token) {
