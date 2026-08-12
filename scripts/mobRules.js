@@ -4,7 +4,7 @@ import { foundryEqualOrNewerThan } from './versions.js'
 
 const { getProperty } = foundry.utils
 
-export async function rollMobAttack(data, mobRulesSetting = 'mob2014') {
+export async function rollMobAttack(data, mobRulesSetting) {
   // Temporarily disable DSN 3d dice from rolling, per settings
   if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
     await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
@@ -36,14 +36,14 @@ export async function rollMobAttack(data, mobRulesSetting = 'mob2014') {
         data.rollTypeValue = -1 * Math.floor(game.settings.get(moduleName, 'rollTypeValue'))
         data.rollTypeMessage = ` - ${data.rollTypeValue} [adv]`
       }
-      const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue)
+      const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue, mobRulesSetting)
       let attackersNeeded, numHitAttacks
       if (mobRulesSetting === 'mob2014') attackersNeeded = calcAttackersNeeded(d20Needed)
 
       // Check whether how many attackers can use this weapon
       let availableAttacks = value[j]?.targetNumAttacks
       if (mobRulesSetting === 'mob2024') {
-        numHitAttacks = calcSuccessfulAttacks(d20Needed, availableAttacks, Math.sign(data.rollTypeValue))
+        numHitAttacks = calcSuccessfulAttacks(d20Needed, availableAttacks)
       }
 
       if (numHitAttacks > 0 || availableAttacks / attackersNeeded >= 1) {

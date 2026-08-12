@@ -644,17 +644,17 @@ export function getDamageFormulaAndType(weaponData, isVersatile = false) {
   return [diceFormulas, damageTypes, damageTypeLabels]
 }
 
-export function calcD20Needed(attackBonus, targetAC, rollTypeValue) {
-  let d20Needed = targetAC - (attackBonus + rollTypeValue)
-  if (d20Needed < 1) {
-    return 1
+export function calcD20Needed(attackBonus, targetAC, rollTypeValue, mobRulesSetting) {
+  let d20Needed = targetAC - attackBonus
+  if (mobRulesSetting === 'mob2014') {
+    d20Needed -= rollTypeValue
   }
-  else if (d20Needed > 20) {
-    return 20
+  else if (mobRulesSetting === 'mob2024') {
+    // Hidden math used in the DMG 2024 mob results table
+    if (rollTypeValue > 0) d20Needed = Math.round(Math.pow((d20Needed - 1), 2) / 20 + 1)
+    if (rollTypeValue < 0) d20Needed = Math.round(-Math.pow((d20Needed - 21), 2) / 20 + 21)
   }
-  else {
-    return d20Needed
-  }
+  return Math.clamp(d20Needed, 1, 20)
 }
 
 export function calcAttackersNeeded(d20Needed) {
@@ -697,15 +697,12 @@ export function calcAttackersNeeded(d20Needed) {
 
 /**
  * Use the DMG 2024 Mob Results table to calculate successful attacks based on the roll needed and the amount of attacks
- * The actual table is replaced by equivalent mathematical expressions that can cover all possible values
+ * The actual table is replaced by an equivalent mathematical expression that can cover all possible values
  * @param {Number} d20Needed The roll needed for a success
  * @param {Number} totalAttacks The amount of attacks
- * @param {Number} [rollType] Whether the attacks are made with advantage (1), disadvantage (-1), or neither (0)
  * @returns {Number} The amount of successful attacks
  */
-export function calcSuccessfulAttacks(d20Needed, totalAttacks, rollType = 0) {
-  if (rollType === 1) d20Needed = Math.round(Math.pow((d20Needed - 1), 2) / 20 + 1)
-  if (rollType === -1) d20Needed = Math.round(-1 / 20 * Math.pow((d20Needed - 21), 2) + 21)
+export function calcSuccessfulAttacks(d20Needed, totalAttacks) {
   return Math.max(0, Math.round((20 - d20Needed + 1) / 20 * totalAttacks))
 }
 
