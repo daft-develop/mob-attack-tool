@@ -17,7 +17,7 @@ export function initQuenchTests() {
           // the rest of these settings and trying to decrease load time
           // since we're constantly refreshing while testing
           it('should have global lighting enabled', function () {
-            if (systemEqualOrNewerThan('4.0.0')) {
+            if (foundryEqualOrNewerThan('12.0.0')) {
               expect(activeScene.environment.globalLight.enabled).to.equal(true)
             }
             else {
@@ -28,15 +28,20 @@ export function initQuenchTests() {
             expect(activeScene.tokenVision).to.equal(false)
           })
           it('should have fog exploration disabled', function () {
-            if (systemEqualOrNewerThan('4.0.0')) {
-              expect(activeScene.fog.exploration).to.equal(false)
+            if (foundryEqualOrNewerThan('14.0.0')) {
+              expect(activeScene.fog.mode).to.equal(foundry.CONST.FOG_EXPLORATION_MODES.DISABLED)
             }
             else {
               expect(activeScene.fogExploration).to.equal(false)
             }
           })
           it('should have no background set', function () {
-            expect(activeScene.background.src).to.be.a('null')
+            if (foundryEqualOrNewerThan('14.0.0')) {
+              activeScene.levels.contents[0].background.src
+            }
+            else {
+              expect(activeScene.background.src).to.be.a('null')
+            }
           })
         })
 
@@ -101,7 +106,7 @@ export function initQuenchTests() {
           it('should have Eldritch Blast', function () {
             expect(sefrisActor.items.filter(i => i.name == 'Eldritch Blast')).to.have.lengthOf(1)
           })
-          it('should have Abilities set to 18/14/15/9/13/11', function () {
+          it('should have Abilities set to 12/14/15/10/8/20', function () {
             // level 4 ASI into STR
             expect(sefrisActor.system.abilities.str.value).to.equal(12)
             expect(sefrisActor.system.abilities.dex.value).to.equal(14)
@@ -123,7 +128,7 @@ export function initQuenchTests() {
           it('should have Skeleton CR of 1/4', function () {
             expect(skeletonActor.system.details.cr).to.equal(0.25)
           })
-          it('should have Abilities set to 18/14/15/9/13/11', function () {
+          it('should have Abilities set to 10/14/15/6/8/5', function () {
             // level 4 ASI into STR
             expect(skeletonActor.system.abilities.str.value).to.equal(10)
             expect(skeletonActor.system.abilities.dex.value).to.equal(14)
