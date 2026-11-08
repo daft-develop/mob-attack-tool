@@ -28,3 +28,49 @@ globalThis.game = {
   system: { version: '4.0.0' },
   version: '13.0.0',
 }
+
+// Math.clamp is a Foundry global - provide it for testing
+if (typeof Math.clamp !== 'function') {
+  Math.clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+}
+
+// Mock dnd5e.dice for simplifyFormula tests
+globalThis.dnd5e = {
+  dice: {
+    simplifyRollFormula: formula => formula,
+  },
+}
+
+// Mock Foundry classes referenced in the module graph
+globalThis.FormApplication = class FormApplication {
+  static get defaultOptions() {
+    return {}
+  }
+}
+
+globalThis.Application = class Application {
+  static get defaultOptions() {
+    return {}
+  }
+}
+
+globalThis.mergeObject = (...args) => {
+  return Object.assign({}, ...args)
+}
+
+// Mock foundry.applications for v13+ code
+globalThis.foundry.applications = {
+  api: {
+    HandlebarsApplicationMixin: class HandlebarsApplicationMixin {},
+    ApplicationV2: class ApplicationV2 {
+      static get defaultOptions() {
+        return {}
+      }
+    },
+  },
+}
+
+globalThis.foundry.utils = {
+  ...globalThis.foundry.utils,
+  expandObject: obj => obj,
+}
