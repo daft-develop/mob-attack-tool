@@ -33,7 +33,7 @@
   "url": "https://github.com/daft-develop/mob-attack-tool",
   "version": "0.19.0",
   "compatibility": {
-    "minimum": "12",
+    "minimum": "13",
     "verified": "14",
     "maximum": "15.999"
   },
@@ -43,7 +43,7 @@
         "id": "dnd5e",
         "type": "system",
         "compatibility": {
-          "minimum": "3.2.1",
+          "minimum": "4.3.0",
           "verified": "6.0.5",
           "maximum": "6.999"
         }

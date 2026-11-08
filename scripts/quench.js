@@ -17,12 +17,7 @@ export function initQuenchTests() {
           // the rest of these settings and trying to decrease load time
           // since we're constantly refreshing while testing
           it('should have global lighting enabled', function () {
-            if (foundryEqualOrNewerThan('12.0.0')) {
-              expect(activeScene.environment.globalLight.enabled).to.equal(true)
-            }
-            else {
-              expect(activeScene.globalLight).to.equal(true)
-            }
+            expect(activeScene.environment.globalLight.enabled).to.equal(true)
           })
           it('should have token vision disabled', function () {
             expect(activeScene.tokenVision).to.equal(false)
@@ -37,7 +32,7 @@ export function initQuenchTests() {
           })
           it('should have no background set', function () {
             if (foundryEqualOrNewerThan('14.0.0')) {
-              activeScene.levels.contents[0].background.src
+              expect(activeScene.levels.contents[0].background.src).to.be.a('null')
             }
             else {
               expect(activeScene.background.src).to.be.a('null')
@@ -80,14 +75,8 @@ export function initQuenchTests() {
             expect(randalItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
-            if (systemEqualOrNewerThan('4.0.0')) {
-              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.activation.type, 'Battleaxe +3 ability of NULL').to.equal('action')
-              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.attack.ability, 'Battleaxe +3 ability of NULL').to.equal('')
-            }
-            else {
-              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source, 'Battleaxe +3 ability of NULL').to.have.property('actionType')
-              expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.ability, 'Battleaxe +3 ability of NULL').to.not.be.ok // check for falsy value
-            }
+            expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.activation.type, 'Battleaxe +3 ability of NULL').to.equal('action')
+            expect(randalItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.attack.ability, 'Battleaxe +3 ability of NULL').to.equal('')
             expect(randalItems.filter(i => i.name == 'Fire Bolt', 'missing default Fire Bolt')).to.have.lengthOf(1)
             expect(randalItems.filter(i => i.name == 'Fire Bolt (CON)'), 'missing Fire Bolt (CON)').to.have.lengthOf(1)
           })
@@ -149,14 +138,8 @@ export function initQuenchTests() {
             expect(skeletonItems.filter(i => i.name == 'Handaxe, +1'), 'missing Handaxe, +1 with magical enchantment bonus').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Handaxe, +5'), 'missing Handaxe, +5 with magical flat bonus').to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Battleaxe +3'), 'missing SRD Battleaxe +3 with details bonus').to.have.lengthOf(1)
-            if (systemEqualOrNewerThan('4.0.0')) {
-              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.activation.type, 'Battleaxe +3 ability of NULL').to.equal('action')
-              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.attack.ability, 'Battleaxe +3 ability of NULL').to.equal('')
-            }
-            else {
-              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source, 'Battleaxe +3 ability of NULL').to.have.property('actionType')
-              expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.ability, 'Battleaxe +3 ability of NULL').to.be.null
-            }
+            expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.activation.type, 'Battleaxe +3 ability of NULL').to.equal('action')
+            expect(skeletonItems.find(i => i.name == 'Battleaxe +3').system._source.activities.dnd5eactivity000.attack.ability, 'Battleaxe +3 ability of NULL').to.equal('')
             expect(skeletonItems.filter(i => i.name == 'Fire Bolt', 'missing default Fire Bolt')).to.have.lengthOf(1)
             expect(skeletonItems.filter(i => i.name == 'Fire Bolt (CON)'), 'missing Fire Bolt (CON)').to.have.lengthOf(1)
           })

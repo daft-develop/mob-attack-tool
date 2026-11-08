@@ -22,60 +22,40 @@ const { getProperty, duplicate } = foundry.utils
  * @returns the item's attackData
  */
 export function getAttackData(item) {
-  let attackData
-  if (systemEqualOrNewerThan('4.0.0')) {
-    const attackActivity = getActivityFromItem(item) || {}
-    attackData = { ...attackActivity }
-    if (attackActivity.damage) {
-      attackData.damage = {
-        parts: attackData.damage.parts.map(p => [
-          p.formula + (p.base && !/@mod\b/.test(p.formula) ? ' + @mod' : ''),
-          p.types.first() ?? '',
-        ]),
-      }
-      if (item.system.properties.has('ver')) {
-        const versatile = item.system.damage.versatile.clone(item.system.damage.versatile)
-        versatile.denomination ||= item.system.damage.base.steppedDenomination()
-        versatile.number ||= item.system.damage.base.number
-        versatile.types = item.system.damage.base.types
-        attackData.damage.versatile = versatile.formula + (!/@mod\b/.test(versatile.formula) ? ' + @mod' : '')
-      }
-      else {
-        attackData.damage.versatile = ''
-      }
-      attackData.ability = attackActivity.ability ?? 'none'
-      if (item.type === 'spell' && item.system.level === 0 && item.name !== 'Eldritch Blast') {
-        attackData.scaling = { mode: 'cantrip' }
-      }
-      attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity)
+  const attackActivity = getActivityFromItem(item) || {}
+  let attackData = { ...attackActivity }
+  if (attackActivity.damage) {
+    attackData.damage = {
+      parts: attackData.damage.parts.map(p => [
+        p.formula + (p.base && !/@mod\b/.test(p.formula) ? ' + @mod' : ''),
+        p.types.first() ?? '',
+      ]),
     }
-  }
-  else {
-    attackData = item.system
-    // v3 requires a rollDamage() call to calculate some of the additional fields we use
-    attackData.rollDamage = item.rollDamage.bind(item)
-    // sub out "default" Ability Modifier
-    if (attackData?.ability == undefined || attackData.ability == '') {
-      attackData.ability = attackData.abilityMod
+    if (item.system.properties.has('ver')) {
+      const versatile = item.system.damage.versatile.clone(item.system.damage.versatile)
+      versatile.denomination ||= item.system.damage.base.steppedDenomination()
+      versatile.number ||= item.system.damage.base.number
+      versatile.types = item.system.damage.base.types
+      attackData.damage.versatile = versatile.formula + (!/@mod\b/.test(versatile.formula) ? ' + @mod' : '')
     }
+    else {
+      attackData.damage.versatile = ''
+    }
+    attackData.ability = attackActivity.ability ?? 'none'
+    if (item.type === 'spell' && item.system.level === 0 && item.name !== 'Eldritch Blast') {
+      attackData.scaling = { mode: 'cantrip' }
+    }
+    attackData.rollDamage = attackActivity.rollDamage.bind(attackActivity)
   }
   return attackData
 }
 
 export function getDamageOptions(allowCritical = true, targetId = null) {
   let formattedTarget = formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId)?.actor.uuid)
-  if (systemEqualOrNewerThan('4.0.0')) {
-    return {
-      damage: { isCritical: allowCritical },
-      dialog: { configure: false },
-      message: { 'data.flags.dnd5e.targets': formattedTarget },
-    }
-  }
-  else {
-    return {
-      damage: { critical: allowCritical, options: { fastForward: true, messageData: { 'flags.dnd5e': { targets: formattedTarget } } } },
-      dialog: {},
-    }
+  return {
+    damage: { isCritical: allowCritical },
+    dialog: { configure: false },
+    message: { 'data.flags.dnd5e.targets': formattedTarget },
   }
 }
 
@@ -154,12 +134,7 @@ export function formatAttackTargets() {
   if (systemEqualOrNewerThan('6.0.0')) {
     return dnd5e.dataModels.chatMessage.fields.TargetsField.getDescriptors()
   }
-  else if (systemEqualOrNewerThan('4.0.0')) {
-    return dnd5e.utils.getTargetDescriptors()
-  }
-  else {
-    return dnd5e.documents.Item5e._formatAttackTargets()
-  }
+  return dnd5e.utils.getTargetDescriptors()
 }
 
 export async function getTargetData(monsters) {
@@ -318,9 +293,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     let actorWeapons = {}
     let items = actor.items.contents
     for (let item of items) {
-      const isAttack = systemEqualOrNewerThan('4.0.0')
-        ? item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
-        : item.type == 'weapon' || (item.type == 'spell' && (item.system.level === 0 || item.system.preparation.mode === 'atwill') && item.system.damage.parts.length > 0 && item.system.save.ability === '')
+      const isAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
 
       if (isAttack) {
         if (weapons[item.id]?.id === item.id) {
@@ -749,17 +722,8 @@ export async function sendChatMessage(text) {
  * @returns a positive or negative integer represention the total attack bonus
  */
 export function getAttackBonus(actorItem) {
-  let attackData // common structure where labels.modifier is kept on both version
-  if (systemEqualOrNewerThan('4.0.0')) {
-    // we assume a single activity of type 'attack' exists on the weapon
-    attackData = getActivityFromItem(actorItem)
-  }
-  else {
-    actorItem.getAttackToHit()
-    // the system getAttackToHit updates the labels.modifier integer
-    // as a side effect, so we'll use it
-    attackData = actorItem
-  }
+  // we assume a single activity of type 'attack' exists on the weapon
+  const attackData = getActivityFromItem(actorItem)
   // return the labels.modifier if it exists, otherwise modifier is 0
   let modifierString = attackData?.labels?.modifier ?? 0
   // remove spaces between leading - and number to prevent NaN results

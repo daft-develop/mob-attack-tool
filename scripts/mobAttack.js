@@ -1,5 +1,4 @@
 import { initSettings, migrateOldSettings } from './settings.js'
-import { createAndRenderDialog } from './ui/mobAttackDialog.js'
 import { createAndRenderDialog as renderV2 } from './ui/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
 import { foundryEqualOrNewerThan } from './versions.js'
@@ -84,15 +83,7 @@ Hooks.on('controlToken', async () => {
   if (mobDialog) {
     if (mobDialog.rendered && !mobDialog.currentlySelectingTokens) {
       await game.settings.set(moduleName, 'hiddenChangedMob', false)
-      if (foundryEqualOrNewerThan('13.0.0')) {
-        mobDialog.render()
-      }
-      else {
-        let mobList = game.settings.get(moduleName, 'hiddenMobList')
-        if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
-          mobDialog.render()
-        }
-      }
+      mobDialog.render()
     }
   }
 })
@@ -103,16 +94,7 @@ Hooks.on('targetToken', async () => {
   let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
   if (mobDialog) {
     if (mobDialog.rendered) {
-      if (foundryEqualOrNewerThan('13.0.0')) {
-        mobDialog.render()
-      }
-      else {
-        // await game.settings.set(moduleName, "hiddenChangedMob", false);
-        let mobList = game.settings.get(moduleName, 'hiddenMobList')
-        if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
-          mobDialog.render()
-        }
-      }
+      mobDialog.render()
     }
   }
 })
@@ -188,7 +170,7 @@ function addMobAttackToolButton() {
         title: game.i18n.localize('MAT.mobAttack'),
         icon: 'fas fa-dice',
         visible: (playerAccess ? true : game.user.isGM),
-        onClick: async () => createAndRenderDialog(),
+        onClick: async () => renderV2(),
         button: true,
       })
     }

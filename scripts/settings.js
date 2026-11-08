@@ -1,7 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { RollSettingsMenu } from './ui/RollSettingsMenu.js'
 import { RollSettingsMenuV2 } from './ui/RollSettingsMenuV2.js'
-import { foundryEqualOrNewerThan } from './versions.js'
 
 export const matSettings = {
   playerAccess: {
@@ -293,8 +291,8 @@ export function initSettings() {
     },
   })
 
-  // Use the AppV2 menu on v13+, fall back to the legacy FormApplication on older (v12) versions.
-  const menuType = foundryEqualOrNewerThan('13.0.0') ? RollSettingsMenuV2 : RollSettingsMenu
+  // Use the AppV2 menu on v13+
+  const menuType = RollSettingsMenuV2
 
   game.settings.registerMenu(moduleName, 'rollSettingsMenu', {
     name: 'SETTINGS.MAT.advancedSettings',
