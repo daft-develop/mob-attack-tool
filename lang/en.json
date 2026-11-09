@@ -33,6 +33,7 @@
 	"MAT.macroNamePostfix": "(s)",
 	"MAT.macroNotification": "was saved to the macro directory",
 	"MAT.macroOverwriteDialog": "A macro named {userMacroName} already exists. Are you sure you want to overwrite it?",
+	"MAT.macroWeaponNotFound": "Mob Attack skipped weapons the selected tokens no longer have: {weaponNames}",
 	"MAT.oneAttackSingular": "attack hits",
 	"MAT.oneAttackPlural": "attacks hits",
 	"MAT.multipleAttackSingular": "attack hit",

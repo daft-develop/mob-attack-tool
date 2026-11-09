@@ -271,3 +271,83 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
 
   return mobAttackData
 }
+
+/**
+ * Expand a saved mob into its list of actors, one entry per monster
+ * Actors that no longer exist are skipped, so a saved mob containing a
+ * deleted actor doesn't break prepareMonsters
+ * @param {object} mobData - a saved mob from the hiddenMobList setting
+ * @param {function(string): (Actor5e|undefined)} [getActor] - actor lookup by id
+ * @returns {Actor5e[]} the mob's actors
+ */
+export function getMobActors(mobData, getActor = id => game.actors.get(id)) {
+  const actors = []
+  for (const monster of mobData?.monsters ?? []) {
+    const actor = getActor(monster.id)
+    if (!actor) continue
+    for (let i = 0; i < monster.amount; i++) {
+      actors.push(actor)
+    }
+  }
+  return actors
+}
+
+/**
+ * Escape text for use inside HTML, including attribute values
+ * @param {string} text - text that may contain HTML special characters
+ * @returns {string} the escaped text
+ */
+export function escapeHTML(text) {
+  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }
+  return String(text).replace(/[&<>"']/g, character => entities[character])
+}
+
+/**
+ * Find the weapon entries in the dialog's monster data that a form field refers to
+ * Form field names use the weapon key with its first space replaced by '-'.
+ * Returns the first match in each monster, since the same item id can appear
+ * on more than one actor
+ * @param {object} monsters - monster data from prepareMonsters, keyed by actor id
+ * @param {string} weaponId - weapon key as used in the form field name
+ * @returns {object[]} the matching weapon entries, to read or update in place
+ */
+export function findWeaponEntries(monsters, weaponId) {
+  const entries = []
+  for (const monster of Object.values(monsters)) {
+    const weaponKey = Object.keys(monster.weapons).find(key => key.replace(' ', '-') === weaponId)
+    if (weaponKey !== undefined) {
+      entries.push(monster.weapons[weaponKey])
+    }
+  }
+  return entries
+}
+
+/**
+ * Names of the saved mobs that belong to a user, in saved order
+ * @param {object} mobList - the hiddenMobList setting, keyed by mob name
+ * @param {string} userId - the user whose mobs to list
+ * @returns {string[]} the user's mob names
+ */
+export function getUserMobNames(mobList, userId) {
+  return Object.keys(mobList).filter(mobName => mobList[mobName].userId === userId)
+}
+
+/**
+ * The mob name before or after the current one, wrapping around at either end
+ * @param {string[]} mobNames - the names to step through
+ * @param {string} currentName - the name shown in the dialog
+ * @param {number} fallbackIndex - index to step from when currentName isn't in mobNames
+ * @param {number} direction - -1 for the previous mob, 1 for the next
+ * @returns {string|undefined} the mob name to load, undefined when mobNames is empty
+ */
+export function stepMobName(mobNames, currentName, fallbackIndex, direction) {
+  const currentIndex = mobNames.indexOf(currentName)
+  let index = (currentIndex === -1 ? fallbackIndex : currentIndex) + direction
+  if (index < 0) {
+    index = mobNames.length - 1
+  }
+  else if (index > mobNames.length - 1) {
+    index = 0
+  }
+  return mobNames[index]
+}

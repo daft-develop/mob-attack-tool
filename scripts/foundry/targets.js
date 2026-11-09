@@ -1,4 +1,5 @@
 import { moduleName } from '../constants.js'
+import { sumTargetAttacks } from '../core/attack-totals.js'
 
 const { duplicate } = foundry.utils
 
@@ -84,13 +85,9 @@ export async function getTargetData(monsters) {
       targetACtext: ((game.user.isGM) ? ` ${game.i18n.localize('MAT.dialogTargetArmorClassMessage')}` : ``),
     })
 
-    let targetTotalNumAttacks = targets[targets.length - 1].weapons.length
-    let targetTotalAverageDamage = 0
-    for (let weapon of targets[targets.length - 1].weapons) {
-      targetTotalAverageDamage += weapon.averageDamage
-    }
-    targets[targets.length - 1]['targetTotalNumAttacks'] = targetTotalNumAttacks
-    targets[targets.length - 1]['targetTotalAverageDamage'] = targetTotalAverageDamage
+    const targetTotals = sumTargetAttacks(targets[targets.length - 1].weapons)
+    targets[targets.length - 1]['targetTotalNumAttacks'] = targetTotals.numAttacks
+    targets[targets.length - 1]['targetTotalAverageDamage'] = targetTotals.averageDamage
 
     if (targetCount === targetTokens.length - 1) {
       for (let i = 0; i < (weaponsOnTargetArray.length - arrayLength * (1 + targetCount)); i++) {
@@ -125,4 +122,42 @@ export function isTargeted(token) {
       }
     }
   }
+}
+
+/**
+ * Control exactly the given tokens on the current scene, releasing all others
+ * Tokens that are no longer on the scene are skipped
+ * @param {string[]} tokenIds - ids of the tokens to select
+ */
+export function selectTokens(tokenIds) {
+  canvas.tokens.releaseAll()
+  for (const tokenId of tokenIds) {
+    canvas.tokens.get(tokenId)?.control({ releaseOthers: false })
+  }
+}
+
+/**
+ * Describe the currently selected (controlled) tokens for a mob attack
+ * @returns {{tokenId: string, tokenUuid: string, actorId: string}[]} one entry per selected token
+ */
+export function getSelectedTokenIds() {
+  return canvas.tokens.controlled.map(token => ({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id }))
+}
+
+/**
+ * Find the weapon an exported mob attack macro refers to
+ * Looks on the selected tokens' actors first, so items added or renamed on
+ * an unlinked token are found, then falls back to the world actor
+ * @param {{actorID: string, weaponName: string}} locator - a weaponLocators entry from the macro
+ * @param {Token5e[]} [tokens] - tokens to search, the selected tokens by default
+ * @param {Collection<Actor5e>} [worldActors] - world actors, game.actors by default
+ * @returns {Item5e|undefined} the weapon, or undefined if no actor has it
+ */
+export function findLocatedWeapon(locator, tokens = canvas.tokens.controlled, worldActors = game.actors) {
+  for (const token of tokens) {
+    if (token.actor?.id !== locator.actorID) continue
+    const weapon = token.actor.items.getName(locator.weaponName)
+    if (weapon) return weapon
+  }
+  return worldActors.get(locator.actorID)?.items.getName(locator.weaponName)
 }
