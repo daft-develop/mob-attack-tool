@@ -1,4 +1,5 @@
 import { moduleName, templatePath } from './constants.js'
+import { getTargetToken } from './integrations/multilevel-tokens.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
@@ -222,13 +223,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
   let showDamageRolls = game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls')
 
   // Determine target token
-  let targetToken = canvas.tokens.get(targetId)
-  if (targetToken?.actor === null && game.modules.get('multilevel-tokens').active) {
-    let mltFlags = targetToken.flags['multilevel-tokens']
-    if (mltFlags?.sscene) {
-      targetToken = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken)
-    }
-  }
+  let targetToken = getTargetToken(canvas.tokens.get(targetId))
 
   const FoundryDie = foundry.dice?.terms?.Die || Die
   const attackData = getAttackData(weaponData)

@@ -1,4 +1,5 @@
 import { moduleName, templatePath } from './constants.js'
+import { getTargetToken } from './integrations/multilevel-tokens.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
@@ -165,13 +166,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       game.dice3d.showForRoll(damageRoll)
     }
 
-    let targetToken = canvas.tokens.get(targetId)
-    if (targetToken?.actor === null && game.modules.get('multilevel-tokens').active) {
-      let mltFlags = targetToken.flags['multilevel-tokens']
-      if (mltFlags?.sscene) {
-        targetToken = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken)
-      }
-    }
+    let targetToken = getTargetToken(canvas.tokens.get(targetId))
 
     let workflow = await new MidiQOL.DamageOnlyWorkflow(
       weaponData.actor,

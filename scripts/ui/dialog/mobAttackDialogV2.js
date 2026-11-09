@@ -2,6 +2,7 @@ import { moduleName, templatePath } from '../../constants.js'
 import { checkTarget, getSelectedTokenIds, getTargetData, selectTokens } from '../../foundry/targets.js'
 import { sumCheckedAttacks, sumTargetAttacks } from '../../core/attack-totals.js'
 import { buildMacroName, buildQuickRollCommand } from '../../core/macro-export.js'
+import { getTargetActor, withoutTargetedClones } from '../../integrations/multilevel-tokens.js'
 import { escapeHTML, findWeaponEntries, getMobActors, getUserMobNames, prepareMonsters, prepareMobAttack, stepMobName } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
@@ -134,31 +135,11 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     // Show weapon options per selected token type
     let mobList = game.settings.get(moduleName, 'hiddenMobList')
 
-    this.mat.targetTokens = canvas.tokens.placeables.filter(t => t.isTargeted)
-    for (let i = 0; i < this.mat.targetTokens.length; i++) {
-      if (this.mat.targetTokens[i].actor === null && game.modules.get('multilevel-tokens').active) {
-        let mltFlags = this.mat.targetTokens[i].flags['multilevel-tokens']
-        if (this.mat.targetTokens.filter(t => t.id === mltFlags.stoken).length > 0) {
-          this.mat.targetTokens.splice(i, 1)
-          i--
-        }
-      }
-    }
+    this.mat.targetTokens = withoutTargetedClones(canvas.tokens.placeables.filter(t => t.isTargeted))
     this.mat.targetToken = canvas.tokens.placeables.find(t => t.isTargeted)
     this.mat.numTargets = 0
     if (this.mat.targetToken) {
-      if (this.mat.targetToken.actor === null && game.modules.get('multilevel-tokens').active) {
-        let mltFlags = this.mat.targetToken.flags['multilevel-tokens']
-        if (mltFlags?.sscene) {
-          this.mat.targetAC = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken).actor.system.attributes.ac.value
-        }
-        else {
-          this.mat.targetAC = canvas.tokens.get(mltFlags.stoken).actor.system.attributes.ac.value
-        }
-      }
-      else {
-        this.mat.targetAC = this.mat.targetToken.actor.system.attributes.ac.value
-      }
+      this.mat.targetAC = getTargetActor(this.mat.targetToken)?.system.attributes.ac.value
       this.mat.numTargets = this.mat.targetTokens.length
     }
 
