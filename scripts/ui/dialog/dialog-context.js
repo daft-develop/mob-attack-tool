@@ -291,3 +291,13 @@ export function getMobActors(mobData, getActor = id => game.actors.get(id)) {
   }
   return actors
 }
+
+/**
+ * Escape text for use inside HTML, including attribute values
+ * @param {string} text - text that may contain HTML special characters
+ * @returns {string} the escaped text
+ */
+export function escapeHTML(text) {
+  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }
+  return String(text).replace(/[&<>"']/g, character => entities[character])
+}

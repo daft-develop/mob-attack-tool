@@ -1,6 +1,6 @@
 import { moduleName, templatePath } from '../../constants.js'
 import { checkTarget, getTargetData } from '../../foundry/targets.js'
-import { getMobActors, prepareMonsters, prepareMobAttack } from './dialog-context.js'
+import { escapeHTML, getMobActors, prepareMonsters, prepareMobAttack } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
 
@@ -503,7 +503,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     else {
       const proceed = await foundry.applications.api.DialogV2.confirm({
-        content: `<p>${game.i18n.format('MAT.overwriteMobDialog', { mobName: _mobName })}</p>`,
+        content: `<p>${game.i18n.format('MAT.overwriteMobDialog', { mobName: escapeHTML(_mobName) })}</p>`,
         rejectClose: false,
         modal: true,
       })
@@ -692,7 +692,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       content: `
       <div class="form-group">
       <label>${game.i18n.localize('Macro Name')}: </label>
-      <input type="text" name="macroName" value="${macroName}">
+      <input type="text" name="macroName" value="${escapeHTML(macroName)}">
       <p class="hint">${game.i18n.localize('MAT.macroNameNote')}</p>
       </div>
       `,
@@ -711,7 +711,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     if (game.macros.filter(m => m.name === userMacroName).length > 0) {
       const overwrite = await foundry.applications.api.DialogV2.confirm({
         window: { title: game.i18n.localize('Overwrite Macro') },
-        content: `<p>${game.i18n.format('MAT.macroOverwriteDialog', { userMacroName })}</p>`,
+        content: `<p>${game.i18n.format('MAT.macroOverwriteDialog', { userMacroName: escapeHTML(userMacroName) })}</p>`,
       })
 
       if (!overwrite) return

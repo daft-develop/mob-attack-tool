@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getMobActors } from '../../scripts/ui/dialog/dialog-context.js'
+import { escapeHTML, getMobActors } from '../../scripts/ui/dialog/dialog-context.js'
 
 const goblin = { id: 'goblin' }
 const ogre = { id: 'ogre' }
@@ -25,5 +25,22 @@ describe('getMobActors', () => {
   it('looks actors up in game.actors by default', () => {
     globalThis.game.actors = { get: id => actors[id] }
     expect(getMobActors({ monsters: [{ id: 'ogre', amount: 1 }] })).toEqual([ogre])
+  })
+})
+
+describe('escapeHTML', () => {
+  it('escapes the characters that break HTML text and attribute values', () => {
+    expect(escapeHTML('<b>"Tom" & \'Jerry\'</b>')).toBe('&lt;b&gt;&quot;Tom&quot; &amp; &#39;Jerry&#39;&lt;/b&gt;')
+  })
+
+  it('keeps a quoted macro name intact inside value="..."', () => {
+    const name = 'Club "Big Stick" Mob Attack of 3 Ogres'
+    const input = document.createElement('div')
+    input.innerHTML = `<input name="macroName" value="${escapeHTML(name)}">`
+    expect(input.firstElementChild.value).toBe(name)
+  })
+
+  it('leaves plain text unchanged', () => {
+    expect(escapeHTML('Scimitar Mob Attack of 4 Goblins')).toBe('Scimitar Mob Attack of 4 Goblins')
   })
 })
