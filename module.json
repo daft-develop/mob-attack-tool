@@ -44,7 +44,7 @@
         "type": "system",
         "compatibility": {
           "minimum": "4.3.0",
-          "verified": "6.0.5",
+          "verified": "6.0.6",
           "maximum": "6.999"
         }
       }
