@@ -1,8 +1,7 @@
-import { moduleName } from '../mobAttack.js'
-import { foundryEqualOrNewerThan } from '../versions.js'
-import { getTargetData, prepareMonsters, prepareMobAttack, checkTarget } from '../utils.js'
-import { rollMobAttack } from '../mobRules.js'
-import { rollMobAttackIndividually } from '../individualRolls.js'
+import { moduleName } from '../../mobAttack.js'
+import { getTargetData, prepareMonsters, prepareMobAttack, checkTarget } from '../../utils.js'
+import { rollMobAttack } from '../../mobRules.js'
+import { rollMobAttackIndividually } from '../../individualRolls.js'
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -436,9 +435,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    const _dialogMobList = foundryEqualOrNewerThan('13.0.0')
-      ? await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list-v2.hbs', { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
-      : await renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list-v2.hbs', { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
+    const _dialogMobList = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list-v2.hbs', { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
 
     new foundry.applications.api.DialogV2({
       window: { title: 'MAT.selectMob' },

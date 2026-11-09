@@ -1,5 +1,5 @@
-import { moduleName } from '../mobAttack.js'
-import { buildSettingsData, saveFormData, matSettings } from '../settings.js'
+import { moduleName } from '../../mobAttack.js'
+import { buildSettingsData, saveFormData, matSettings } from '../../settings.js'
 
 const { expandObject } = foundry.utils
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api

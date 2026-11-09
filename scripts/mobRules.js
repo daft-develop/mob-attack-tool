@@ -1,6 +1,5 @@
 import { moduleName } from './mobAttack.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
-import { foundryEqualOrNewerThan } from './versions.js'
 
 const { getProperty } = foundry.utils
 
@@ -9,6 +8,10 @@ export async function rollMobAttack(data, mobRulesSetting) {
   if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
     await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
   }
+
+  const customTable = game.settings.get(moduleName, 'hiddenTableCheckBox')
+    ? game.settings.get(moduleName, 'tempSetting')
+    : null
 
   // Cycle through selected weapons
   let attackData = []
@@ -38,7 +41,7 @@ export async function rollMobAttack(data, mobRulesSetting) {
       }
       const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue, mobRulesSetting)
       let attackersNeeded, numHitAttacks
-      if (mobRulesSetting === 'mob2014') attackersNeeded = calcAttackersNeeded(d20Needed)
+      if (mobRulesSetting === 'mob2014') attackersNeeded = calcAttackersNeeded(d20Needed, customTable)
 
       // Check whether how many attackers can use this weapon
       let availableAttacks = value[j]?.targetNumAttacks
@@ -123,9 +126,7 @@ export async function rollMobAttack(data, mobRulesSetting) {
     let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
     messageData['totalPluralOrNot'] = totalPluralOrNot
 
-    const messageText = foundryEqualOrNewerThan('13.0.0')
-      ? await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
-      : await renderTemplate('modules/mob-attack-tool/templates/mat-msg-mob-rules.hbs', messageData)
+    const messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/messages/mat-msg-mob-rules.hbs', messageData)
 
     if (!game.settings.get(moduleName, 'noResultsMessage')) {
       await sendChatMessage(messageText)
