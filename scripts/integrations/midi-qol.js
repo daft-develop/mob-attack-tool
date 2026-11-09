@@ -1,3 +1,4 @@
+// Integration with the midi-qol module (https://foundryvtt.com/packages/midi-qol)
 const { getProperty } = foundry.utils
 
 // This is based in large part on midi-qol's callMacro method

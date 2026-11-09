@@ -14,7 +14,9 @@ export { getSpellMethod, getCasterLevel, simplifyFormula, formatAttackTargets, g
 export { checkTarget, getTargetData, isTargeted } from './foundry/targets.js'
 export { endGroupedMobTurn } from './foundry/combat.js'
 export { sendChatMessage } from './foundry/chat.js'
-export { callMidiMacro } from './foundry/macros.js'
+
+// Third-party module integrations
+export { callMidiMacro } from './integrations/midi-qol.js'
 
 // Mob attack dialog data
 export { prepareMonsters, prepareMobAttack } from './ui/dialog/dialog-context.js'
