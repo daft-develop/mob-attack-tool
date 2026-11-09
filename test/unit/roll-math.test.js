@@ -1,25 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-
-// calcAttackersNeeded reads the custom table setting via moduleName
-vi.mock('../../scripts/mobAttack.js', () => ({
-  moduleName: 'mob-attack-tool',
-}))
-
-vi.stubGlobal('game', {
-  settings: {
-    get: vi.fn((module, key) => {
-      if (key === 'hiddenTableCheckBox') return false
-      return null
-    }),
-  },
-})
-
-const {
-  calcD20Needed,
-  calcAttackersNeeded,
-  calcSuccessfulAttacks,
-  getTextFromAttackBonus,
-} = await import('../../scripts/core/roll-math.js')
+import { describe, it, expect } from 'vitest'
+import { calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, getTextFromAttackBonus } from '../../scripts/core/roll-math.js'
 
 describe('calcSuccessfulAttacks', () => {
   it('should return 1 when d20Needed is 20 (rounds 0.5 up)', () => {
@@ -194,5 +174,34 @@ describe('calcAttackersNeeded', () => {
   it('should return 0 for d20Needed below 1', () => {
     expect(calcAttackersNeeded(0)).toBe(0)
     expect(calcAttackersNeeded(-5)).toBe(0)
+  })
+})
+
+describe('calcAttackersNeeded with a custom table', () => {
+  // the tempSetting default, which mirrors the DMG 2014 table
+  const defaultTable = [1, 5, 1, 6, 12, 2, 13, 14, 3, 15, 16, 4, 17, 18, 5, 19, 19, 10, 20, 20, 20]
+
+  it('matches the DMG table when given the default custom table', () => {
+    for (let d20Needed = 1; d20Needed <= 20; d20Needed++) {
+      expect(calcAttackersNeeded(d20Needed, defaultTable)).toBe(calcAttackersNeeded(d20Needed))
+    }
+  })
+
+  it('uses the custom rows instead of the DMG table', () => {
+    const table = [1, 10, 2, 11, 20, 6]
+    expect(calcAttackersNeeded(5, table)).toBe(2)
+    expect(calcAttackersNeeded(15, table)).toBe(6)
+  })
+
+  it('parses string values saved from the settings form', () => {
+    expect(calcAttackersNeeded(8, ['1', '10', '3', '11', '20', '7'])).toBe(3)
+  })
+
+  it('uses the absolute attacker count', () => {
+    expect(calcAttackersNeeded(4, [1, 20, -4])).toBe(4)
+  })
+
+  it('returns 0 when no row covers the roll', () => {
+    expect(calcAttackersNeeded(15, [1, 10, 2])).toBe(0)
   })
 })

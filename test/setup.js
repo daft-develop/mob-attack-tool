@@ -29,11 +29,6 @@ globalThis.game = {
   version: '13.0.0',
 }
 
-// Math.clamp is a Foundry global - provide it for testing
-if (typeof Math.clamp !== 'function') {
-  Math.clamp = (value, min, max) => Math.min(max, Math.max(min, value))
-}
-
 // Mock dnd5e.dice for simplifyFormula tests
 globalThis.dnd5e = {
   dice: {

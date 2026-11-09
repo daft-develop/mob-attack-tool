@@ -1,5 +1,3 @@
-import { moduleName } from '../mobAttack.js'
-
 /**
  * Calculate the d20 roll needed to hit a target's AC
  * @param {number} attackBonus - The attacker's total attack bonus
@@ -18,19 +16,19 @@ export function calcD20Needed(attackBonus, targetAC, rollTypeValue, mobRulesSett
     if (rollTypeValue > 0) d20Needed = Math.round(Math.pow((d20Needed - 1), 2) / 20 + 1)
     if (rollTypeValue < 0) d20Needed = Math.round(-Math.pow((d20Needed - 21), 2) / 20 + 21)
   }
-  return Math.clamp(d20Needed, 1, 20)
+  return Math.min(20, Math.max(1, d20Needed))
 }
 
 /**
  * Calculate how many attackers are needed to guarantee at least one hit
- * Uses the DMG mob rules table (2014 or custom)
+ * Uses the DMG 2014 mob rules table, or a custom table when one is given
  * @param {number} d20Needed - The roll needed for a success
+ * @param {Array<string|number>|null} customTable - Flat [min, max, attackers, ...] rows, or null for the DMG table
  * @returns {number} The number of attackers needed
  */
-export function calcAttackersNeeded(d20Needed) {
+export function calcAttackersNeeded(d20Needed, customTable = null) {
   let attackersNeeded = 0
-  if (game.settings.get(moduleName, 'hiddenTableCheckBox')) {
-    let customTable = game.settings.get(moduleName, 'tempSetting')
+  if (customTable) {
     let tableArray = {}
     for (let i = 0; i < Math.floor(customTable.length / 3); i++) {
       tableArray[i] = customTable.slice(3 * i, 3 * i + 3)

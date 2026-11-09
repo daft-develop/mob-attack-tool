@@ -9,6 +9,10 @@ export async function rollMobAttack(data, mobRulesSetting) {
     await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
   }
 
+  const customTable = game.settings.get(moduleName, 'hiddenTableCheckBox')
+    ? game.settings.get(moduleName, 'tempSetting')
+    : null
+
   // Cycle through selected weapons
   let attackData = []
   let messageData = { messages: {} }
@@ -37,7 +41,7 @@ export async function rollMobAttack(data, mobRulesSetting) {
       }
       const d20Needed = calcD20Needed(finalAttackBonus, targetAC, data.rollTypeValue, mobRulesSetting)
       let attackersNeeded, numHitAttacks
-      if (mobRulesSetting === 'mob2014') attackersNeeded = calcAttackersNeeded(d20Needed)
+      if (mobRulesSetting === 'mob2014') attackersNeeded = calcAttackersNeeded(d20Needed, customTable)
 
       // Check whether how many attackers can use this weapon
       let availableAttacks = value[j]?.targetNumAttacks
