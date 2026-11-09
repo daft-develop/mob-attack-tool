@@ -1,5 +1,5 @@
 import { moduleName, templatePath } from '../../constants.js'
-import { checkTarget, getTargetData } from '../../foundry/targets.js'
+import { checkTarget, getSelectedTokenIds, getTargetData, selectTokens } from '../../foundry/targets.js'
 import { sumCheckedAttacks, sumTargetAttacks } from '../../core/attack-totals.js'
 import { escapeHTML, findWeaponEntries, getMobActors, getUserMobNames, prepareMonsters, prepareMobAttack, stepMobName } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
@@ -173,12 +173,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       // Select mob tokens
       if (!this.mat.localUpdate) {
         this.currentlySelectingTokens = true
-        canvas.tokens.releaseAll()
-        for (let tokenId of mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds) {
-          if (canvas.tokens.placeables.filter(t => t.id === tokenId).length > 0) {
-            canvas.tokens.get(tokenId).control({ releaseOthers: false })
-          }
-        }
+        selectTokens(mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds)
         this.mat.numSelected = canvas.tokens.controlled.length
         this.currentlySelectingTokens = false
       }
@@ -216,12 +211,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
         _actorList = getMobActors(mobList[Object.keys(mobList)[this.mat.mobListIndex]])
         // Select mob tokens
         this.currentlySelectingTokens = true
-        canvas.tokens.releaseAll()
-        for (let tokenId of mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds) {
-          if (canvas.tokens.placeables.filter(t => t.id === tokenId).length > 0) {
-            canvas.tokens.get(tokenId).control({ releaseOthers: false })
-          }
-        }
+        selectTokens(mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds)
         this.mat.numSelected = canvas.tokens.controlled.length
         this.currentlySelectingTokens = false
       }
@@ -613,10 +603,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     // prepare data
-    let selectedTokenIds = []
-    for (let token of canvas.tokens.controlled) {
-      selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
-    }
+    const selectedTokenIds = getSelectedTokenIds()
     let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters, this.mat.actorList)
     let mobList = game.settings.get(moduleName, 'hiddenMobList')
 
@@ -698,10 +685,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       return
     }
     if (checkTarget()) {
-      let selectedTokenIds = []
-      for (let token of canvas.tokens.controlled) {
-        selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
-      }
+      const selectedTokenIds = getSelectedTokenIds()
       let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters, this.mat.actorList)
       mobAttackData.event = event
       const mobRulesSetting = game.settings.get(moduleName, 'mobRules')

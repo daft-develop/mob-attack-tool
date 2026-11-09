@@ -123,3 +123,23 @@ export function isTargeted(token) {
     }
   }
 }
+
+/**
+ * Control exactly the given tokens on the current scene, releasing all others
+ * Tokens that are no longer on the scene are skipped
+ * @param {string[]} tokenIds - ids of the tokens to select
+ */
+export function selectTokens(tokenIds) {
+  canvas.tokens.releaseAll()
+  for (const tokenId of tokenIds) {
+    canvas.tokens.get(tokenId)?.control({ releaseOthers: false })
+  }
+}
+
+/**
+ * Describe the currently selected (controlled) tokens for a mob attack
+ * @returns {{tokenId: string, tokenUuid: string, actorId: string}[]} one entry per selected token
+ */
+export function getSelectedTokenIds() {
+  return canvas.tokens.controlled.map(token => ({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id }))
+}

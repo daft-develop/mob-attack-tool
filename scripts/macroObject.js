@@ -2,18 +2,14 @@ import { rollMobAttackIndividually } from './individualRolls.js'
 import { moduleName } from './constants.js'
 import { createAndRenderDialog as renderV2 } from './ui/dialog/mobAttackDialogV2.js'
 import { rollMobAttack } from './mobRules.js'
-import { checkTarget, getTargetData } from './foundry/targets.js'
+import { checkTarget, getSelectedTokenIds, getTargetData } from './foundry/targets.js'
 import { prepareMonsters } from './ui/dialog/dialog-context.js'
 
 export function macroObject() {
   function quickRoll(data) {
     // Collect necessary data for mob attack
     if (!checkTarget()) return
-    let selectedTokenIds = []
-    for (let token of canvas.tokens.controlled) {
-      selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
-    }
-    data['selectedTokenIds'] = selectedTokenIds;
+    data['selectedTokenIds'] = getSelectedTokenIds();
 
     (async () => {
       let targets = await getTargetData(data.monsters)
