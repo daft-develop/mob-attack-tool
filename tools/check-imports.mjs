@@ -1,9 +1,11 @@
 // Verifies that every ES module import and template path (literal or
-// templatePath(...)) in scripts/ resolves
-// to a real file. ESLint's no-undef catches missing names, but not a relative
-// path that points at a moved or deleted file, which stops Foundry loading the
-// whole module. Bare specifiers (e.g. 'foundry.utils') are rejected because a
-// browser cannot resolve them without an import map.
+// templatePath(...)) in scripts/ resolves to a real file, and that every
+// named import (import { x } from './y.js') is exported by its target.
+// ESLint's no-undef catches missing names, but not a relative path that
+// points at a moved or deleted file, or a name the target no longer exports;
+// either stops Foundry loading the whole module. Bare specifiers (e.g.
+// 'foundry.utils') are rejected because a browser cannot resolve them without
+// an import map.
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,13 +26,45 @@ const importPattern = /(?:\bimport\s[^'"]*?\bfrom\s*|\bimport\s*\(\s*|\bimport\s
 const templatePattern = new RegExp(`(['"\`])(?:/)?${modulePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^'"\`]+\\.hbs)\\1`, 'g')
 // templatePath('dialog/x.hbs') from scripts/constants.js, relative to templates/
 const templateHelperPattern = /\btemplatePath\(\s*(['"`])([^'"`]+\.hbs)\1\s*\)/g
+// import { a, b as c } from './relative.js'
+const namedImportPattern = /^import\s*\{([^}]*)\}\s*from\s*(['"])(\.[^'"]+)\2/gm
 
-const problems = []
-for (const file of walk(join(root, 'scripts'))) {
-  const source = readFileSync(file, 'utf8')
+/**
+ * Source of a file with whole-line // comments blanked out
+ * @param {string} file - path of the file
+ * @returns {string} the source
+ */
+function readSource(file) {
+  return readFileSync(file, 'utf8')
     .split('\n')
     .map(line => (line.trimStart().startsWith('//') ? '' : line))
     .join('\n')
+}
+
+/**
+ * Names a module exports, or null when it re-exports everything from another
+ * module (export *), which this check cannot follow
+ * @param {string} source - the module's source
+ * @returns {Set<string>|null} the exported names
+ */
+function exportedNames(source) {
+  if (/^export\s*\*/m.test(source)) return null
+  const names = new Set()
+  for (const [, name] of source.matchAll(/^export\s+(?:async\s+)?(?:function\*?|class|const|let|var)\s+([\w$]+)/gm)) {
+    names.add(name)
+  }
+  for (const [, list] of source.matchAll(/^export\s*\{([^}]*)\}/gm)) {
+    for (const part of list.split(',')) {
+      const name = part.trim().split(/\s+as\s+/).pop()
+      if (name) names.add(name)
+    }
+  }
+  return names
+}
+
+const problems = []
+for (const file of walk(join(root, 'scripts'))) {
+  const source = readSource(file)
   const rel = relative(root, file)
 
   for (const [, , specifier] of source.matchAll(importPattern)) {
@@ -41,6 +75,19 @@ for (const file of walk(join(root, 'scripts'))) {
     }
     else if (!specifier.startsWith('/')) {
       problems.push(`${rel}: bare import '${specifier}' cannot be resolved by the browser`)
+    }
+  }
+
+  for (const [, list, , specifier] of source.matchAll(namedImportPattern)) {
+    const target = resolve(dirname(file), specifier)
+    if (!existsSync(target)) continue // already reported above
+    const exported = exportedNames(readSource(target))
+    if (!exported) continue
+    for (const part of list.split(',')) {
+      const name = part.trim().split(/\s+as\s+/)[0]
+      if (name && !exported.has(name)) {
+        problems.push(`${rel}: imports { ${name} } from '${specifier}', which does not export it`)
+      }
     }
   }
 
@@ -59,7 +106,7 @@ for (const file of walk(join(root, 'scripts'))) {
 
 if (problems.length) {
   console.error(problems.join('\n'))
-  console.error(`\n${problems.length} unresolved path(s)`)
+  console.error(`\n${problems.length} unresolved import(s) or path(s)`)
   process.exit(1)
 }
-console.log('All imports and template paths resolve.')
+console.log('All imports, imported names and template paths resolve.')
