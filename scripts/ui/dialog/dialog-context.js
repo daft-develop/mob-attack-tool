@@ -181,21 +181,15 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
  * @param {number} targetAC - Target AC
  * @param {number} numSelected - Number of selected tokens
  * @param {object} monsters - Monster data
+ * @param {Actor5e[]} [actorList] - the dialog's actors, used when a saved mob is loaded
  * @returns {Promise<object>} Mob attack data bundle
  */
-export async function prepareMobAttack(html, selectedTokenIds, weapons, availableAttacks, targets, targetAC, numSelected, monsters) {
+export async function prepareMobAttack(html, selectedTokenIds, weapons, availableAttacks, targets, targetAC, numSelected, monsters, actorList = []) {
   let mobList = game.settings.get(moduleName, 'hiddenMobList')
   if (game.settings.get(moduleName, 'hiddenChangedMob')) {
     let mobName = game.settings.get(moduleName, 'hiddenMobName')
     let mobData = mobList[mobName]
 
-    let dialogId = game.settings.get(moduleName, 'currentDialogId')
-    let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
-    let actorList = mobDialog.actorList
-
-    monsters
-    weapons
-    availableAttacks
     numSelected = mobData?.numSelected ?? 0;
     [monsters, weapons, availableAttacks] = await prepareMonsters(actorList)
   }
