@@ -3,6 +3,7 @@ import { initSettings, migrateOldSettings } from './settings.js'
 import { createAndRenderDialog } from './ui/dialog/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
 import { registerDiceSoNiceHooks } from './integrations/dice-so-nice.js'
+import { selectTokens } from './foundry/targets.js'
 // import { initQuenchTests } from './quench.js'
 
 // Re-exported so existing imports of moduleName from this file keep working
@@ -33,40 +34,6 @@ Hooks.on('ready', async () => {
   // register global MobAttacks macro object
   // for running mat via user macros
   window.MobAttacks = macroObject()
-
-  // check if CTG's groups have changed
-  Hooks.on('ctgGroupUpdate', async (args) => {
-    let groups
-    if (Array.isArray(args)) {
-      groups = args
-    }
-    else {
-      groups = args.groups
-    }
-    if (!game.settings.get(moduleName, 'autoSaveCTGgroups')) return
-    if (groups[0]) {
-      if (groups[0].filter(c => c.initiative).length > 0) {
-        await macroObject().createSavedMobsFromCTGgroups(groups)
-        const dialogId = game.settings.get(moduleName, 'currentDialogId')
-        let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
-        if (mobDialog) mobDialog.render()
-      }
-    }
-  })
-
-  Hooks.on('deleteCombat', async () => {
-    if (!game.settings.get(moduleName, 'autoSaveCTGgroups')) return
-    if (game.modules.get('ctg')?.active) {
-      let mobList = game.settings.get(moduleName, 'hiddenMobList')
-
-      // delete existing CTG groups
-      for (let ctgMobName of Object.keys(mobList)) {
-        if (mobList[ctgMobName]?.type === 'ctg') {
-          await macroObject().deleteSavedMob(ctgMobName)
-        }
-      }
-    }
-  })
 })
 
 // update dialog windows if new tokens are selected
@@ -115,18 +82,8 @@ Hooks.on('updateCombat', async (combat, changed) => {
   const dialogId = game.settings.get(moduleName, 'currentDialogId')
   let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
 
-  // wait a moment to let CUB's Pan / Select feature do its thing
-  if (game.modules.get('combat-utility-belt')?.active) {
-    await new Promise(resolve => setTimeout(resolve, 50))
-  }
-
   if (mobDialog) mobDialog.currentlySelectingTokens = true
-  canvas.tokens.releaseAll()
-  for (let tokenId of mobList[nextMobName].selectedTokenIds) {
-    if (canvas.tokens.placeables.filter(t => t.id === tokenId).length > 0) {
-      canvas.tokens.get(tokenId).control({ releaseOthers: false })
-    }
-  }
+  selectTokens(mobList[nextMobName].selectedTokenIds)
   if (mobDialog) {
     mobDialog.numSelected = canvas.tokens.controlled.length
     mobDialog.currentlySelectingTokens = false

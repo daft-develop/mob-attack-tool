@@ -2,10 +2,8 @@ import { moduleName, templatePath } from './constants.js'
 import { getTargetToken } from './integrations/multilevel-tokens.js'
 import { isPublicRollMode, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
-import { getAttackerForHit } from './core/attackers.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
-
-const { getProperty } = foundry.utils
+import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from './integrations/midi-qol.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 export async function rollMobAttackIndividually(data) {
   await suspendDiceSoNice()
@@ -204,8 +202,7 @@ export async function rollMobAttackIndividually(data) {
 
 export async function processIndividualDamageRolls(data, weaponData, finalAttackBonus, availableAttacks, successfulAttackRolls, numHitAttacks, numCrits, isVersatile, tokenAttackList, targetId) {
   // Check for midi-qol
-  let midi_QOL_Active = false
-  if (game.modules.get('midi-qol')?.active && game.settings.get(moduleName, 'enableMidi')) midi_QOL_Active = true
+  const midi_QOL_Active = isMidiQolEnabled()
 
   // Determine crit threshold
   let critThreshold = 20
@@ -258,30 +255,9 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           // Roll Dice so Nice dice
           await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
 
-          await new MidiQOL.DamageOnlyWorkflow(
-            weaponData.actor,
-            // (targetToken) ? targetToken : undefined,
-            targetToken ?? undefined,
-            damageRoll.total,
-            damageTypeLabels[0],
-            // (targetToken) ? [targetToken] : [],
-            targetToken ? [targetToken] : [],
-            damageRoll,
-            {
-              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-              item: weaponData,
-              itemCardUuid: `new`,
-            },
-          )
+          await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
           // after issuing the workflow, wait until it signals complete, or 4 seconds has passed, whichever is first
-          let waiting = 4000
-          Hooks.once('midi-qol.RollComplete', () => {
-            waiting = 0
-          })
-          while (waiting > 0) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-            waiting -= 100
-          }
+          await waitForMidiRollComplete(4000)
         }
       }
       else {
@@ -314,66 +290,14 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         // Roll Dice so Nice dice
         await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
 
-        let workflow = await new MidiQOL.DamageOnlyWorkflow(
-          weaponData.actor,
-          // (targetToken) ? targetToken : undefined,
-          targetToken ?? undefined,
-          damageRoll.total,
-          damageTypeLabels[0],
-          // (targetToken) ? [targetToken] : [],
-          targetToken ? [targetToken] : [],
-          damageRoll,
-          {
-            flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-            item: weaponData,
-            itemCardUuid: `new`,
-          },
-        )
+        let workflow = await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
 
-        // prepare data for Midi's On Use Macro feature
-        if (game.settings.get(moduleName, 'enableMidiOnUseMacro') && getProperty(weaponData, 'flags.midi-qol.onUseMacroName')) {
-          await new Promise(resolve => setTimeout(resolve, 300))
-          const macroData = {
-            actor: weaponData.actor,
-            actorUuid: weaponData.actor.uuid,
-            tokenId: workflow.tokenId,
-            tokenUuid: workflow.tokenUuid,
-            targets: targetToken ? [targetToken] : [],
-            hitTargets: targetToken ? [targetToken] : [],
-            damageRoll: damageRoll,
-            damageRollHTML: workflow.damageRollHTML,
-            attackRoll: successfulAttackRolls[0],
-            attackTotal: successfulAttackRolls[0].total,
-            itemCardUuid: (game.settings.get(moduleName, 'dontSendItemCardUuid')) ? null : workflow.itemCardUuid,
-            isCritical: (numCrits > 0),
-            isFumble: false,
-            spellLevel: 0,
-            powerLevel: 0,
-            damageTotal: damageRoll.total,
-            damageDetail: workflow.damageDetail,
-            damageList: workflow.damageList,
-            otherDamageTotal: 0,
-            otherDamageDetail: workflow.otherDamageDetail,
-            otherDamageList: [{ damage: damageRoll.total, type: damageTypes[0] }],
-            rollOptions: { advantage: data.withAdvantage, disadvantage: data.withDisadvantage, versatile: isVersatile, fastForward: true },
-            advantage: data.withAdvantage,
-            disadvantage: data.withDisadvantage,
-            event: null,
-            uuid: workflow.uuid,
-            rollData: weaponData.actor.getRollData(),
-            tag: 'OnUse',
-            concentrationData: getProperty(weaponData.actor.flags, 'midi-qol.concentration-data'),
-            templateId: workflow.templateId,
-            templateUuid: workflow.templateUuid,
-          }
-
-          for (let i = 0; i < numHitAttacks; i++) {
-            const attacker = getAttackerForHit(tokenAttackList, i)
-            macroData.tokenId = attacker?.tokenId
-            macroData.tokenUuid = attacker?.tokenUuid
-            await callMidiMacro(weaponData, macroData)
-          }
-        }
+        await callOnUseMacroForHits(weaponData, workflow, {
+          data, targetToken, damageRoll, damageTypes, isVersatile, numHitAttacks, tokenAttackList,
+          attackRoll: successfulAttackRolls[0],
+          attackTotal: successfulAttackRolls[0].total,
+          isCritical: (numCrits > 0),
+        })
       }
       // Midi-QOL not active
     }

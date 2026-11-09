@@ -148,7 +148,5 @@
 	"SETTINGS.MAT.metaKey": "Command",
 	"SETTINGS.MAT.ctrlKey": "Ctrl",
 	"SETTINGS.MAT.noResultsMessage": "Não Enviar Resultados pro Chat",
-	"SETTINGS.MAT.noResultsMessageHint": "Habilite esta configuração para evitar que a mensagem do Resultado do Ataque do Grupo seja enviada para o chat. (Configuração específica do cliente)",
-	"SETTINGS.MAT.autoSaveCTGgroups": "Auto-Salvar Combat Tracker Group como Grupo",
-	"SETTINGS.MAT.autoSaveCTGgroupsHint": "Se esta configuração estiver habilitada, os agrupamentos de iniciativa (contêineres alternáveis) criados pelo módulo Combat Tracker Groups serão salvos automaticamente como grupos. Esses grupos salvos automaticamente também são excluídos automaticamente quando o encontro de combate termina ou é excluído."
+	"SETTINGS.MAT.noResultsMessageHint": "Habilite esta configuração para evitar que a mensagem do Resultado do Ataque do Grupo seja enviada para o chat. (Configuração específica do cliente)"
 }

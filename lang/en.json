@@ -34,6 +34,7 @@
 	"MAT.macroNotification": "was saved to the macro directory",
 	"MAT.macroOverwriteDialog": "A macro named {userMacroName} already exists. Are you sure you want to overwrite it?",
 	"MAT.macroWeaponNotFound": "Mob Attack skipped weapons the selected tokens no longer have: {weaponNames}",
+	"MAT.ctgGroupsRemoved": "MobAttacks.createSavedMobsFromCTGgroups() has been removed. Save mobs from the Mob Attack dialog or with MobAttacks.saveMob() instead.",
 	"MAT.oneAttackSingular": "attack hits",
 	"MAT.oneAttackPlural": "attacks hits",
 	"MAT.multipleAttackSingular": "attack hit",
@@ -149,7 +150,5 @@
 	"SETTINGS.MAT.metaKey": "Command",
 	"SETTINGS.MAT.ctrlKey": "Ctrl",
 	"SETTINGS.MAT.noResultsMessage": "Don't send Results chat message",
-	"SETTINGS.MAT.noResultsMessageHint": "Enable this setting to prevent the Mob Attack Results message from being sent to the chat log at all. (Client specific setting)",
-	"SETTINGS.MAT.autoSaveCTGgroups": "Autosave Combat Tracker Group as mobs",
-	"SETTINGS.MAT.autoSaveCTGgroupsHint": "If this setting is enabled, then the initiative groupings (toggable containers) that the Combat Tracker Groups module creates will be automatically saved as mobs. These automatically saved mobs are also automatically deleted when the combat encounter ends or is deleted."
+	"SETTINGS.MAT.noResultsMessageHint": "Enable this setting to prevent the Mob Attack Results message from being sent to the chat log at all. (Client specific setting)"
 }

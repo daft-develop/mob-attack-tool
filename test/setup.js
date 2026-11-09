@@ -68,4 +68,6 @@ globalThis.foundry.applications = {
 globalThis.foundry.utils = {
   ...globalThis.foundry.utils,
   expandObject: obj => obj,
+  // Read a dotted property path, like Foundry's foundry.utils.getProperty
+  getProperty: (object, path) => path.split('.').reduce((value, key) => value?.[key], object),
 }
