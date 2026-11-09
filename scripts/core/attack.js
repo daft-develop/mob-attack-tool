@@ -1,13 +1,14 @@
 import { systemEqualOrNewerThan } from '../versions.js'
 
 /**
- * Return the first attack activity from an item
- * This is taken from the dnd5e system code
+ * Return the attack activity a mob attack uses: the first attack activity
+ * that deals damage, or the first attack activity if none of them do
  * @param {Item5e} actorItem - item containing an attack activity
- * @returns {AttackActivity|undefined} the first activity on an item with the type attack, or undefined if no match
+ * @returns {AttackActivity|undefined} the chosen attack activity, or undefined if the item has none
  */
 export function getActivityFromItem(actorItem) {
-  return actorItem.system.activities?.getByType('attack')[0]
+  const attacks = actorItem.system.activities?.getByType('attack') ?? []
+  return attacks.find(a => a.damage?.parts?.length) ?? attacks[0]
 }
 
 /**
@@ -31,8 +32,8 @@ export function getSpellMethod(spell) {
  * @returns {boolean} true if the item can be used as a mob attack
  */
 export function isMobAttackItem(item) {
-  const hasDamagingAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) ?? false
-  if (!hasDamagingAttack) return false
+  // use the same activity lookup as getAttackData so the dialog shows the activity that was checked
+  if (!getActivityFromItem(item)?.damage?.parts?.length) return false
   if (item.type !== 'spell') return true
   return item.system.level === 0 || getSpellMethod(item) === 'atwill'
 }
@@ -90,11 +91,9 @@ export function getAttackData(item) {
  * @returns {number} a positive or negative integer representing the total attack bonus
  */
 export function getAttackBonus(actorItem) {
-  // we assume a single activity of type 'attack' exists on the weapon
   const attackData = getActivityFromItem(actorItem)
   // return the labels.modifier if it exists, otherwise modifier is 0
-  let modifierString = attackData?.labels?.modifier ?? 0
   // remove spaces between leading - and number to prevent NaN results
-  modifierString = modifierString.replaceAll(' ', '')
+  const modifierString = String(attackData?.labels?.modifier ?? 0).replaceAll(' ', '')
   return parseInt(modifierString)
 }
