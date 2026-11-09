@@ -301,3 +301,23 @@ export function escapeHTML(text) {
   const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }
   return String(text).replace(/[&<>"']/g, character => entities[character])
 }
+
+/**
+ * Find the weapon entries in the dialog's monster data that a form field refers to
+ * Form field names use the weapon key with its first space replaced by '-'.
+ * Returns the first match in each monster, since the same item id can appear
+ * on more than one actor
+ * @param {object} monsters - monster data from prepareMonsters, keyed by actor id
+ * @param {string} weaponId - weapon key as used in the form field name
+ * @returns {object[]} the matching weapon entries, to read or update in place
+ */
+export function findWeaponEntries(monsters, weaponId) {
+  const entries = []
+  for (const monster of Object.values(monsters)) {
+    const weaponKey = Object.keys(monster.weapons).find(key => key.replace(' ', '-') === weaponId)
+    if (weaponKey !== undefined) {
+      entries.push(monster.weapons[weaponKey])
+    }
+  }
+  return entries
+}

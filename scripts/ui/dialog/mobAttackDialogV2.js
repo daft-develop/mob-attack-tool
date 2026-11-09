@@ -1,6 +1,6 @@
 import { moduleName, templatePath } from '../../constants.js'
 import { checkTarget, getTargetData } from '../../foundry/targets.js'
-import { escapeHTML, getMobActors, prepareMonsters, prepareMobAttack } from './dialog-context.js'
+import { escapeHTML, findWeaponEntries, getMobActors, prepareMonsters, prepareMobAttack } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
 
@@ -577,13 +577,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     let _updatedNumAttack = _numAttack + 1
     let _weaponId = target.parentElement.previousElementSibling.getAttribute('name').slice(10)
-    for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-      for (let weaponKey of Object.keys(monsterData.weapons)) {
-        if (weaponKey.replace(' ', '-') === _weaponId) {
-          this.mat.monsters[monsterKey].weapons[weaponKey].numAttack = _updatedNumAttack
-          break
-        }
-      }
+    for (const weapon of findWeaponEntries(this.mat.monsters, _weaponId)) {
+      weapon.numAttack = _updatedNumAttack
     }
     this.mat.localUpdate = true
     this.render()
@@ -596,13 +591,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     let _updatedNumAttack = (_numAttack - 1 > 1) ? _numAttack - 1 : 1
     let _weaponId = target.parentElement.previousElementSibling.getAttribute('name').slice(10)
-    for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-      for (let weaponKey of Object.keys(monsterData.weapons)) {
-        if (weaponKey.replace(' ', '-') === _weaponId) {
-          this.mat.monsters[monsterKey].weapons[weaponKey].numAttack = _updatedNumAttack
-          break
-        }
-      }
+    for (const weapon of findWeaponEntries(this.mat.monsters, _weaponId)) {
+      weapon.numAttack = _updatedNumAttack
     }
     this.mat.localUpdate = true
     this.render()
@@ -787,15 +777,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
 
         let weaponId = e.currentTarget.getAttribute('name').slice(10)
         let updatedNumAttack = this.element.querySelector(`input[name="numAttacks${weaponId}"]`)?.value
-        for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-          for (let weaponKey of Object.keys(monsterData.weapons)) {
-            if (weaponKey.replace(' ', '-') === weaponId) {
-              if (this.mat.monsters[monsterKey].weapons[weaponKey].numAttack !== updatedNumAttack) {
-                this.mat.monsters[monsterKey].weapons[weaponKey].numAttack = updatedNumAttack
-              }
-              break
-            }
-          }
+        for (const weapon of findWeaponEntries(this.mat.monsters, weaponId)) {
+          weapon.numAttack = updatedNumAttack
         }
         this.mat.localUpdate = true
         this.render()
@@ -880,18 +863,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
         e.stopImmediatePropagation()
 
         let weaponId = e.currentTarget.getAttribute('name').slice(3)
-        for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-          for (let weaponKey of Object.keys(monsterData.weapons)) {
-            if (weaponKey.replace(' ', '-') === weaponId) {
-              if (this.mat.monsters[monsterKey].weapons[weaponKey].useButtonValue === `checked`) {
-                this.mat.monsters[monsterKey].weapons[weaponKey].useButtonValue = ``
-              }
-              else {
-                this.mat.monsters[monsterKey].weapons[weaponKey].useButtonValue = `checked`
-              }
-              break
-            }
-          }
+        for (const weapon of findWeaponEntries(this.mat.monsters, weaponId)) {
+          weapon.useButtonValue = (weapon.useButtonValue === `checked`) ? `` : `checked`
         }
         this.mat.localUpdate = true
         this.render()

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { escapeHTML, getMobActors } from '../../scripts/ui/dialog/dialog-context.js'
+import { escapeHTML, findWeaponEntries, getMobActors } from '../../scripts/ui/dialog/dialog-context.js'
 
 const goblin = { id: 'goblin' }
 const ogre = { id: 'ogre' }
@@ -42,5 +42,38 @@ describe('escapeHTML', () => {
 
   it('leaves plain text unchanged', () => {
     expect(escapeHTML('Scimitar Mob Attack of 4 Goblins')).toBe('Scimitar Mob Attack of 4 Goblins')
+  })
+})
+
+describe('findWeaponEntries', () => {
+  const monsters = () => ({
+    goblin: { weapons: { 'abc123': { numAttack: 1 }, 'abc123 (Versatile)': { numAttack: 1 } } },
+    hobgoblin: { weapons: { abc123: { numAttack: 2 }, xyz789: { numAttack: 1 } } },
+  })
+
+  it('finds a weapon by its form field id', () => {
+    const data = monsters()
+    expect(findWeaponEntries(data, 'xyz789')).toEqual([data.hobgoblin.weapons.xyz789])
+  })
+
+  it('matches the versatile entry by its dashed form field id', () => {
+    const data = monsters()
+    expect(findWeaponEntries(data, 'abc123-(Versatile)')).toEqual([data.goblin.weapons['abc123 (Versatile)']])
+  })
+
+  it('returns the first match in every monster that has the item id', () => {
+    const data = monsters()
+    expect(findWeaponEntries(data, 'abc123')).toEqual([data.goblin.weapons.abc123, data.hobgoblin.weapons.abc123])
+  })
+
+  it('returns the entries themselves, so updates apply to the dialog data', () => {
+    const data = monsters()
+    for (const weapon of findWeaponEntries(data, 'abc123')) weapon.numAttack = 5
+    expect(data.goblin.weapons.abc123.numAttack).toBe(5)
+    expect(data.hobgoblin.weapons.abc123.numAttack).toBe(5)
+  })
+
+  it('returns nothing for an unknown id', () => {
+    expect(findWeaponEntries(monsters(), 'nope')).toEqual([])
   })
 })
