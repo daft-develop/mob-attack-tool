@@ -1,28 +1,25 @@
 import { describe, it, expect, vi } from 'vitest'
 
-// Mock modules that depend on Foundry globals
-vi.mock('../../scripts/ui/RollSettingsMenu.js', () => ({
-  RollSettingsMenu: class RollSettingsMenu {},
+// calcAttackersNeeded reads the custom table setting via moduleName
+vi.mock('../../scripts/mobAttack.js', () => ({
+  moduleName: 'mob-attack-tool',
 }))
 
-vi.mock('../../scripts/ui/RollSettingsMenuV2.js', () => ({
-  RollSettingsMenuV2: class RollSettingsMenuV2 {},
-}))
+vi.stubGlobal('game', {
+  settings: {
+    get: vi.fn((module, key) => {
+      if (key === 'hiddenTableCheckBox') return false
+      return null
+    }),
+  },
+})
 
-vi.mock('../../scripts/ui/mobAttackDialog.js', () => ({
-  MobAttackDialog: class MobAttackDialog {},
-}))
-
-vi.mock('../../scripts/ui/mobAttackDialogV2.js', () => ({
-  MobAttackDialogV2: class MobAttackDialogV2 {},
-}))
-
-vi.mock('../../scripts/mobAttack.js', () => ({}))
-
-vi.mock('../../scripts/macroObject.js', () => ({}))
-
-// Import after mocking
-const { calcSuccessfulAttacks, getTextFromAttackBonus } = await import('../../scripts/utils.js')
+const {
+  calcD20Needed,
+  calcAttackersNeeded,
+  calcSuccessfulAttacks,
+  getTextFromAttackBonus,
+} = await import('../../scripts/core/roll-math.js')
 
 describe('calcSuccessfulAttacks', () => {
   it('should return 1 when d20Needed is 20 (rounds 0.5 up)', () => {
@@ -100,5 +97,102 @@ describe('getTextFromAttackBonus', () => {
 
   it('should handle large negative numbers', () => {
     expect(getTextFromAttackBonus(-10)).toBe('-10')
+  })
+})
+
+describe('calcD20Needed', () => {
+  it('should return (targetAC - attackBonus) for normal roll', () => {
+    // AC 15, bonus 5 → need 10
+    expect(calcD20Needed(5, 15, 0, 'mob2014')).toBe(10)
+  })
+
+  it('should return 1 when attackBonus exceeds AC', () => {
+    // AC 10, bonus 15 → need -5, clamped to 1
+    expect(calcD20Needed(15, 10, 0, 'mob2014')).toBe(1)
+  })
+
+  it('should return 20 when attackBonus is far below AC', () => {
+    // AC 20, bonus -5 → need 25, clamped to 20
+    expect(calcD20Needed(-5, 20, 0, 'mob2014')).toBe(20)
+  })
+
+  it('should subtract rollTypeValue for mob2014 advantage', () => {
+    // AC 15, bonus 5, adv 2 → need 8
+    expect(calcD20Needed(5, 15, 2, 'mob2014')).toBe(8)
+  })
+
+  it('should add rollTypeValue for mob2014 disadvantage', () => {
+    // AC 15, bonus 5, dis 2 → need 12
+    expect(calcD20Needed(5, 15, -2, 'mob2014')).toBe(12)
+  })
+
+  it('should clamp to 1 for negative result', () => {
+    // AC 10, bonus 20, adv 10 → need -10, clamped to 1
+    expect(calcD20Needed(20, 10, 10, 'mob2014')).toBe(1)
+  })
+
+  it('should clamp to 20 for result > 20', () => {
+    // AC 20, bonus -10, dis 5 → need 35, clamped to 20
+    expect(calcD20Needed(-10, 20, -5, 'mob2014')).toBe(20)
+  })
+
+  it('should return exact value when no adjustment needed', () => {
+    // AC 11, bonus 0 → need 11
+    expect(calcD20Needed(0, 11, 0, 'mob2014')).toBe(11)
+  })
+
+  it('should apply mob2024 advantage formula', () => {
+    // AC 15, bonus 5 → d20Needed = 10
+    // With adv 2: round(pow(9,2)/20 + 1) = round(81/20 + 1) = round(5.05) = 5
+    expect(calcD20Needed(5, 15, 2, 'mob2024')).toBe(5)
+  })
+
+  it('should apply mob2024 disadvantage formula', () => {
+    // AC 15, bonus 5 → d20Needed = 10
+    // With dis 2: round(-pow(10-21,2)/20 + 21) = round(-121/20 + 21) = round(14.95) = 15
+    expect(calcD20Needed(5, 15, -2, 'mob2024')).toBe(15)
+  })
+})
+
+describe('calcAttackersNeeded', () => {
+  it('should return 1 for d20Needed 1-5', () => {
+    expect(calcAttackersNeeded(1)).toBe(1)
+    expect(calcAttackersNeeded(3)).toBe(1)
+    expect(calcAttackersNeeded(5)).toBe(1)
+  })
+
+  it('should return 2 for d20Needed 6-12', () => {
+    expect(calcAttackersNeeded(6)).toBe(2)
+    expect(calcAttackersNeeded(9)).toBe(2)
+    expect(calcAttackersNeeded(12)).toBe(2)
+  })
+
+  it('should return 3 for d20Needed 13-14', () => {
+    expect(calcAttackersNeeded(13)).toBe(3)
+    expect(calcAttackersNeeded(14)).toBe(3)
+  })
+
+  it('should return 4 for d20Needed 15-16', () => {
+    expect(calcAttackersNeeded(15)).toBe(4)
+    expect(calcAttackersNeeded(16)).toBe(4)
+  })
+
+  it('should return 5 for d20Needed 17-18', () => {
+    expect(calcAttackersNeeded(17)).toBe(5)
+    expect(calcAttackersNeeded(18)).toBe(5)
+  })
+
+  it('should return 10 for d20Needed 19', () => {
+    expect(calcAttackersNeeded(19)).toBe(10)
+  })
+
+  it('should return 20 for d20Needed >= 20', () => {
+    expect(calcAttackersNeeded(20)).toBe(20)
+    expect(calcAttackersNeeded(25)).toBe(20)
+  })
+
+  it('should return 0 for d20Needed below 1', () => {
+    expect(calcAttackersNeeded(0)).toBe(0)
+    expect(calcAttackersNeeded(-5)).toBe(0)
   })
 })
