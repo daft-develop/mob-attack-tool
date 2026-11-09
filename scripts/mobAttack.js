@@ -1,17 +1,19 @@
+import { moduleName, templatePath } from './constants.js'
 import { initSettings, migrateOldSettings } from './settings.js'
 import { createAndRenderDialog } from './ui/dialog/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
 // import { initQuenchTests } from './quench.js'
 
-export const moduleName = 'mob-attack-tool'
+// Re-exported so existing imports of moduleName from this file keep working
+export { moduleName }
 
 Hooks.once('init', async () => {
   console.log('Mob Attack Tool | Adding Mob Attack Tool.')
 
   await foundry.applications.handlebars.loadTemplates({
-    'mat.setting': 'modules/mob-attack-tool/templates/partials/mat-settings-partial.hbs',
-    'mat.formatMonster': 'modules/mob-attack-tool/templates/partials/mat-format-monster-partial.hbs',
-    'mat.formatWeapon': 'modules/mob-attack-tool/templates/partials/mat-format-weapon-partial.hbs',
+    'mat.setting': templatePath('partials/mat-settings-partial.hbs'),
+    'mat.formatMonster': templatePath('partials/mat-format-monster-partial.hbs'),
+    'mat.formatWeapon': templatePath('partials/mat-format-weapon-partial.hbs'),
   })
 
   initSettings()
@@ -97,7 +99,7 @@ Hooks.on('updateCombat', async (combat, changed) => {
   if (thisCombat.combatants.length === 0) return
   if (!game.user.isGM && game.combat.combatant.players.filter(p => p.id === game.user.id).length === 0) return
 
-  const mobList = game.settings.get('mob-attack-tool', 'hiddenMobList')
+  const mobList = game.settings.get(moduleName, 'hiddenMobList')
   const nextTurn = combat.turns[changed.turn]
   const nextTokenId = nextTurn.tokenId
   let nextMobName = ''

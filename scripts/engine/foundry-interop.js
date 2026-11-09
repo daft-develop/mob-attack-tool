@@ -1,4 +1,4 @@
-import { moduleName } from '../mobAttack.js'
+import { moduleName } from '../constants.js'
 import { systemEqualOrNewerThan } from '../versions.js'
 
 const { getProperty, duplicate } = foundry.utils

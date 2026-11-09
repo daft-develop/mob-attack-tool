@@ -1,4 +1,4 @@
-import { moduleName } from '../mobAttack.js'
+import { moduleName } from '../constants.js'
 import { foundryEqualOrNewerThan } from '../versions.js'
 import { getAttackData, getAttackBonus, isMobAttackItem } from '../core/attack.js'
 import { getScalingFactor, simplifyFormula } from '../core/damage.js'
@@ -183,8 +183,8 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
  * @returns {Promise<object>} Mob attack data bundle
  */
 export async function prepareMobAttack(html, selectedTokenIds, weapons, availableAttacks, targets, targetAC, numSelected, monsters) {
-  let mobList = game.settings.get('mob-attack-tool', 'hiddenMobList')
-  if (game.settings.get('mob-attack-tool', 'hiddenChangedMob')) {
+  let mobList = game.settings.get(moduleName, 'hiddenMobList')
+  if (game.settings.get(moduleName, 'hiddenChangedMob')) {
     let mobName = game.settings.get(moduleName, 'hiddenMobName')
     let mobData = mobList[mobName]
 
@@ -283,7 +283,7 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
  */
 export async function endGroupedMobTurn(data) {
   if (game.combat != null) {
-    const mobList = game.settings.get('mob-attack-tool', 'hiddenMobList')
+    const mobList = game.settings.get(moduleName, 'hiddenMobList')
     const combatants = game.combat.turns
     let mobCreatures = {}
     let otherCreatures = []

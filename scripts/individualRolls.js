@@ -1,4 +1,4 @@
-import { moduleName } from './mobAttack.js'
+import { moduleName, templatePath } from './constants.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
@@ -186,7 +186,7 @@ export async function rollMobAttackIndividually(data) {
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
   let messageText
-  messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/messages/mat-msg-individual-rolls.hbs', messageData)
+  messageText = await foundry.applications.handlebars.renderTemplate(templatePath('messages/mat-msg-individual-rolls.hbs'), messageData)
 
   if (!game.settings.get(moduleName, 'noResultsMessage')) {
     await sendChatMessage(messageText)

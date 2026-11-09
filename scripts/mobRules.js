@@ -1,4 +1,4 @@
-import { moduleName } from './mobAttack.js'
+import { moduleName, templatePath } from './constants.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
@@ -126,7 +126,7 @@ export async function rollMobAttack(data, mobRulesSetting) {
     let totalPluralOrNot = ` ${game.i18n.localize((messageData.totalHitAttacks === 1) ? 'MAT.numTotalHitsSingular' : 'MAT.numTotalHitsPlural')}`
     messageData['totalPluralOrNot'] = totalPluralOrNot
 
-    const messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/messages/mat-msg-mob-rules.hbs', messageData)
+    const messageText = await foundry.applications.handlebars.renderTemplate(templatePath('messages/mat-msg-mob-rules.hbs'), messageData)
 
     if (!game.settings.get(moduleName, 'noResultsMessage')) {
       await sendChatMessage(messageText)

@@ -1,4 +1,4 @@
-import { moduleName } from '../../mobAttack.js'
+import { moduleName, templatePath } from '../../constants.js'
 import { buildSettingsData, saveFormData, matSettings } from '../../settings.js'
 
 const { expandObject } = foundry.utils
@@ -9,7 +9,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 // ---------------------------------------------------------------------------
 export class RollSettingsMenuV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
-    id: 'mob-attack-tool-roll-settings',
+    id: `${moduleName}-roll-settings`,
     classes: ['standard-form'],
     tag: 'form',
     window: {
@@ -73,23 +73,23 @@ export class RollSettingsMenuV2 extends HandlebarsApplicationMixin(ApplicationV2
       template: 'templates/generic/tab-navigation.hbs',
     },
     roll: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-roll.hbs',
+      template: templatePath('settings/mat-roll-settings-menu-roll.hbs'),
       scrollable: ['scrollable'],
     },
     multiattack: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-multiattack.hbs',
+      template: templatePath('settings/mat-roll-settings-menu-multiattack.hbs'),
       scrollable: ['scrollable'],
     },
     targets: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-target.hbs',
+      template: templatePath('settings/mat-roll-settings-menu-target.hbs'),
       scrollable: ['scrollable'],
     },
     module: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-module.hbs',
+      template: templatePath('settings/mat-roll-settings-menu-module.hbs'),
       scrollable: ['scrollable'],
     },
     mobTable: {
-      template: 'modules/mob-attack-tool/templates/settings/mat-roll-settings-menu-mobtable.hbs',
+      template: templatePath('settings/mat-roll-settings-menu-mobtable.hbs'),
       scrollable: ['scrollable'],
     },
     footer: {
