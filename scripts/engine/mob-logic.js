@@ -1,7 +1,8 @@
 import { moduleName } from '../constants.js'
 import { foundryEqualOrNewerThan } from '../versions.js'
 import { getAttackData, getAttackBonus, isMobAttackItem } from '../core/attack.js'
-import { getScalingFactor, simplifyFormula } from '../core/damage.js'
+import { getScalingFactor } from '../core/damage.js'
+import { simplifyFormula } from '../system/dnd5e.js'
 import { getTextFromAttackBonus } from '../core/roll-math.js'
 import { getMultiattackFromActor } from '../multiattack.js'
 

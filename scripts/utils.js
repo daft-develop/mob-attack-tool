@@ -4,11 +4,14 @@
 
 // Core pure logic
 export { calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, getTextFromAttackBonus } from './core/roll-math.js'
-export { getScalingFactor, simplifyFormula } from './core/damage.js'
-export { getActivityFromItem, getAttackData, getAttackBonus } from './core/attack.js'
+export { getScalingFactor } from './core/damage.js'
+export { getActivityFromItem, getAttackData, getAttackBonus, isMobAttackItem } from './core/attack.js'
+
+// dnd5e version differences and system APIs
+export { getSpellMethod, getCasterLevel, simplifyFormula, formatAttackTargets, getDamageOptions } from './system/dnd5e.js'
 
 // Engine interop (Foundry-side effects)
-export { getDamageOptions, callMidiMacro, checkTarget, formatAttackTargets, getTargetData } from './engine/foundry-interop.js'
+export { callMidiMacro, checkTarget, getTargetData } from './engine/foundry-interop.js'
 export { prepareMonsters, prepareMobAttack, endGroupedMobTurn, getDamageFormulaAndType, isTargeted, sendChatMessage } from './engine/mob-logic.js'
 
 // Legacy version check - kept for quench tests

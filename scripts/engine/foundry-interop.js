@@ -1,22 +1,6 @@
 import { moduleName } from '../constants.js'
-import { systemEqualOrNewerThan } from '../versions.js'
 
 const { getProperty, duplicate } = foundry.utils
-
-/**
- * Get damage options for rolling damage
- * @param {boolean} allowCritical - Whether to allow critical hits
- * @param {string|null} targetId - Optional token ID to set as target
- * @returns {object} Damage roll options
- */
-export function getDamageOptions(allowCritical = true, targetId = null) {
-  let formattedTarget = formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId)?.actor.uuid)
-  return {
-    damage: { isCritical: allowCritical },
-    dialog: { configure: false },
-    message: { 'data.flags.dnd5e.targets': formattedTarget },
-  }
-}
 
 // This is based in large part on midi-qol's callMacro method
 export async function callMidiMacro(item, midiMacroData) {
@@ -87,13 +71,6 @@ export function checkTarget() {
     return false
   }
   return true
-}
-
-export function formatAttackTargets() {
-  if (systemEqualOrNewerThan('6.0.0')) {
-    return dnd5e.dataModels.chatMessage.fields.TargetsField.getDescriptors()
-  }
-  return dnd5e.utils.getTargetDescriptors()
 }
 
 export async function getTargetData(monsters) {

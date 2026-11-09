@@ -1,4 +1,4 @@
-import { systemEqualOrNewerThan } from '../versions.js'
+import { getSpellMethod } from '../system/dnd5e.js'
 
 /**
  * Return the attack activity a mob attack uses: the first attack activity
@@ -9,20 +9,6 @@ import { systemEqualOrNewerThan } from '../versions.js'
 export function getActivityFromItem(actorItem) {
   const attacks = actorItem.system.activities?.getByType('attack') ?? []
   return attacks.find(a => a.damage?.parts?.length) ?? attacks[0]
-}
-
-/**
- * Return the spellcasting method of a spell, e.g. 'atwill' or 'innate'
- * dnd5e 5.1 replaced system.preparation.mode with system.method and removed
- * the deprecated preparation getter in 6.0
- * @param {Item5e} spell - a spell item
- * @returns {string|undefined} the spellcasting method
- */
-export function getSpellMethod(spell) {
-  if (systemEqualOrNewerThan('5.1.0')) {
-    return spell.system.method
-  }
-  return spell.system.preparation?.mode
 }
 
 /**
@@ -61,7 +47,7 @@ export function getAttackData(item) {
     attackData.damage = {
       parts: attackData.damage.parts.map(p => [
         p.formula + (p.base && !/@mod\b/.test(p.formula) ? ' + @mod' : ''),
-        p.types.first() ?? '',
+        [...p.types][0] ?? '',
       ]),
     }
     if (item.system.properties.has('ver')) {
