@@ -1,8 +1,8 @@
-import { moduleName } from '../mobAttack.js'
-import { foundryEqualOrNewerThan } from '../versions.js'
-import { getTargetData, prepareMonsters, prepareMobAttack, checkTarget } from '../utils.js'
-import { rollMobAttack } from '../mobRules.js'
-import { rollMobAttackIndividually } from '../individualRolls.js'
+import { moduleName } from '../../mobAttack.js'
+import { foundryEqualOrNewerThan } from '../../versions.js'
+import { getTargetData, prepareMonsters, prepareMobAttack, checkTarget } from '../../utils.js'
+import { rollMobAttack } from '../../mobRules.js'
+import { rollMobAttackIndividually } from '../../individualRolls.js'
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 

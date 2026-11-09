@@ -1,5 +1,5 @@
 import { initSettings, migrateOldSettings } from './settings.js'
-import { createAndRenderDialog as renderV2 } from './ui/mobAttackDialogV2.js'
+import { createAndRenderDialog as renderV2 } from './ui/dialog/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
 import { foundryEqualOrNewerThan } from './versions.js'
 // import { initQuenchTests } from './quench.js'

@@ -1,5 +1,5 @@
 import { moduleName } from './mobAttack.js'
-import { RollSettingsMenuV2 } from './ui/RollSettingsMenuV2.js'
+import { RollSettingsMenuV2 } from './ui/settings/RollSettingsMenuV2.js'
 
 export const matSettings = {
   playerAccess: {
