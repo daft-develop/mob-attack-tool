@@ -1,6 +1,7 @@
 import { moduleName, templatePath } from '../../constants.js'
 import { checkTarget, getSelectedTokenIds, getTargetData, selectTokens } from '../../foundry/targets.js'
 import { sumCheckedAttacks, sumTargetAttacks } from '../../core/attack-totals.js'
+import { buildMacroName, buildQuickRollCommand } from '../../core/macro-export.js'
 import { escapeHTML, findWeaponEntries, getMobActors, getUserMobNames, prepareMonsters, prepareMobAttack, stepMobName } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
@@ -610,13 +611,10 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     // Create macro
     let key = Object.keys(mobAttackData.attacks)[0]
     if (key.endsWith(`(${game.i18n.localize('Versatile')})`)) key = key.slice(0, key.indexOf(` (${game.i18n.localize('Versatile')})`))
-    let macroName
-    if (canvas.tokens.controlled.length > 0 || Object.keys(mobList).length === 0) {
-      macroName = `${mobAttackData.weapons[key].name} ${game.i18n.localize('MAT.macroNamePrefix')} ${canvas.tokens.controlled.length} ${canvas.tokens.controlled[0].name}${game.i18n.localize('MAT.macroNamePostfix')}`
-    }
-    else {
-      macroName = `${mobAttackData.weapons[key].name} ${game.i18n.localize('MAT.macroNamePrefix')} ${mobList[Object.keys(mobList)[0]].numSelected} ${Object.keys(mobList)[0]}${game.i18n.localize('MAT.macroNamePostfix')}`
-    }
+    const macroNameWords = { prefix: game.i18n.localize('MAT.macroNamePrefix'), postfix: game.i18n.localize('MAT.macroNamePostfix') }
+    const macroName = (canvas.tokens.controlled.length > 0 || Object.keys(mobList).length === 0)
+      ? buildMacroName(mobAttackData.weapons[key].name, canvas.tokens.controlled.length, canvas.tokens.controlled[0].name, macroNameWords)
+      : buildMacroName(mobAttackData.weapons[key].name, mobList[Object.keys(mobList)[0]].numSelected, Object.keys(mobList)[0], macroNameWords)
 
     const input = await foundry.applications.api.DialogV2.input({
       window: { title: game.i18n.localize('Macro Name') },
@@ -652,19 +650,10 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       mobAttackData.numSelected = mobList[Object.keys(mobList)[0]].numSelected
     }
 
-    // if macro not exported explicitly with advantage/disadvantage,
-    // make the macro respond to alt (option on MacOS) and ctrl (Command on MacOS) for advantage/disadvantage.
-    let advKeyEvent = mobAttackData.withAdvantage
-    let disadvKeyEvent = mobAttackData.withDisadvantage
-    if (!mobAttackData.withAdvantage && !mobAttackData.withDisadvantage) {
-      advKeyEvent = `event.altKey`
-      disadvKeyEvent = (game.settings.get(moduleName, 'disadvantageKeyBinding') === 0 ? `event.metaKey` : `event.ctrlKey`)
-    }
-
     let macroData = {
       type: 'script',
       name: userMacroName,
-      command: `MobAttacks.quickRoll({numSelected: ${mobAttackData.numSelected}, weaponLocators: ${JSON.stringify(mobAttackData.weaponLocators)}, attacks: ${JSON.stringify(mobAttackData.attacks)}, withAdvantage: ${advKeyEvent}, withDisadvantage: ${disadvKeyEvent}, rollTypeValue: ${mobAttackData.rollTypeValue}, rollTypeMessage: "${mobAttackData.rollTypeMessage}", endMobTurn: ${mobAttackData.endMobTurn}, monsters: ${JSON.stringify(mobAttackData.monsters)}})`,
+      command: buildQuickRollCommand(mobAttackData, game.settings.get(moduleName, 'disadvantageKeyBinding')),
       img: mobAttackData.weapons[key].img,
     }
 
