@@ -1,6 +1,8 @@
 import { moduleName, templatePath } from './constants.js'
 import { getTargetToken } from './integrations/multilevel-tokens.js'
 import { isPublicRollMode, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from './integrations/dice-so-nice.js'
+import { playAttackAnimations } from './integrations/automated-animations.js'
+import { getAttackerForHit } from './core/attackers.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
@@ -365,16 +367,10 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
             templateUuid: workflow.templateUuid,
           }
 
-          let j = 0
           for (let i = 0; i < numHitAttacks; i++) {
-            if (j < tokenAttackList.length) {
-              j = i
-            }
-            else {
-              j = tokenAttackList.length - 1
-            }
-            macroData.tokenId = tokenAttackList[j].tokenId
-            macroData.tokenUuid = tokenAttackList[j].tokenUuid
+            const attacker = getAttackerForHit(tokenAttackList, i)
+            macroData.tokenId = attacker?.tokenId
+            macroData.tokenUuid = attacker?.tokenUuid
             await callMidiMacro(weaponData, macroData)
           }
         }
@@ -434,29 +430,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         }
       }
     }
-    // trigger AutoAnimations
-    if (game.settings.get(moduleName, 'enableAutoAnimations')) {
-      let j = 0
-      if (game.modules.get('autoanimations')?.active) {
-        for (let i = 0; i < numHitAttacks; i++) {
-          if (j < tokenAttackList.length) {
-            j = i
-          }
-          else {
-            j = tokenAttackList.length - 1
-          }
-          if (tokenAttackList.length > 0) {
-            const target = canvas.tokens.get(targetId)
-            let options = {}
-            if (typeof target !== 'undefined') {
-              // don't try to pass target data if a target hasn't been selected
-              options = { targets: [target] }
-            }
-            AutomatedAnimations.playAnimation(canvas.tokens.get(tokenAttackList[j].tokenId), weaponData, options)
-          }
-        }
-      }
-    }
+    playAttackAnimations(weaponData, tokenAttackList, numHitAttacks, targetId)
   }
 
   await restoreDiceSoNice()
