@@ -1,6 +1,6 @@
 import { moduleName, templatePath } from '../../constants.js'
 import { checkTarget, getTargetData } from '../../foundry/targets.js'
-import { prepareMonsters, prepareMobAttack } from './dialog-context.js'
+import { getMobActors, prepareMonsters, prepareMobAttack } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
 
@@ -168,12 +168,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     let _mobName
     if (game.settings.get(moduleName, 'hiddenChangedMob')) {
       _mobName = Object.keys(mobList)[this.mat.mobListIndex]
-      let _mobData = mobList[_mobName]
-      for (let monster of _mobData.monsters) {
-        for (let i = 0; i < monster.amount; i++) {
-          _actorList.push(game.actors.get(monster.id))
-        }
-      }
+      _actorList = getMobActors(mobList[_mobName])
       // Select mob tokens
       if (!this.mat.localUpdate) {
         this.currentlySelectingTokens = true
@@ -217,12 +212,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       }
       else {
-        for (let monster of mobList[Object.keys(mobList)[this.mat.mobListIndex]].monsters) {
-          for (let i = 0; i < monster.amount; i++) {
-            if (game.actors.get(monster.id))
-              _actorList.push(game.actors.get(monster.id))
-          }
-        }
+        _actorList = getMobActors(mobList[Object.keys(mobList)[this.mat.mobListIndex]])
         // Select mob tokens
         this.currentlySelectingTokens = true
         canvas.tokens.releaseAll()
@@ -343,14 +333,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
 
     let _mobData = _mobList[selectedMob]
     if (_mobData === undefined || _mobData === null) return
-    let _weapons
-    let _actorList = []
-    for (let monster of _mobData.monsters) {
-      for (let i = 0; i < monster.amount; i++) {
-        _actorList.push(game.actors.get(monster.id))
-      }
-    }
-    [, _weapons] = await prepareMonsters(_actorList)
+    let _actorList = getMobActors(_mobData)
+    const [, _weapons] = await prepareMonsters(_actorList)
 
     _mobList[selectedMob]['weapons'] = _weapons
     currentDialog.mat.actorList = _actorList

@@ -271,3 +271,23 @@ export async function prepareMobAttack(html, selectedTokenIds, weapons, availabl
 
   return mobAttackData
 }
+
+/**
+ * Expand a saved mob into its list of actors, one entry per monster
+ * Actors that no longer exist are skipped, so a saved mob containing a
+ * deleted actor doesn't break prepareMonsters
+ * @param {object} mobData - a saved mob from the hiddenMobList setting
+ * @param {function(string): (Actor5e|undefined)} [getActor] - actor lookup by id
+ * @returns {Actor5e[]} the mob's actors
+ */
+export function getMobActors(mobData, getActor = id => game.actors.get(id)) {
+  const actors = []
+  for (const monster of mobData?.monsters ?? []) {
+    const actor = getActor(monster.id)
+    if (!actor) continue
+    for (let i = 0; i < monster.amount; i++) {
+      actors.push(actor)
+    }
+  }
+  return actors
+}
