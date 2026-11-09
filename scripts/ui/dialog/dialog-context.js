@@ -321,3 +321,33 @@ export function findWeaponEntries(monsters, weaponId) {
   }
   return entries
 }
+
+/**
+ * Names of the saved mobs that belong to a user, in saved order
+ * @param {object} mobList - the hiddenMobList setting, keyed by mob name
+ * @param {string} userId - the user whose mobs to list
+ * @returns {string[]} the user's mob names
+ */
+export function getUserMobNames(mobList, userId) {
+  return Object.keys(mobList).filter(mobName => mobList[mobName].userId === userId)
+}
+
+/**
+ * The mob name before or after the current one, wrapping around at either end
+ * @param {string[]} mobNames - the names to step through
+ * @param {string} currentName - the name shown in the dialog
+ * @param {number} fallbackIndex - index to step from when currentName isn't in mobNames
+ * @param {number} direction - -1 for the previous mob, 1 for the next
+ * @returns {string|undefined} the mob name to load, undefined when mobNames is empty
+ */
+export function stepMobName(mobNames, currentName, fallbackIndex, direction) {
+  const currentIndex = mobNames.indexOf(currentName)
+  let index = (currentIndex === -1 ? fallbackIndex : currentIndex) + direction
+  if (index < 0) {
+    index = mobNames.length - 1
+  }
+  else if (index > mobNames.length - 1) {
+    index = 0
+  }
+  return mobNames[index]
+}

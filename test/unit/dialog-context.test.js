@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { escapeHTML, findWeaponEntries, getMobActors } from '../../scripts/ui/dialog/dialog-context.js'
+import { escapeHTML, findWeaponEntries, getMobActors, getUserMobNames, stepMobName } from '../../scripts/ui/dialog/dialog-context.js'
 
 const goblin = { id: 'goblin' }
 const ogre = { id: 'ogre' }
@@ -75,5 +75,40 @@ describe('findWeaponEntries', () => {
 
   it('returns nothing for an unknown id', () => {
     expect(findWeaponEntries(monsters(), 'nope')).toEqual([])
+  })
+})
+
+describe('getUserMobNames', () => {
+  it('lists only the mobs saved by the given user, in saved order', () => {
+    const mobList = {
+      Goblins: { userId: 'gm' },
+      Wolves: { userId: 'player' },
+      Ogres: { userId: 'gm' },
+    }
+    expect(getUserMobNames(mobList, 'gm')).toEqual(['Goblins', 'Ogres'])
+  })
+})
+
+describe('stepMobName', () => {
+  const names = ['Goblins', 'Ogres', 'Wolves']
+
+  it('steps to the next and previous mob', () => {
+    expect(stepMobName(names, 'Ogres', 0, 1)).toBe('Wolves')
+    expect(stepMobName(names, 'Ogres', 0, -1)).toBe('Goblins')
+  })
+
+  it('wraps around at either end', () => {
+    expect(stepMobName(names, 'Wolves', 0, 1)).toBe('Goblins')
+    expect(stepMobName(names, 'Goblins', 0, -1)).toBe('Wolves')
+  })
+
+  it('steps from the fallback index when the current name is not saved', () => {
+    expect(stepMobName(names, 'Unsaved mob', 1, 1)).toBe('Wolves')
+    expect(stepMobName(names, 'Unsaved mob', 1, -1)).toBe('Goblins')
+  })
+
+  it('returns undefined when there are no saved mobs', () => {
+    expect(stepMobName([], 'Unsaved mob', 0, 1)).toBeUndefined()
+    expect(stepMobName([], 'Unsaved mob', 0, -1)).toBeUndefined()
   })
 })

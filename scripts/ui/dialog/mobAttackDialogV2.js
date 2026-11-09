@@ -1,7 +1,7 @@
 import { moduleName, templatePath } from '../../constants.js'
 import { checkTarget, getTargetData } from '../../foundry/targets.js'
 import { sumCheckedAttacks, sumTargetAttacks } from '../../core/attack-totals.js'
-import { escapeHTML, findWeaponEntries, getMobActors, prepareMonsters, prepareMobAttack } from './dialog-context.js'
+import { escapeHTML, findWeaponEntries, getMobActors, getUserMobNames, prepareMonsters, prepareMobAttack, stepMobName } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
 
@@ -342,58 +342,22 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async _previousMob() {
-    let _mobList = game.settings.get(moduleName, 'hiddenMobList')
-    let _mobListNameArray = []
-    for (let mobName of Object.keys(_mobList)) {
-      if (_mobList[mobName].userId === game.user.id) {
-        _mobListNameArray.push(mobName)
-      }
-    }
-    const html = $(this.element)
-    let _currentMobName = html.find(`input[name="mobName"]`)[0].value
-    let _mobIndex = this.mat.mobListIndex
-    for (let i = 0; i < _mobListNameArray.length; i++) {
-      if (_mobListNameArray[i] === _currentMobName) {
-        _mobIndex = i
-        break
-      }
-    }
-    let _newIndex
-    if (_mobIndex - 1 >= 0) {
-      _newIndex = _mobIndex - 1
-    }
-    else {
-      _newIndex = _mobListNameArray.length - 1
-    }
-    await this._loadMob(this, _mobListNameArray[_newIndex])
+    await this.#stepMob(-1)
   }
 
   static async _nextMob() {
-    let _mobList = game.settings.get(moduleName, 'hiddenMobList')
-    let _mobListNameArray = []
-    for (let mobName of Object.keys(_mobList)) {
-      if (_mobList[mobName].userId === game.user.id) {
-        _mobListNameArray.push(mobName)
-      }
-    }
-    const html = $(this.element)
-    let _currentMobName = html.find(`input[name="mobName"]`)[0].value
-    let _mobIndex = this.mat.mobListIndex
-    for (let i = 0; i < _mobListNameArray.length; i++) {
-      if (_mobListNameArray[i] === _currentMobName) {
-        _mobIndex = i
-        break
-      }
-    }
-    let _newIndex
-    if (_mobIndex + 1 <= _mobListNameArray.length - 1) {
-      _newIndex = _mobIndex + 1
-    }
-    else {
-      _newIndex = 0
-    }
+    await this.#stepMob(1)
+  }
 
-    await this._loadMob(this, _mobListNameArray[_newIndex])
+  /**
+   * Load the user's previous or next saved mob, wrapping around at either end
+   * @param {number} direction - -1 for the previous mob, 1 for the next
+   */
+  async #stepMob(direction) {
+    const mobList = game.settings.get(moduleName, 'hiddenMobList')
+    const currentMobName = $(this.element).find(`input[name="mobName"]`)[0].value
+    const mobName = stepMobName(getUserMobNames(mobList, game.user.id), currentMobName, this.mat.mobListIndex, direction)
+    await this._loadMob(this, mobName)
   }
 
   static async _selectMob() {
