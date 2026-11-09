@@ -1,14 +1,12 @@
 import { moduleName, templatePath } from './constants.js'
 import { getTargetToken } from './integrations/multilevel-tokens.js'
+import { restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from './integrations/dice-so-nice.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
 
 export async function rollMobAttack(data, mobRulesSetting) {
-  // Temporarily disable DSN 3d dice from rolling, per settings
-  if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
-    await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
-  }
+  await suspendDiceSoNice()
 
   const customTable = game.settings.get(moduleName, 'hiddenTableCheckBox')
     ? game.settings.get(moduleName, 'tempSetting')
@@ -162,9 +160,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
     await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true }).roll()
 
-    if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
-      game.dice3d.showForRoll(damageRoll)
-    }
+    showDiceSoNiceRoll(damageRoll)
 
     let targetToken = getTargetToken(canvas.tokens.get(targetId))
 
@@ -277,6 +273,5 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       }
     }
   }
-  // Allow DSN 3d dice to be rolled again
-  if (game.user.isGM) await game.settings.set(moduleName, 'hiddenDSNactiveFlag', true)
+  await restoreDiceSoNice()
 }

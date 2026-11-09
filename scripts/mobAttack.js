@@ -2,6 +2,7 @@ import { moduleName, templatePath } from './constants.js'
 import { initSettings, migrateOldSettings } from './settings.js'
 import { createAndRenderDialog } from './ui/dialog/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
+import { registerDiceSoNiceHooks } from './integrations/dice-so-nice.js'
 // import { initQuenchTests } from './quench.js'
 
 // Re-exported so existing imports of moduleName from this file keep working
@@ -133,13 +134,8 @@ Hooks.on('updateCombat', async (combat, changed) => {
   }
 })
 
-//  Hide DSN 3d dice
-Hooks.on('diceSoNiceRollStart', (messageId, context) => {
-  if (game.settings.get(moduleName, 'hiddenDSNactiveFlag')) return
-
-  // Hide this roll
-  context.blind = true
-})
+//  Hide DSN 3d dice while a mob attack has them suspended
+registerDiceSoNiceHooks()
 
 function addMobAttackToolButton() {
   Hooks.on('getSceneControlButtons', (controls) => {

@@ -1,14 +1,12 @@
 import { moduleName, templatePath } from './constants.js'
 import { getTargetToken } from './integrations/multilevel-tokens.js'
+import { isPublicRollMode, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from './integrations/dice-so-nice.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
 
 export async function rollMobAttackIndividually(data) {
-  // Temporarily disable DSN 3d dice from rolling, per settings
-  if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
-    await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
-  }
+  await suspendDiceSoNice()
 
   // Cycle through selected weapons
   let attackData = []
@@ -75,11 +73,9 @@ export async function rollMobAttackIndividually(data) {
 
         // Check settings for rolling 3d dice from Dice So Nice
         if (game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls')) {
-          if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
-            if (!game.settings.get(moduleName, 'hideDSNAttackRoll') || !game.user.isGM) {
-              // don't await on the attack roll animation, otherwise it won't combine and it takess a while
-              game.dice3d.showForRoll(attackRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
-            }
+          if (!game.settings.get(moduleName, 'hideDSNAttackRoll') || !game.user.isGM) {
+            // don't await on the attack roll animation, otherwise it won't combine and it takes a while
+            showDiceSoNiceRoll(attackRoll, { synchronize: isPublicRollMode() })
           }
         }
 
@@ -258,9 +254,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           damageRoll = await damageRoll.evaluate()
 
           // Roll Dice so Nice dice
-          if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
-            await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
-          }
+          await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
 
           await new MidiQOL.DamageOnlyWorkflow(
             weaponData.actor,
@@ -316,9 +310,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         damageRoll = await damageRoll.evaluate()
 
         // Roll Dice so Nice dice
-        if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
-          await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
-        }
+        await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
 
         let workflow = await new MidiQOL.DamageOnlyWorkflow(
           weaponData.actor,
@@ -467,6 +459,5 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
     }
   }
 
-  // Allow DSN 3d dice to be rolled again
-  if (game.user.isGM) await game.settings.set(moduleName, 'hiddenDSNactiveFlag', true)
+  await restoreDiceSoNice()
 }
