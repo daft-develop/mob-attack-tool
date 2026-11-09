@@ -81,8 +81,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       decreaseNumMonster: MobAttackDialogV2._decreaseNumMonster,
       displayWeapon: MobAttackDialogV2._displayWeapon,
       displayMonster: MobAttackDialogV2._displayMonster,
-      increaseACmod: MobAttackDialogV2._increateACmod,
-      decreaseACmod: MobAttackDialogV2._decreateACmod,
+      increaseACmod: MobAttackDialogV2._increaseACmod,
+      decreaseACmod: MobAttackDialogV2._decreaseACmod,
       toggleCollapse: MobAttackDialogV2._toggleCollapse,
       exportMacro: MobAttackDialogV2._exportMacro,
       executeMobAttack: MobAttackDialogV2._executeMobAttack,
@@ -525,28 +525,28 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async _increaseNumAttack(event, target) {
-    let _numAttack = parseInt(target.parentElement.previousElementSibling.value)
-    if (Number.isNaN(_numAttack) || _numAttack == null || _numAttack == undefined) {
-      _numAttack = 1
-    }
-    let _updatedNumAttack = _numAttack + 1
-    let _weaponId = target.parentElement.previousElementSibling.getAttribute('name').slice(10)
-    for (const weapon of findWeaponEntries(this.mat.monsters, _weaponId)) {
-      weapon.numAttack = _updatedNumAttack
-    }
-    this.mat.localUpdate = true
-    this.render()
+    this.#changeNumAttack(target, 1)
   }
 
   static async _decreaseNumAttack(event, target) {
-    let _numAttack = parseInt(target.parentElement.previousElementSibling.value)
-    if (Number.isNaN(_numAttack) || _numAttack == null || _numAttack == undefined) {
-      _numAttack = 1
+    this.#changeNumAttack(target, -1)
+  }
+
+  /**
+   * Change the number of attacks of the weapon whose input sits next to the clicked arrow
+   * Decreasing never goes below 1
+   * @param {HTMLElement} target - the clicked increase or decrease control
+   * @param {number} delta - 1 to increase, -1 to decrease
+   */
+  #changeNumAttack(target, delta) {
+    const input = target.parentElement.previousElementSibling
+    let numAttack = parseInt(input.value)
+    if (Number.isNaN(numAttack)) {
+      numAttack = 1
     }
-    let _updatedNumAttack = (_numAttack - 1 > 1) ? _numAttack - 1 : 1
-    let _weaponId = target.parentElement.previousElementSibling.getAttribute('name').slice(10)
-    for (const weapon of findWeaponEntries(this.mat.monsters, _weaponId)) {
-      weapon.numAttack = _updatedNumAttack
+    const updatedNumAttack = (delta < 0) ? Math.max(1, numAttack + delta) : numAttack + delta
+    for (const weapon of findWeaponEntries(this.mat.monsters, input.getAttribute('name').slice(10))) {
+      weapon.numAttack = updatedNumAttack
     }
     this.mat.localUpdate = true
     this.render()
@@ -580,28 +580,28 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render()
   }
 
-  static async _increateACmod() {
-    let acMod = parseInt($(this.element).find(`input[name="armorClassMod"]`)[0].value)
-    if (Number.isNaN(acMod) || acMod == null || acMod == undefined) {
-      acMod = 0
-    }
-    let newMod = acMod + 1
-    this.mat.armorClassMod = newMod
-    await game.settings.set(moduleName, 'savedArmorClassMod', newMod)
-    $(this.element).find(`input[name="armorClassMod"]`)[0].value = `${newMod}`
-    this.mat.localUpdate = true
-    this.render()
+  static async _increaseACmod() {
+    await this.#changeACmod(1)
   }
 
-  static async _decreateACmod() {
-    let acMod = parseInt($(this.element).find(`input[name="armorClassMod"]`)[0].value)
-    if (Number.isNaN(acMod) || acMod == null || acMod == undefined) {
+  static async _decreaseACmod() {
+    await this.#changeACmod(-1)
+  }
+
+  /**
+   * Change the target AC modifier and save it for later dialogs
+   * @param {number} delta - 1 to increase, -1 to decrease
+   */
+  async #changeACmod(delta) {
+    const input = $(this.element).find(`input[name="armorClassMod"]`)[0]
+    let acMod = parseInt(input.value)
+    if (Number.isNaN(acMod)) {
       acMod = 0
     }
-    let newMod = acMod - 1
+    const newMod = acMod + delta
     this.mat.armorClassMod = newMod
     await game.settings.set(moduleName, 'savedArmorClassMod', newMod)
-    $(this.element).find(`input[name="armorClassMod"]`)[0].value = `${newMod}`
+    input.value = `${newMod}`
     this.mat.localUpdate = true
     this.render()
   }
