@@ -143,3 +143,21 @@ export function selectTokens(tokenIds) {
 export function getSelectedTokenIds() {
   return canvas.tokens.controlled.map(token => ({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id }))
 }
+
+/**
+ * Find the weapon an exported mob attack macro refers to
+ * Looks on the selected tokens' actors first, so items added or renamed on
+ * an unlinked token are found, then falls back to the world actor
+ * @param {{actorID: string, weaponName: string}} locator - a weaponLocators entry from the macro
+ * @param {Token5e[]} [tokens] - tokens to search, the selected tokens by default
+ * @param {Collection<Actor5e>} [worldActors] - world actors, game.actors by default
+ * @returns {Item5e|undefined} the weapon, or undefined if no actor has it
+ */
+export function findLocatedWeapon(locator, tokens = canvas.tokens.controlled, worldActors = game.actors) {
+  for (const token of tokens) {
+    if (token.actor?.id !== locator.actorID) continue
+    const weapon = token.actor.items.getName(locator.weaponName)
+    if (weapon) return weapon
+  }
+  return worldActors.get(locator.actorID)?.items.getName(locator.weaponName)
+}

@@ -2,7 +2,7 @@ import { rollMobAttackIndividually } from './individualRolls.js'
 import { moduleName } from './constants.js'
 import { createAndRenderDialog as renderV2 } from './ui/dialog/mobAttackDialogV2.js'
 import { rollMobAttack } from './mobRules.js'
-import { checkTarget, getSelectedTokenIds, getTargetData } from './foundry/targets.js'
+import { checkTarget, findLocatedWeapon, getSelectedTokenIds, getTargetData } from './foundry/targets.js'
 import { prepareMonsters } from './ui/dialog/dialog-context.js'
 
 export function macroObject() {
@@ -16,17 +16,27 @@ export function macroObject() {
       data['targets'] = targets
 
       let weapons = {}
-      let attacker, weapon
       let attacks = {}
+      const missingWeapons = []
       data.weaponLocators.forEach((locator) => {
-        attacker = game.actors.get(locator['actorID'])
-        weapon = attacker.items.getName(locator['weaponName'])
+        const weapon = findLocatedWeapon(locator)
+        if (!weapon) {
+          // e.g. renamed or deleted since the macro was exported
+          missingWeapons.push(locator.weaponName)
+          delete data.attacks[locator.weaponID]
+          return
+        }
         weapons[weapon.id] = weapon
         attacks[locator.weaponID] = []
         for (let target of targets) {
           attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === weapon.id).length })
         }
       })
+
+      if (missingWeapons.length) {
+        ui.notifications.warn(game.i18n.format('MAT.macroWeaponNotFound', { weaponNames: missingWeapons.join(', ') }))
+      }
+      if (Object.keys(weapons).length === 0) return
 
       data['weapons'] = weapons
       if (targets.length) data['attacks'] = attacks
