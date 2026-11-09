@@ -2,6 +2,7 @@ import { moduleName } from '../mobAttack.js'
 import { foundryEqualOrNewerThan } from '../versions.js'
 import { getAttackData, getAttackBonus, isMobAttackItem } from '../core/attack.js'
 import { getScalingFactor, simplifyFormula } from '../core/damage.js'
+import { getTextFromAttackBonus } from '../core/roll-math.js'
 import { getMultiattackFromActor } from '../multiattack.js'
 
 /**
@@ -397,16 +398,6 @@ export function getDamageFormulaAndType(weaponData, isVersatile = false) {
     lengthIndex++
   }
   return [diceFormulas, damageTypes, damageTypeLabels]
-}
-
-/**
- * Format the attack bonus with leading +/- for display
- * @param {number} finalAttackBonus - Attack bonus number
- * @returns {string} Formatted bonus string
- */
-export function getTextFromAttackBonus(finalAttackBonus) {
-  let finalAttackBonusText = finalAttackBonus.toString()
-  return !/^[+-]/.test(finalAttackBonusText) ? `+${finalAttackBonusText}` : finalAttackBonusText
 }
 
 /**
