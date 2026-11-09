@@ -1,4 +1,4 @@
-import { getScalingFactor } from './utils.js'
+import { getScalingFactor } from './core/damage.js'
 
 export function getMultiattackFromActor(weaponName, actorData, weapons, options) {
   // If attacker has only one weapon and no multiattack, autoselect it

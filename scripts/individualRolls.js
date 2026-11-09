@@ -1,5 +1,5 @@
-import { moduleName } from './mobAttack.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
+import { moduleName, templatePath } from './constants.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
 
@@ -186,7 +186,7 @@ export async function rollMobAttackIndividually(data) {
   messageData['totalPluralOrNot'] = totalPluralOrNot
 
   let messageText
-  messageText = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/messages/mat-msg-individual-rolls.hbs', messageData)
+  messageText = await foundry.applications.handlebars.renderTemplate(templatePath('messages/mat-msg-individual-rolls.hbs'), messageData)
 
   if (!game.settings.get(moduleName, 'noResultsMessage')) {
     await sendChatMessage(messageText)
@@ -441,13 +441,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await damageRoll.toMessage(
             {
               flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-              flags: {
-                dnd5e: {
-                  messageType: 'roll',
-                  roll: { type: 'damage' },
-                  targets: formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId).actor.uuid),
-                },
-              },
+              ...getDamageMessageData(targetId),
             },
           )
         }

@@ -1,84 +1,6 @@
-import { moduleName } from '../mobAttack.js'
-import { systemEqualOrNewerThan } from '../versions.js'
+import { moduleName } from '../constants.js'
 
-const { getProperty, duplicate } = foundry.utils
-
-/**
- * Get damage options for rolling damage
- * @param {boolean} allowCritical - Whether to allow critical hits
- * @param {string|null} targetId - Optional token ID to set as target
- * @returns {object} Damage roll options
- */
-export function getDamageOptions(allowCritical = true, targetId = null) {
-  let formattedTarget = formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId)?.actor.uuid)
-  return {
-    damage: { isCritical: allowCritical },
-    dialog: { configure: false },
-    message: { 'data.flags.dnd5e.targets': formattedTarget },
-  }
-}
-
-// This is based in large part on midi-qol's callMacro method
-export async function callMidiMacro(item, midiMacroData) {
-  const macroName = getProperty(item, 'flags.midi-qol.onUseMacroName')
-  if (!macroName) {
-    console.log(`No On Use Macro found at ${item.name}.`)
-    return {}
-  }
-  const macroData = {
-    ...midiMacroData,
-    itemUuid: item?.uuid,
-    item: item?.toObject(false),
-    saves: [],
-    superSavers: [],
-    failedSaves: [],
-    id: item.id,
-  }
-  try {
-    if (macroName.startsWith('ItemMacro')) {
-      var itemMacro
-      if (macroName === 'ItemMacro') {
-        itemMacro = getProperty(item.flags, 'itemacro.macro')
-        macroData.sourceItemUuid = item?.uuid
-      }
-      else {
-        const parts = macroName.split('.')
-        const itemName = parts.slice(1).join('.')
-        item = macroData.actor.items.find(i => i.name === itemName && getProperty(i.flags, 'itemacro.macro'))
-        if (item) {
-          itemMacro = getProperty(item.flags, 'itemacro.macro')
-          macroData.sourceItemUuid = item?.uuid
-        }
-        else return {}
-      }
-      const speaker = { alias: macroData.actor.name }
-      const actor = macroData.actor
-      const token = canvas.tokens.get(macroData.tokenId)
-      const character = game.user.character
-      const args = [macroData]
-
-      if (!itemMacro?.command) {
-        console.log(`Mob Attack Tool - Could not find item macro ${macroName}`)
-        return {}
-      }
-      return (new Function(`"use strict";
-        return (async function ({speaker, actor, token, character, item, args}={}) {
-          ${itemMacro.command}
-          });`))().call(this, { speaker, actor, token, character, item, args })
-    }
-    else {
-      const macroCommand = game.macros.getName(macroName)
-      if (macroCommand) {
-        return macroCommand.execute(macroData) || {}
-      }
-    }
-  }
-  catch (err) {
-    ui.notifications.error(`There was an error while executing an "On Use" macro. See the console (F12) for details.`)
-    console.error(err)
-  }
-  return {}
-}
+const { duplicate } = foundry.utils
 
 export function checkTarget() {
   let targetToken = canvas.tokens.placeables.find(t => t.isTargeted)
@@ -87,13 +9,6 @@ export function checkTarget() {
     return false
   }
   return true
-}
-
-export function formatAttackTargets() {
-  if (systemEqualOrNewerThan('6.0.0')) {
-    return dnd5e.dataModels.chatMessage.fields.TargetsField.getDescriptors()
-  }
-  return dnd5e.utils.getTargetDescriptors()
 }
 
 export async function getTargetData(monsters) {
@@ -194,4 +109,20 @@ export async function getTargetData(monsters) {
     }
   }
   return targets
+}
+
+/**
+ * Check if a token is targeted by the current user
+ * @param {Token} token - The token to check
+ * @returns {boolean|undefined} True if targeted, undefined otherwise
+ */
+export function isTargeted(token) {
+  if (token.isTargeted) {
+    let targetUsers = token.targeted.entries().next().value
+    for (let i = 0; i < targetUsers.length; i++) {
+      if (targetUsers[i].id === game.user.id) {
+        return true
+      }
+    }
+  }
 }

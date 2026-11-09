@@ -1,5 +1,6 @@
-import { moduleName } from '../../mobAttack.js'
-import { getTargetData, prepareMonsters, prepareMobAttack, checkTarget } from '../../utils.js'
+import { moduleName, templatePath } from '../../constants.js'
+import { checkTarget, getTargetData } from '../../foundry/targets.js'
+import { prepareMonsters, prepareMobAttack } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
 
@@ -51,7 +52,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static DEFAULT_OPTIONS = {
-    id: 'mob-attack-tool-dialog',
+    id: `${moduleName}-dialog`,
     classes: ['mat-dialog-content2', 'standard-form'],
     tag: 'form',
     window: {
@@ -112,18 +113,18 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       template: 'templates/generic/tab-navigation.hbs',
     },
     mobSelect: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-mob-select.hbs',
+      template: templatePath('dialog/mat-dialog-mob-select.hbs'),
     },
     weapons: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-weapons.hbs',
+      template: templatePath('dialog/mat-dialog-weapons.hbs'),
       scrollable: ['scrollable'],
     },
     targets: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-targets.hbs',
+      template: templatePath('dialog/mat-dialog-targets.hbs'),
       scrollable: ['scrollable'],
     },
     footer: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-footer.hbs',
+      template: templatePath('dialog/mat-dialog-footer.hbs'),
     },
   }
 
@@ -435,7 +436,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    const _dialogMobList = await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list-v2.hbs', { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
+    const _dialogMobList = await foundry.applications.handlebars.renderTemplate(templatePath('dialog/mat-dialog-mob-list-v2.hbs'), { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
 
     new foundry.applications.api.DialogV2({
       window: { title: 'MAT.selectMob' },
@@ -688,7 +689,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     for (let token of canvas.tokens.controlled) {
       selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
     }
-    let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters)
+    let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters, this.mat.actorList)
     let mobList = game.settings.get(moduleName, 'hiddenMobList')
 
     // Create macro
@@ -773,7 +774,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       for (let token of canvas.tokens.controlled) {
         selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
       }
-      let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters)
+      let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters, this.mat.actorList)
       mobAttackData.event = event
       const mobRulesSetting = game.settings.get(moduleName, 'mobRules')
       if (game.settings.get(moduleName, 'mobRules') === 'individual') {
