@@ -1,5 +1,6 @@
 import { moduleName, templatePath } from '../../constants.js'
 import { checkTarget, getTargetData } from '../../foundry/targets.js'
+import { sumCheckedAttacks, sumTargetAttacks } from '../../core/attack-totals.js'
 import { escapeHTML, findWeaponEntries, getMobActors, prepareMonsters, prepareMobAttack } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
@@ -240,16 +241,9 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     // calculate total number of attacks and average damage
-    this.mat.numTotalAttacks = 0
-    this.mat.totalAverageDamage = 0
-    for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-      for (let [, weaponData] of Object.entries(monsterData.weapons)) {
-        if (weaponData.useButtonValue === `checked`) {
-          this.mat.numTotalAttacks += weaponData.numAttack * this.mat.monsters[monsterKey].amount
-          this.mat.totalAverageDamage += weaponData.numAttack * weaponData.averageDamage * this.mat.monsters[monsterKey].amount
-        }
-      }
-    }
+    const mobTotals = sumCheckedAttacks(this.mat.monsters)
+    this.mat.numTotalAttacks = mobTotals.numAttacks
+    this.mat.totalAverageDamage = mobTotals.averageDamage
 
     // create (and/or update) target data
     let _targets = await getTargetData(this.mat.monsters)
@@ -259,14 +253,10 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     else {
       this.mat.targetUpdate = false
-      for (let i = 0; i < this.mat.targets.length; i++) {
-        let targetTotalNumAttacks = this.mat.targets[i].weapons.length
-        let targetTotalAverageDamage = 0
-        for (let weapon of this.mat.targets[i].weapons) {
-          targetTotalAverageDamage += weapon.averageDamage
-        }
-        this.mat.targets[i].targetTotalNumAttacks = targetTotalNumAttacks
-        this.mat.targets[i].targetTotalAverageDamage = targetTotalAverageDamage
+      for (const target of this.mat.targets) {
+        const targetTotals = sumTargetAttacks(target.weapons)
+        target.targetTotalNumAttacks = targetTotals.numAttacks
+        target.targetTotalAverageDamage = targetTotals.averageDamage
       }
     }
 

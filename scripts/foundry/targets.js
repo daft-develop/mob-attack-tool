@@ -1,4 +1,5 @@
 import { moduleName } from '../constants.js'
+import { sumTargetAttacks } from '../core/attack-totals.js'
 
 const { duplicate } = foundry.utils
 
@@ -84,13 +85,9 @@ export async function getTargetData(monsters) {
       targetACtext: ((game.user.isGM) ? ` ${game.i18n.localize('MAT.dialogTargetArmorClassMessage')}` : ``),
     })
 
-    let targetTotalNumAttacks = targets[targets.length - 1].weapons.length
-    let targetTotalAverageDamage = 0
-    for (let weapon of targets[targets.length - 1].weapons) {
-      targetTotalAverageDamage += weapon.averageDamage
-    }
-    targets[targets.length - 1]['targetTotalNumAttacks'] = targetTotalNumAttacks
-    targets[targets.length - 1]['targetTotalAverageDamage'] = targetTotalAverageDamage
+    const targetTotals = sumTargetAttacks(targets[targets.length - 1].weapons)
+    targets[targets.length - 1]['targetTotalNumAttacks'] = targetTotals.numAttacks
+    targets[targets.length - 1]['targetTotalAverageDamage'] = targetTotals.averageDamage
 
     if (targetCount === targetTokens.length - 1) {
       for (let i = 0; i < (weaponsOnTargetArray.length - arrayLength * (1 + targetCount)); i++) {
