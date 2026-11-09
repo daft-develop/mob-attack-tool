@@ -1,3 +1,5 @@
+import { systemEqualOrNewerThan } from '../versions.js'
+
 /**
  * Return the first attack activity from an item
  * This is taken from the dnd5e system code
@@ -6,6 +8,33 @@
  */
 export function getActivityFromItem(actorItem) {
   return actorItem.system.activities?.getByType('attack')[0]
+}
+
+/**
+ * Return the spellcasting method of a spell, e.g. 'atwill' or 'innate'
+ * dnd5e 5.1 replaced system.preparation.mode with system.method and removed
+ * the deprecated preparation getter in 6.0
+ * @param {Item5e} spell - a spell item
+ * @returns {string|undefined} the spellcasting method
+ */
+export function getSpellMethod(spell) {
+  if (systemEqualOrNewerThan('5.1.0')) {
+    return spell.system.method
+  }
+  return spell.system.preparation?.mode
+}
+
+/**
+ * Whether an item can be used as a mob attack: it needs an attack activity
+ * that deals damage, and spells must be cantrips or usable at will
+ * @param {Item5e} item - an item in an actor's inventory
+ * @returns {boolean} true if the item can be used as a mob attack
+ */
+export function isMobAttackItem(item) {
+  const hasDamagingAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) ?? false
+  if (!hasDamagingAttack) return false
+  if (item.type !== 'spell') return true
+  return item.system.level === 0 || getSpellMethod(item) === 'atwill'
 }
 
 /**

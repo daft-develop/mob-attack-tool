@@ -1,8 +1,7 @@
 import { moduleName } from '../mobAttack.js'
 import { foundryEqualOrNewerThan } from '../versions.js'
-import { getAttackData } from '../core/attack.js'
+import { getAttackData, getAttackBonus, isMobAttackItem } from '../core/attack.js'
 import { getScalingFactor, simplifyFormula } from '../core/damage.js'
-import { getAttackBonus } from '../core/attack.js'
 import { getMultiattackFromActor } from '../multiattack.js'
 
 /**
@@ -63,9 +62,7 @@ export async function prepareMonsters(actorList, keepCheckboxes = false, oldMons
     let actorWeapons = {}
     let items = actor.items.contents
     for (let item of items) {
-      const isAttack = item.system.activities?.some(a => a.type === 'attack' && a.damage?.parts?.length) && (item.type !== 'spell' || item.system.level === 0 || item.system.preparation.mode === 'atwill')
-
-      if (isAttack) {
+      if (isMobAttackItem(item)) {
         if (weapons[item.id]?.id === item.id) {
           availableAttacks[item.id] += 1
         }
