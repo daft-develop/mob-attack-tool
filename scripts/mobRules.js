@@ -1,5 +1,5 @@
 import { moduleName, templatePath } from './constants.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, formatAttackTargets, getTextFromAttackBonus } from './utils.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 const { getProperty } = foundry.utils
 
@@ -260,13 +260,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       await damageRoll.toMessage(
         {
           flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
-          flags: {
-            dnd5e: {
-              messageType: 'roll',
-              roll: { type: 'damage' },
-              targets: formatAttackTargets().filter(formattedTarget => formattedTarget.uuid == canvas.tokens.get(targetId).actor.uuid),
-            },
-          },
+          ...getDamageMessageData(targetId),
         },
       )
     }

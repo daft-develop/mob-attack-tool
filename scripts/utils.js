@@ -8,7 +8,7 @@ export { getScalingFactor, getDamageFormulaAndType } from './core/damage.js'
 export { getActivityFromItem, getAttackData, getAttackBonus, isMobAttackItem } from './core/attack.js'
 
 // dnd5e version differences and system APIs
-export { getSpellMethod, getCasterLevel, simplifyFormula, formatAttackTargets, getDamageOptions } from './system/dnd5e.js'
+export { getSpellMethod, getCasterLevel, simplifyFormula, formatAttackTargets, getDamageOptions, getDamageMessageData } from './system/dnd5e.js'
 
 // Foundry side effects
 export { checkTarget, getTargetData, isTargeted } from './foundry/targets.js'

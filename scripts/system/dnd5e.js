@@ -62,17 +62,56 @@ export function formatAttackTargets() {
 }
 
 /**
+ * Target descriptors for a single token, so a damage card only lists the
+ * target its attacks were assigned to rather than every current target
+ * dnd5e 6.0 descriptors are { actor, token, name, img, ac }, keyed by token,
+ * and can be built for any tokens. Before 6.0 they are { uuid, name, img, ac }
+ * with the actor's uuid, and only cover the user's current targets
+ * @param {string|null} targetId - token ID, or null for no target
+ * @returns {object[]} the matching descriptor, or an empty array
+ */
+function getTargetDescriptors(targetId) {
+  const token = canvas.tokens.get(targetId)
+  if (!token) return []
+  if (systemEqualOrNewerThan('6.0.0')) {
+    return dnd5e.dataModels.chatMessage.fields.TargetsField.getDescriptors([token])
+  }
+  const actorUuid = token.actor?.uuid
+  return dnd5e.utils.getTargetDescriptors().filter(target => target.uuid == actorUuid)
+}
+
+/**
  * Build the config for dnd5e's activity rollDamage(config, dialog, message)
+ * dnd5e 6.0 moved a damage message's targets from flags.dnd5e.targets to
+ * system.targets, and ignores the old flag
  * @param {boolean} allowCritical - Whether to allow critical hits
  * @param {string|null} targetId - Optional token ID to set as target
  * @returns {object} damage, dialog and message options for rollDamage
  */
 export function getDamageOptions(allowCritical = true, targetId = null) {
-  const targetUuid = canvas.tokens.get(targetId)?.actor.uuid
-  const formattedTarget = formatAttackTargets().filter(target => target.uuid == targetUuid)
+  const targets = getTargetDescriptors(targetId)
+  const message = systemEqualOrNewerThan('6.0.0')
+    ? { data: { system: { targets } } }
+    : { data: { flags: { dnd5e: { targets } } } }
   return {
     damage: { isCritical: allowCritical },
     dialog: { configure: false },
-    message: { 'data.flags.dnd5e.targets': formattedTarget },
+    message,
   }
+}
+
+/**
+ * Chat message data that makes a roll's toMessage() card a dnd5e damage card
+ * for one target
+ * dnd5e 6.0 replaced the flags.dnd5e roll flags with a "damage" message type
+ * and system.targets, and does not migrate the old flags
+ * @param {string|null} targetId - token ID, or null for no target
+ * @returns {object} message data to merge into toMessage()
+ */
+export function getDamageMessageData(targetId) {
+  const targets = getTargetDescriptors(targetId)
+  if (systemEqualOrNewerThan('6.0.0')) {
+    return { type: 'damage', system: { targets } }
+  }
+  return { flags: { dnd5e: { messageType: 'roll', roll: { type: 'damage' }, targets } } }
 }

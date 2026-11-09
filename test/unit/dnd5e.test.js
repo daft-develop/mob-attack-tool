@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { formatAttackTargets, getCasterLevel, getDamageOptions, getSpellMethod, simplifyFormula } from '../../scripts/system/dnd5e.js'
+import { formatAttackTargets, getCasterLevel, getDamageMessageData, getDamageOptions, getSpellMethod, simplifyFormula } from '../../scripts/system/dnd5e.js'
 
 // These helpers are where dnd5e version differences live, so each version
 // branch gets its own test. dnd5e's own APIs are mocked as globals.
@@ -112,28 +112,71 @@ describe('formatAttackTargets', () => {
   })
 })
 
-describe('getDamageOptions', () => {
+describe('damage card targets', () => {
+  // Two targeted tokens (A and B); each damage card must list only the one its attacks were assigned to.
+  // The descriptor shapes mirror dnd5e's: 6.0 TargetsField.getDescriptors(tokens) describes the tokens it
+  // is given as { actor, token, ... }; before 6.0, utils.getTargetDescriptors() describes all current
+  // targets as { uuid: <actor uuid>, ... }
+  const tokens = {
+    tokenA: { document: { uuid: 'Scene.s.Token.tokenA' }, actor: { uuid: 'Actor.a' } },
+    tokenB: { document: { uuid: 'Scene.s.Token.tokenB' }, actor: { uuid: 'Actor.b' } },
+  }
+  const descriptor60 = token => ({ actor: token.actor.uuid, token: token.document.uuid })
+  const targetB60 = [{ actor: 'Actor.b', token: 'Scene.s.Token.tokenB' }]
+
   beforeEach(() => {
-    game.system.version = '6.0.0'
-    const descriptors = [{ uuid: 'Actor.a' }, { uuid: 'Actor.b' }]
     globalThis.dnd5e = {
-      dataModels: { chatMessage: { fields: { TargetsField: { getDescriptors: () => descriptors } } } },
+      dataModels: { chatMessage: { fields: { TargetsField: {
+        getDescriptors: vi.fn((list = Object.values(tokens)) => [...list].map(descriptor60)),
+      } } } },
+      utils: { getTargetDescriptors: () => Object.values(tokens).map(t => ({ uuid: t.actor.uuid })) },
     }
-    globalThis.canvas = { tokens: { get: id => ({ tokenB: { actor: { uuid: 'Actor.b' } } })[id] } }
+    globalThis.canvas = { tokens: { get: id => tokens[id] } }
   })
 
-  it('keeps only the descriptor of the given target', () => {
-    const options = getDamageOptions(true, 'tokenB')
-    expect(options.message['data.flags.dnd5e.targets']).toEqual([{ uuid: 'Actor.b' }])
+  describe('getDamageOptions', () => {
+    it('sets system.targets to only the given token on dnd5e 6.0+', () => {
+      game.system.version = '6.0.6'
+      const { message } = getDamageOptions(true, 'tokenB')
+      expect(message).toEqual({ data: { system: { targets: targetB60 } } })
+      expect(dnd5e.dataModels.chatMessage.fields.TargetsField.getDescriptors).toHaveBeenCalledWith([tokens.tokenB])
+    })
+
+    it('sets flags.dnd5e.targets to the given target before 6.0', () => {
+      game.system.version = '5.3.3'
+      const { message } = getDamageOptions(true, 'tokenB')
+      expect(message).toEqual({ data: { flags: { dnd5e: { targets: [{ uuid: 'Actor.b' }] } } } })
+    })
+
+    it('passes the critical flag and skips the configuration dialog', () => {
+      game.system.version = '6.0.6'
+      const options = getDamageOptions(false, 'tokenB')
+      expect(options.damage).toEqual({ isCritical: false })
+      expect(options.dialog).toEqual({ configure: false })
+    })
+
+    it('lists no targets without a target', () => {
+      game.system.version = '6.0.6'
+      expect(getDamageOptions(true, null).message.data.system.targets).toEqual([])
+    })
   })
 
-  it('passes the critical flag and skips the configuration dialog', () => {
-    const options = getDamageOptions(false, 'tokenB')
-    expect(options.damage).toEqual({ isCritical: false })
-    expect(options.dialog).toEqual({ configure: false })
-  })
+  describe('getDamageMessageData', () => {
+    it('makes a damage-type message with system.targets on dnd5e 6.0+', () => {
+      game.system.version = '6.0.6'
+      expect(getDamageMessageData('tokenB')).toEqual({ type: 'damage', system: { targets: targetB60 } })
+    })
 
-  it('keeps no descriptors without a target', () => {
-    expect(getDamageOptions(true, null).message['data.flags.dnd5e.targets']).toEqual([])
+    it('uses the dnd5e roll flags before 6.0', () => {
+      game.system.version = '4.3.0'
+      expect(getDamageMessageData('tokenB')).toEqual({
+        flags: { dnd5e: { messageType: 'roll', roll: { type: 'damage' }, targets: [{ uuid: 'Actor.b' }] } },
+      })
+    })
+
+    it('does not throw without a target', () => {
+      game.system.version = '6.0.6'
+      expect(getDamageMessageData(null).system.targets).toEqual([])
+    })
   })
 })
