@@ -9,7 +9,7 @@ export function getScalingFactor(weaponData) {
   let cantripScalingFactor = 1
   if (weaponData.type == 'spell') {
     let casterLevel
-    if (systemEqualOrNewerThan('4.3.0') && weaponData.actor.type === 'npc') {
+    if (weaponData.actor.type === 'npc') {
       casterLevel = weaponData.actor.system.attributes.spell.level
     }
     else {
