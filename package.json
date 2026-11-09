@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "lint": "eslint",
+    "lint": "eslint && node tools/check-imports.mjs",
+    "lint:imports": "node tools/check-imports.mjs",
     "lint:fix": "eslint --fix",
     "test": "vitest",
     "test:watch": "vitest --watch",
