@@ -1,5 +1,6 @@
 import { moduleName, templatePath } from '../../constants.js'
-import { getTargetData, prepareMonsters, prepareMobAttack, checkTarget } from '../../utils.js'
+import { checkTarget, getTargetData } from '../../foundry/targets.js'
+import { prepareMonsters, prepareMobAttack } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
 

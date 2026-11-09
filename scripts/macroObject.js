@@ -2,7 +2,8 @@ import { rollMobAttackIndividually } from './individualRolls.js'
 import { moduleName } from './constants.js'
 import { createAndRenderDialog as renderV2 } from './ui/dialog/mobAttackDialogV2.js'
 import { rollMobAttack } from './mobRules.js'
-import { checkTarget, getTargetData, prepareMonsters } from './utils.js'
+import { checkTarget, getTargetData } from './foundry/targets.js'
+import { prepareMonsters } from './ui/dialog/dialog-context.js'
 
 export function macroObject() {
   function quickRoll(data) {

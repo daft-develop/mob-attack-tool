@@ -1,18 +1,23 @@
 // Mob Attack Tool - utils.js
-// Re-exports from split modules for backwards compatibility
-// New code should import directly from scripts/core/ and scripts/engine/
+// Re-exports from the split modules so existing imports keep working.
+// New code should import directly from the module that defines a function.
 
-// Core pure logic
+// No side effects
 export { calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, getTextFromAttackBonus } from './core/roll-math.js'
-export { getScalingFactor } from './core/damage.js'
+export { getScalingFactor, getDamageFormulaAndType } from './core/damage.js'
 export { getActivityFromItem, getAttackData, getAttackBonus, isMobAttackItem } from './core/attack.js'
 
 // dnd5e version differences and system APIs
 export { getSpellMethod, getCasterLevel, simplifyFormula, formatAttackTargets, getDamageOptions } from './system/dnd5e.js'
 
-// Engine interop (Foundry-side effects)
-export { callMidiMacro, checkTarget, getTargetData } from './engine/foundry-interop.js'
-export { prepareMonsters, prepareMobAttack, endGroupedMobTurn, getDamageFormulaAndType, isTargeted, sendChatMessage } from './engine/mob-logic.js'
+// Foundry side effects
+export { checkTarget, getTargetData, isTargeted } from './foundry/targets.js'
+export { endGroupedMobTurn } from './foundry/combat.js'
+export { sendChatMessage } from './foundry/chat.js'
+export { callMidiMacro } from './foundry/macros.js'
 
-// Legacy version check - kept for quench tests
+// Mob attack dialog data
+export { prepareMonsters, prepareMobAttack } from './ui/dialog/dialog-context.js'
+
+// Version checks - kept for quench tests
 export { foundryEqualOrNewerThan, systemEqualOrNewerThan } from './versions.js'

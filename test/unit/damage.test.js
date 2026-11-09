@@ -3,7 +3,7 @@ import { getCasterLevel } from '../../scripts/system/dnd5e.js'
 import { getScalingFactor } from '../../scripts/core/damage.js'
 
 // dnd5e data access is tested in dnd5e.test.js; here only the scaling table matters
-vi.mock('../../scripts/system/dnd5e.js', () => ({ getCasterLevel: vi.fn() }))
+vi.mock('../../scripts/system/dnd5e.js', () => ({ getCasterLevel: vi.fn(), simplifyFormula: vi.fn() }))
 
 const spell = { type: 'spell', actor: {} }
 
