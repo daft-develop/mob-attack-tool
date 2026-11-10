@@ -1,5 +1,6 @@
 import { moduleName } from '../constants.js'
 import { sumTargetAttacks } from '../core/attack-totals.js'
+import { getTargetActor, withoutTargetedClones } from '../integrations/multilevel-tokens.js'
 
 const { duplicate } = foundry.utils
 
@@ -13,16 +14,7 @@ export function checkTarget() {
 }
 
 export async function getTargetData(monsters) {
-  let targetTokens = canvas.tokens.placeables.filter(t => t.isTargeted)
-  for (let i = 0; i < targetTokens.length; i++) {
-    if (targetTokens[i].actor === null && game.modules.get('multilevel-tokens').active) {
-      let mltFlags = targetTokens[i].flags['multilevel-tokens']
-      if (targetTokens.filter(t => t.id === mltFlags.stoken).length > 0) {
-        targetTokens.splice(i, 1)
-        i--
-      }
-    }
-  }
+  let targetTokens = withoutTargetedClones(canvas.tokens.placeables.filter(t => t.isTargeted))
   let weaponsOnTarget = {}
   for (let [, monsterData] of Object.entries(duplicate(monsters))) {
     Object.assign(weaponsOnTarget, monsterData.weapons)
@@ -57,18 +49,7 @@ export async function getTargetData(monsters) {
   let armorClassMod = game.settings.get(moduleName, 'savedArmorClassMod')
   if (arrayLength === 0) arrayLength = 1
   for (let targetToken of targetTokens) {
-    if (targetToken.actor === null && game.modules.get('multilevel-tokens').active) {
-      let mltFlags = targetToken.flags['multilevel-tokens']
-      if (mltFlags?.sscene) {
-        targetAC = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken).actor.system.attributes.ac.value
-      }
-      else {
-        targetAC = canvas.tokens.get(mltFlags.stoken).actor.system.attributes.ac.value
-      }
-    }
-    else {
-      targetAC = targetToken?.actor.system.attributes.ac.value
-    }
+    targetAC = getTargetActor(targetToken)?.system.attributes.ac.value
     let targetImg = targetToken?.document.texture.src ?? 'icons/svg/mystery-man.svg'
     if (foundry.helpers.media.VideoHelper.hasVideoExtension(targetImg)) {
       targetImg = await game.video.createThumbnail(targetImg, { width: 100, height: 100 })

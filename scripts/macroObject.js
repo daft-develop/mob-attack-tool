@@ -123,40 +123,17 @@ export function macroObject() {
     return mobList
   }
 
-  async function createSavedMobsFromCTGgroups(groups, mobNames = []) {
-    let mobList = game.settings.get(moduleName, 'hiddenMobList')
+  /*
+    Removed with Combat Tracker Groups support. Kept so macros that still
+    call it get a warning instead of a "not a function" error.
 
-    // delete existing CTG groups first
-    for (let ctgMobName of Object.keys(mobList)) {
-      if (mobList[ctgMobName]?.type === 'ctg') {
-        await deleteSavedMob(ctgMobName)
-      }
-    }
-    let dupNameNum = 2
-    if (!groups.length || !groups[0].length) return
+    output:
+    - mobList [Object (Promise)]  The saved mobs, unchanged.
 
-    for (let i = 0; i < groups.length; i++) {
-      let numSelected = groups[i].length
-      let actorList = [], selectedTokenIds = []
-      if (!mobNames[i]) {
-        mobNames[i] = `${game.settings.get(moduleName, 'defaultMobPrefix')} ${groups[i][0]?.name}${game.settings.get(moduleName, 'defaultMobSuffix')}`
-        if (i > 0) {
-          if (mobNames[i - 1] === mobNames[i]) {
-            mobNames[i] += ` ${dupNameNum.toString()}`
-          }
-          else if (mobNames[i - 1].endsWith(dupNameNum.toString())) {
-            dupNameNum++
-            mobNames[i] += ` ${dupNameNum.toString()}`
-          }
-        }
-      }
-      for (let combatant of groups[i]) {
-        actorList.push(combatant?.actor)
-        selectedTokenIds.push(combatant?.tokenId)
-      }
-      mobList = await saveMob(mobNames[i], actorList, selectedTokenIds, numSelected, 'ctg')
-    }
-    return mobList
+     */
+  async function createSavedMobsFromCTGgroups() {
+    ui.notifications.warn(game.i18n.localize('MAT.ctgGroupsRemoved'))
+    return game.settings.get(moduleName, 'hiddenMobList')
   }
 
   return {

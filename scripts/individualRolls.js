@@ -1,13 +1,12 @@
 import { moduleName, templatePath } from './constants.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, callMidiMacro, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
-
-const { getProperty } = foundry.utils
+import { getTargetToken } from './integrations/multilevel-tokens.js'
+import { isPublicRollMode, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from './integrations/dice-so-nice.js'
+import { playAttackAnimations } from './integrations/automated-animations.js'
+import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from './integrations/midi-qol.js'
+import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 export async function rollMobAttackIndividually(data) {
-  // Temporarily disable DSN 3d dice from rolling, per settings
-  if (!game.settings.get(moduleName, 'enableDiceSoNice') && game.user.isGM) {
-    await game.settings.set(moduleName, 'hiddenDSNactiveFlag', false)
-  }
+  await suspendDiceSoNice()
 
   // Cycle through selected weapons
   let attackData = []
@@ -74,11 +73,9 @@ export async function rollMobAttackIndividually(data) {
 
         // Check settings for rolling 3d dice from Dice So Nice
         if (game.user.getFlag(moduleName, 'showIndividualAttackRolls') ?? game.settings.get(moduleName, 'showIndividualAttackRolls')) {
-          if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
-            if (!game.settings.get(moduleName, 'hideDSNAttackRoll') || !game.user.isGM) {
-              // don't await on the attack roll animation, otherwise it won't combine and it takess a while
-              game.dice3d.showForRoll(attackRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
-            }
+          if (!game.settings.get(moduleName, 'hideDSNAttackRoll') || !game.user.isGM) {
+            // don't await on the attack roll animation, otherwise it won't combine and it takes a while
+            showDiceSoNiceRoll(attackRoll, { synchronize: isPublicRollMode() })
           }
         }
 
@@ -205,8 +202,7 @@ export async function rollMobAttackIndividually(data) {
 
 export async function processIndividualDamageRolls(data, weaponData, finalAttackBonus, availableAttacks, successfulAttackRolls, numHitAttacks, numCrits, isVersatile, tokenAttackList, targetId) {
   // Check for midi-qol
-  let midi_QOL_Active = false
-  if (game.modules.get('midi-qol')?.active && game.settings.get(moduleName, 'enableMidi')) midi_QOL_Active = true
+  const midi_QOL_Active = isMidiQolEnabled()
 
   // Determine crit threshold
   let critThreshold = 20
@@ -222,13 +218,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
   let showDamageRolls = game.user.getFlag(moduleName, 'showIndividualDamageRolls') ?? game.settings.get(moduleName, 'showIndividualDamageRolls')
 
   // Determine target token
-  let targetToken = canvas.tokens.get(targetId)
-  if (targetToken?.actor === null && game.modules.get('multilevel-tokens').active) {
-    let mltFlags = targetToken.flags['multilevel-tokens']
-    if (mltFlags?.sscene) {
-      targetToken = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken)
-    }
-  }
+  let targetToken = getTargetToken(canvas.tokens.get(targetId))
 
   const FoundryDie = foundry.dice?.terms?.Die || Die
   const attackData = getAttackData(weaponData)
@@ -263,34 +253,11 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           damageRoll = await damageRoll.evaluate()
 
           // Roll Dice so Nice dice
-          if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
-            await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
-          }
+          await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
 
-          await new MidiQOL.DamageOnlyWorkflow(
-            weaponData.actor,
-            // (targetToken) ? targetToken : undefined,
-            targetToken ?? undefined,
-            damageRoll.total,
-            damageTypeLabels[0],
-            // (targetToken) ? [targetToken] : [],
-            targetToken ? [targetToken] : [],
-            damageRoll,
-            {
-              flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-              item: weaponData,
-              itemCardUuid: `new`,
-            },
-          )
+          await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
           // after issuing the workflow, wait until it signals complete, or 4 seconds has passed, whichever is first
-          let waiting = 4000
-          Hooks.once('midi-qol.RollComplete', () => {
-            waiting = 0
-          })
-          while (waiting > 0) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-            waiting -= 100
-          }
+          await waitForMidiRollComplete(4000)
         }
       }
       else {
@@ -321,76 +288,16 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         damageRoll = await damageRoll.evaluate()
 
         // Roll Dice so Nice dice
-        if (game.modules.get('dice-so-nice')?.active && game.settings.get(moduleName, 'enableDiceSoNice')) {
-          await game.dice3d.showForRoll(damageRoll, game.user, game.settings.get('core', 'rollMode') === 'publicroll' || game.settings.get('core', 'rollMode') === 'roll')
-        }
+        await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
 
-        let workflow = await new MidiQOL.DamageOnlyWorkflow(
-          weaponData.actor,
-          // (targetToken) ? targetToken : undefined,
-          targetToken ?? undefined,
-          damageRoll.total,
-          damageTypeLabels[0],
-          // (targetToken) ? [targetToken] : [],
-          targetToken ? [targetToken] : [],
-          damageRoll,
-          {
-            flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-            item: weaponData,
-            itemCardUuid: `new`,
-          },
-        )
+        let workflow = await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
 
-        // prepare data for Midi's On Use Macro feature
-        if (game.settings.get(moduleName, 'enableMidiOnUseMacro') && getProperty(weaponData, 'flags.midi-qol.onUseMacroName')) {
-          await new Promise(resolve => setTimeout(resolve, 300))
-          const macroData = {
-            actor: weaponData.actor,
-            actorUuid: weaponData.actor.uuid,
-            tokenId: workflow.tokenId,
-            tokenUuid: workflow.tokenUuid,
-            targets: targetToken ? [targetToken] : [],
-            hitTargets: targetToken ? [targetToken] : [],
-            damageRoll: damageRoll,
-            damageRollHTML: workflow.damageRollHTML,
-            attackRoll: successfulAttackRolls[0],
-            attackTotal: successfulAttackRolls[0].total,
-            itemCardUuid: (game.settings.get(moduleName, 'dontSendItemCardUuid')) ? null : workflow.itemCardUuid,
-            isCritical: (numCrits > 0),
-            isFumble: false,
-            spellLevel: 0,
-            powerLevel: 0,
-            damageTotal: damageRoll.total,
-            damageDetail: workflow.damageDetail,
-            damageList: workflow.damageList,
-            otherDamageTotal: 0,
-            otherDamageDetail: workflow.otherDamageDetail,
-            otherDamageList: [{ damage: damageRoll.total, type: damageTypes[0] }],
-            rollOptions: { advantage: data.withAdvantage, disadvantage: data.withDisadvantage, versatile: isVersatile, fastForward: true },
-            advantage: data.withAdvantage,
-            disadvantage: data.withDisadvantage,
-            event: null,
-            uuid: workflow.uuid,
-            rollData: weaponData.actor.getRollData(),
-            tag: 'OnUse',
-            concentrationData: getProperty(weaponData.actor.flags, 'midi-qol.concentration-data'),
-            templateId: workflow.templateId,
-            templateUuid: workflow.templateUuid,
-          }
-
-          let j = 0
-          for (let i = 0; i < numHitAttacks; i++) {
-            if (j < tokenAttackList.length) {
-              j = i
-            }
-            else {
-              j = tokenAttackList.length - 1
-            }
-            macroData.tokenId = tokenAttackList[j].tokenId
-            macroData.tokenUuid = tokenAttackList[j].tokenUuid
-            await callMidiMacro(weaponData, macroData)
-          }
-        }
+        await callOnUseMacroForHits(weaponData, workflow, {
+          data, targetToken, damageRoll, damageTypes, isVersatile, numHitAttacks, tokenAttackList,
+          attackRoll: successfulAttackRolls[0],
+          attackTotal: successfulAttackRolls[0].total,
+          isCritical: (numCrits > 0),
+        })
       }
       // Midi-QOL not active
     }
@@ -447,31 +354,8 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         }
       }
     }
-    // trigger AutoAnimations
-    if (game.settings.get(moduleName, 'enableAutoAnimations')) {
-      let j = 0
-      if (game.modules.get('autoanimations')?.active) {
-        for (let i = 0; i < numHitAttacks; i++) {
-          if (j < tokenAttackList.length) {
-            j = i
-          }
-          else {
-            j = tokenAttackList.length - 1
-          }
-          if (tokenAttackList.length > 0) {
-            const target = canvas.tokens.get(targetId)
-            let options = {}
-            if (typeof target !== 'undefined') {
-              // don't try to pass target data if a target hasn't been selected
-              options = { targets: [target] }
-            }
-            AutomatedAnimations.playAnimation(canvas.tokens.get(tokenAttackList[j].tokenId), weaponData, options)
-          }
-        }
-      }
-    }
+    playAttackAnimations(weaponData, tokenAttackList, numHitAttacks, targetId)
   }
 
-  // Allow DSN 3d dice to be rolled again
-  if (game.user.isGM) await game.settings.set(moduleName, 'hiddenDSNactiveFlag', true)
+  await restoreDiceSoNice()
 }

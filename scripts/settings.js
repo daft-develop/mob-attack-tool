@@ -266,14 +266,6 @@ export const matSettings = {
     type: Boolean,
     default: false,
   },
-  autoSaveCTGgroups: {
-    name: 'SETTINGS.MAT.autoSaveCTGgroups',
-    hint: 'SETTINGS.MAT.autoSaveCTGgroupsHint',
-    scope: 'world',
-    config: false,
-    type: Boolean,
-    default: false,
-  },
 }
 
 export function initSettings() {
@@ -435,14 +427,6 @@ export function buildSettingsData() {
           hint: matSettings.hideDSNAttackRoll.hint,
           value: game.settings.get(moduleName, 'hideDSNAttackRoll'),
           id: 'hideDSNAttackRoll',
-          isCheckbox: true,
-          client: game.user.isGM,
-        },
-        autoSaveCTGgroups: {
-          name: matSettings.autoSaveCTGgroups.name,
-          hint: matSettings.autoSaveCTGgroups.hint,
-          value: game.settings.get(moduleName, 'autoSaveCTGgroups'),
-          id: 'autoSaveCTGgroups',
           isCheckbox: true,
           client: game.user.isGM,
         },
