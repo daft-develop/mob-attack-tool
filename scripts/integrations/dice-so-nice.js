@@ -52,6 +52,22 @@ export async function restoreDiceSoNice() {
 }
 
 /**
+ * Run a mob attack with Dice So Nice suspended, restoring it once the attack
+ * finishes, returns early or throws
+ * @param {() => Promise<*>} callback - the mob attack
+ * @returns {Promise<*>} what the callback returns
+ */
+export async function withDiceSoNiceSuspended(callback) {
+  await suspendDiceSoNice()
+  try {
+    return await callback()
+  }
+  finally {
+    await restoreDiceSoNice()
+  }
+}
+
+/**
  * Register the hook that blinds Dice So Nice rolls while a mob attack has them suspended
  */
 export function registerDiceSoNiceHooks() {
