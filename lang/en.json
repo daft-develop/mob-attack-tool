@@ -3,6 +3,7 @@
 	"MAT.mobAttack": "Mob Attack",
 	"MAT.mobAttackResults": "Mob Attack Results",
 	"MAT.selectTokenWarning": "You need to select one or more tokens!",
+	"MAT.selectWeaponWarning": "You need to select one or more weapon to export a macro!",
 	"MAT.singleTargetWarning": "Make sure no more than one token is targeted!",
 	"MAT.targetValidACWarning": "Target at least one token (and make sure it has a valid AC value)!",
 	"MAT.noTargetAllAttacksHitText": "No tokens are targeted, so all attacks will hit.",

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { escapeHTML, findWeaponEntries, getMobActors, getUserMobNames, stepMobName } from '../../scripts/ui/dialog/dialog-context.js'
+import { escapeHTML, findMonsterActor, findWeaponEntries, getMobActors, getUserMobNames, stepMobName } from '../../scripts/ui/dialog/dialog-context.js'
 
 const goblin = { id: 'goblin' }
 const ogre = { id: 'ogre' }
@@ -110,5 +110,36 @@ describe('stepMobName', () => {
   it('returns undefined when there are no saved mobs', () => {
     expect(stepMobName([], 'Unsaved mob', 0, 1)).toBeUndefined()
     expect(stepMobName([], 'Unsaved mob', 0, -1)).toBeUndefined()
+  })
+})
+
+describe('findMonsterActor', () => {
+  const worldActors = new Map([['goblin', { id: 'goblin', world: true }]])
+
+  it('prefers the actor already in the mob, e.g. an unlinked token actor', () => {
+    const tokenGoblin = { id: 'goblin', world: false }
+    expect(findMonsterActor([ogre, tokenGoblin], 'goblin', worldActors)).toBe(tokenGoblin)
+  })
+
+  it('falls back to the world actor', () => {
+    expect(findMonsterActor([ogre], 'goblin', worldActors)).toEqual({ id: 'goblin', world: true })
+  })
+
+  it('is undefined when the actor no longer exists', () => {
+    expect(findMonsterActor([ogre], 'troll', worldActors)).toBeUndefined()
+  })
+})
+
+describe('stepMobName with no saved mobs', () => {
+  it('returns undefined, so the dialog loads nothing', () => {
+    expect(stepMobName([], 'Unsaved mob', 0, 1)).toBeUndefined()
+    expect(stepMobName([], 'Unsaved mob', 0, -1)).toBeUndefined()
+  })
+})
+
+describe('stepMobName from an unknown position', () => {
+  it('steps to the first or last mob when the fallback index is -1', () => {
+    expect(stepMobName(['A', 'B', 'C'], 'Unsaved mob', -1, 1)).toBe('A')
+    expect(stepMobName(['A', 'B', 'C'], 'Unsaved mob', -1, -1)).toBe('C')
   })
 })

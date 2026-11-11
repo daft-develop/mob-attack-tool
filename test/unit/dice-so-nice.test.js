@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { isDiceSoNiceEnabled, isPublicRollMode, registerDiceSoNiceHooks, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from '../../scripts/integrations/dice-so-nice.js'
+import { isDiceSoNiceEnabled, isPublicRollMode, registerDiceSoNiceHooks, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice, withDiceSoNiceSuspended } from '../../scripts/integrations/dice-so-nice.js'
 
 let settings
 let moduleActive
@@ -98,5 +98,29 @@ describe('suspending Dice So Nice during a mob attack', () => {
     const hidden = {}
     hook('message2', hidden)
     expect(hidden.blind).toBe(true)
+  })
+})
+
+describe('withDiceSoNiceSuspended', () => {
+  beforeEach(() => {
+    settings['mob-attack-tool.enableDiceSoNice'] = false
+  })
+
+  it('suspends during the callback and restores afterwards', async () => {
+    let flagDuring
+    const result = await withDiceSoNiceSuspended(async () => {
+      flagDuring = settings['mob-attack-tool.hiddenDSNactiveFlag']
+      return 'done'
+    })
+    expect(flagDuring).toBe(false)
+    expect(result).toBe('done')
+    expect(settings['mob-attack-tool.hiddenDSNactiveFlag']).toBe(true)
+  })
+
+  it('restores when the callback throws', async () => {
+    await expect(withDiceSoNiceSuspended(async () => {
+      throw new Error('boom')
+    })).rejects.toThrow('boom')
+    expect(settings['mob-attack-tool.hiddenDSNactiveFlag']).toBe(true)
   })
 })

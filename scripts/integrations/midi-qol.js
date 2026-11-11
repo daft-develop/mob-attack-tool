@@ -160,7 +160,8 @@ export async function callMidiMacro(item, midiMacroData) {
         console.log(`Mob Attack Tool - Could not find item macro ${macroName}`)
         return {}
       }
-      return (new Function(`"use strict";
+      // await inside the try, so a rejecting macro is reported by the catch below
+      return await (new Function(`"use strict";
         return (async function ({speaker, actor, token, character, item, args}={}) {
           ${itemMacro.command}
           });`))().call(this, { speaker, actor, token, character, item, args })
@@ -168,7 +169,7 @@ export async function callMidiMacro(item, midiMacroData) {
     else {
       const macroCommand = game.macros.getName(macroName)
       if (macroCommand) {
-        return macroCommand.execute(macroData) || {}
+        return (await macroCommand.execute(macroData)) || {}
       }
     }
   }

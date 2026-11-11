@@ -1,13 +1,15 @@
 import { moduleName, templatePath } from './constants.js'
 import { getTargetToken } from './integrations/multilevel-tokens.js'
-import { isPublicRollMode, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from './integrations/dice-so-nice.js'
+import { isPublicRollMode, showDiceSoNiceRoll, withDiceSoNiceSuspended } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
 import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from './integrations/midi-qol.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
-export async function rollMobAttackIndividually(data) {
-  await suspendDiceSoNice()
+export function rollMobAttackIndividually(data) {
+  return withDiceSoNiceSuspended(() => rollMobAttackIndividuallySuspended(data))
+}
 
+async function rollMobAttackIndividuallySuspended(data) {
   // Cycle through selected weapons
   let attackData = []
   let messageData = { messages: {} }
@@ -191,7 +193,7 @@ export async function rollMobAttackIndividually(data) {
 
   // Process damage rolls
   for (let attack of attackData) {
-    await processIndividualDamageRolls(attack, attack.weaponData, attack.finalAttackBonus, attack.availableAttacks, attack.successfulAttackRolls, attack.numHitAttacks, attack.numCrits, attack.isVersatile, attack.tokenAttackList, attack.targetId)
+    await processIndividualDamageRolls(attack.data, attack.weaponData, attack.finalAttackBonus, attack.availableAttacks, attack.successfulAttackRolls, attack.numHitAttacks, attack.numCrits, attack.isVersatile, attack.tokenAttackList, attack.targetId)
     await new Promise(resolve => setTimeout(resolve, 500))
   }
 
@@ -356,6 +358,4 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
     }
     playAttackAnimations(weaponData, tokenAttackList, numHitAttacks, targetId)
   }
-
-  await restoreDiceSoNice()
 }

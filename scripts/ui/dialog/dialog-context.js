@@ -336,7 +336,8 @@ export function getUserMobNames(mobList, userId) {
  * The mob name before or after the current one, wrapping around at either end
  * @param {string[]} mobNames - the names to step through
  * @param {string} currentName - the name shown in the dialog
- * @param {number} fallbackIndex - index to step from when currentName isn't in mobNames
+ * @param {number} fallbackIndex - index in mobNames to step from when currentName isn't in mobNames;
+ *   -1 when neither is known, so the next mob is the first and the previous the last
  * @param {number} direction - -1 for the previous mob, 1 for the next
  * @returns {string|undefined} the mob name to load, undefined when mobNames is empty
  */
@@ -350,4 +351,16 @@ export function stepMobName(mobNames, currentName, fallbackIndex, direction) {
     index = 0
   }
   return mobNames[index]
+}
+
+/**
+ * The actor to add when the dialog raises a monster's count: one already in
+ * the mob (a token's actor, with that token's items), else the world actor
+ * @param {Actor5e[]} actorList - the mob's actors
+ * @param {string} actorId - the monster's actor id
+ * @param {Collection<Actor5e>} [worldActors] - world actors, game.actors by default
+ * @returns {Actor5e|undefined} the actor, or undefined if it no longer exists
+ */
+export function findMonsterActor(actorList, actorId, worldActors = game.actors) {
+  return actorList.find(actor => actor?.id === actorId) ?? worldActors.get(actorId)
 }

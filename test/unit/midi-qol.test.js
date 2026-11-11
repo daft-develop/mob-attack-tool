@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from '../../scripts/integrations/midi-qol.js'
+import { callMidiMacro, callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from '../../scripts/integrations/midi-qol.js'
 
 let settings
 let moduleActive
@@ -158,5 +158,50 @@ describe('callOnUseMacroForHits', () => {
     settings.enableMidiOnUseMacro = true
     await run({}, { actor, flags: {} })
     expect(executed).toEqual([])
+  })
+})
+
+describe('callMidiMacro', () => {
+  const actor = { name: 'Goblin', items: { find: () => undefined } }
+
+  function weapon(macroName, flags = {}) {
+    return {
+      id: 'w1',
+      name: 'Scimitar',
+      uuid: 'Item.w1',
+      flags: { 'midi-qol': { onUseMacroName: macroName }, ...flags },
+      toObject: () => ({}),
+    }
+  }
+
+  beforeEach(() => {
+    globalThis.ui = { notifications: { error: vi.fn() } }
+    globalThis.canvas = { tokens: { get: () => undefined } }
+    game.user = { character: null }
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('reports a throwing Item Macro instead of rejecting', async () => {
+    const item = weapon('ItemMacro', { itemacro: { macro: { command: 'throw new Error("macro failed")' } } })
+    await expect(callMidiMacro(item, { actor })).resolves.toEqual({})
+    expect(ui.notifications.error).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports a world macro whose execute rejects instead of rejecting', async () => {
+    const execute = async () => {
+      throw new Error('macro failed')
+    }
+    game.macros = { getName: () => ({ execute }) }
+    await expect(callMidiMacro(weapon('Some Macro'), { actor })).resolves.toEqual({})
+    expect(ui.notifications.error).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns what a world macro resolves to', async () => {
+    game.macros = { getName: () => ({ execute: async () => ({ haltEffectsApplication: true }) }) }
+    await expect(callMidiMacro(weapon('Some Macro'), { actor })).resolves.toEqual({ haltEffectsApplication: true })
   })
 })

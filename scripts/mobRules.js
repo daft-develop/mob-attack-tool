@@ -1,13 +1,15 @@
 import { moduleName, templatePath } from './constants.js'
 import { getTargetToken } from './integrations/multilevel-tokens.js'
-import { restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice } from './integrations/dice-so-nice.js'
+import { showDiceSoNiceRoll, withDiceSoNiceSuspended } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
 import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow } from './integrations/midi-qol.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
-export async function rollMobAttack(data, mobRulesSetting) {
-  await suspendDiceSoNice()
+export function rollMobAttack(data, mobRulesSetting) {
+  return withDiceSoNiceSuspended(() => rollMobAttackSuspended(data, mobRulesSetting))
+}
 
+async function rollMobAttackSuspended(data, mobRulesSetting) {
   const customTable = game.settings.get(moduleName, 'hiddenTableCheckBox')
     ? game.settings.get(moduleName, 'tempSetting')
     : null
@@ -132,7 +134,7 @@ export async function rollMobAttack(data, mobRulesSetting) {
     }
 
     for (let attack of attackData) {
-      await processMobRulesDamageRolls(attack, attack.weaponData, attack.numHitAttacks, attack.isVersatile, attack.tokenAttackList, attack.targetId)
+      await processMobRulesDamageRolls(attack.data, attack.weaponData, attack.numHitAttacks, attack.isVersatile, attack.tokenAttackList, attack.targetId)
       await new Promise(resolve => setTimeout(resolve, 500))
     }
 
@@ -200,5 +202,4 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     }
   }
   playAttackAnimations(weaponData, tokenAttackList, numHitAttacks, targetId)
-  await restoreDiceSoNice()
 }

@@ -26,10 +26,14 @@ export function macroObject() {
           delete data.attacks[locator.weaponID]
           return
         }
-        weapons[weapon.id] = weapon
+        // Key the weapon by its id when the macro was exported, which the
+        // attack keys and the targets' weapon ids still use. The weapon found
+        // now can have another id, e.g. a same-named item on another token.
+        const exportedId = locator.weaponID.replace(` (${game.i18n.localize('Versatile')})`, '')
+        weapons[exportedId] = weapon
         attacks[locator.weaponID] = []
         for (let target of targets) {
-          attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === weapon.id).length })
+          attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === exportedId).length })
         }
       })
 
@@ -85,7 +89,8 @@ export function macroObject() {
     const dialogId = game.settings.get(moduleName, 'currentDialogId')
     let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
     if (mobDialog) {
-      mobDialog.localUpdate = true
+      // keep the dialog's checkbox and attack count edits
+      mobDialog.mat.localUpdate = true
       mobDialog.render()
     }
 
@@ -115,7 +120,7 @@ export function macroObject() {
     const dialogId = game.settings.get(moduleName, 'currentDialogId')
     let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
     if (mobDialog) {
-      mobDialog.localUpdate = true
+      // not a local update: the deleted mob's monsters must not be kept
       await game.settings.set(moduleName, 'hiddenChangedMob', false)
       mobDialog.render()
     }
