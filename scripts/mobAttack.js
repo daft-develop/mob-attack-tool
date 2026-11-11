@@ -85,7 +85,6 @@ Hooks.on('updateCombat', async (combat, changed) => {
   if (mobDialog) mobDialog.currentlySelectingTokens = true
   selectTokens(mobList[nextMobName].selectedTokenIds)
   if (mobDialog) {
-    mobDialog.numSelected = canvas.tokens.controlled.length
     mobDialog.currentlySelectingTokens = false
     mobDialog.render()
   }

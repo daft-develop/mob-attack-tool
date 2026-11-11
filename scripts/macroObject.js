@@ -85,7 +85,8 @@ export function macroObject() {
     const dialogId = game.settings.get(moduleName, 'currentDialogId')
     let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
     if (mobDialog) {
-      mobDialog.localUpdate = true
+      // keep the dialog's checkbox and attack count edits
+      mobDialog.mat.localUpdate = true
       mobDialog.render()
     }
 
@@ -115,7 +116,7 @@ export function macroObject() {
     const dialogId = game.settings.get(moduleName, 'currentDialogId')
     let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
     if (mobDialog) {
-      mobDialog.localUpdate = true
+      // not a local update: the deleted mob's monsters must not be kept
       await game.settings.set(moduleName, 'hiddenChangedMob', false)
       mobDialog.render()
     }
