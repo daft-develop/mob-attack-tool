@@ -169,7 +169,9 @@ export async function callMidiMacro(item, midiMacroData) {
     else {
       const macroCommand = game.macros.getName(macroName)
       if (macroCommand) {
-        return (await macroCommand.execute(macroData)) || {}
+        // As midi-qol does, pass the data as args[0]; its keys stay available
+        // as variables too, as they were before
+        return (await macroCommand.execute({ ...macroData, args: [macroData] })) || {}
       }
     }
   }
