@@ -134,7 +134,7 @@ async function rollMobAttackSuspended(data, mobRulesSetting) {
     }
 
     for (let attack of attackData) {
-      await processMobRulesDamageRolls(attack, attack.weaponData, attack.numHitAttacks, attack.isVersatile, attack.tokenAttackList, attack.targetId)
+      await processMobRulesDamageRolls(attack.data, attack.weaponData, attack.numHitAttacks, attack.isVersatile, attack.tokenAttackList, attack.targetId)
       await new Promise(resolve => setTimeout(resolve, 500))
     }
 

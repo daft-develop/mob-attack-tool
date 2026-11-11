@@ -193,7 +193,7 @@ async function rollMobAttackIndividuallySuspended(data) {
 
   // Process damage rolls
   for (let attack of attackData) {
-    await processIndividualDamageRolls(attack, attack.weaponData, attack.finalAttackBonus, attack.availableAttacks, attack.successfulAttackRolls, attack.numHitAttacks, attack.numCrits, attack.isVersatile, attack.tokenAttackList, attack.targetId)
+    await processIndividualDamageRolls(attack.data, attack.weaponData, attack.finalAttackBonus, attack.availableAttacks, attack.successfulAttackRolls, attack.numHitAttacks, attack.numCrits, attack.isVersatile, attack.tokenAttackList, attack.targetId)
     await new Promise(resolve => setTimeout(resolve, 500))
   }
 
