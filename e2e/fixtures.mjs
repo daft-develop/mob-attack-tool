@@ -60,6 +60,18 @@ export const test = base.extend({
     await use(page)
     await context.close()
   }, { scope: 'worker' }],
+
+  // A logged-in player page in its own browser context, alongside the GM's.
+  // Depends on gm, so module changes the GM makes happen before it joins.
+  // eslint-disable-next-line no-unused-vars -- gm is only a dependency, see above
+  player: [async ({ browser, gm }, use) => {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    page.on('pageerror', error => console.log(`[player browser error] ${error.message}`))
+    await joinWorld(page, settings.playerUser, settings.playerPassword)
+    await use(page)
+    await context.close()
+  }, { scope: 'worker' }],
 })
 
 export { expect }
