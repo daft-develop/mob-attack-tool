@@ -90,22 +90,6 @@ export async function getTargetData(monsters) {
 }
 
 /**
- * Check if a token is targeted by the current user
- * @param {Token} token - The token to check
- * @returns {boolean|undefined} True if targeted, undefined otherwise
- */
-export function isTargeted(token) {
-  if (token.isTargeted) {
-    let targetUsers = token.targeted.entries().next().value
-    for (let i = 0; i < targetUsers.length; i++) {
-      if (targetUsers[i].id === game.user.id) {
-        return true
-      }
-    }
-  }
-}
-
-/**
  * Control exactly the given tokens on the current scene, releasing all others
  * Tokens that are no longer on the scene are skipped
  * @param {string[]} tokenIds - ids of the tokens to select

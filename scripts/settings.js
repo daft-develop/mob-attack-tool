@@ -306,13 +306,8 @@ export async function migrateOldSettings() {
   if (mobRulesSetting === '1') await game.settings.set(moduleName, 'mobRules', 'individual')
 }
 
-// ---------------------------------------------------------------------------
-// Shared data-building helper used by both menu implementations
-// ---------------------------------------------------------------------------
-
 /**
  * Builds the context/data object for the settings template.
- * Extracted so both AppV2 and FormApplication can share identical logic.
  */
 export function buildSettingsData() {
   const data = {
@@ -497,7 +492,7 @@ export function buildSettingsData() {
 
 /**
  * Validates and corrects the custom mob table array submitted via the form,
- * then persists each setting key. Used by both menu implementations.
+ * then persists each setting key.
  */
 export async function saveFormData(formData) {
   for (let [settingKey, value] of Object.entries(formData)) {

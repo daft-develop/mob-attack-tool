@@ -11,7 +11,7 @@ export { getActivityFromItem, getAttackData, getAttackBonus, isMobAttackItem } f
 export { getSpellMethod, getCasterLevel, simplifyFormula, formatAttackTargets, getDamageOptions, getDamageMessageData } from './system/dnd5e.js'
 
 // Foundry side effects
-export { checkTarget, getTargetData, isTargeted } from './foundry/targets.js'
+export { checkTarget, getTargetData } from './foundry/targets.js'
 export { endGroupedMobTurn } from './foundry/combat.js'
 export { sendChatMessage } from './foundry/chat.js'
 
