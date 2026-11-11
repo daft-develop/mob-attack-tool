@@ -351,3 +351,15 @@ export function stepMobName(mobNames, currentName, fallbackIndex, direction) {
   }
   return mobNames[index]
 }
+
+/**
+ * The actor to add when the dialog raises a monster's count: one already in
+ * the mob (a token's actor, with that token's items), else the world actor
+ * @param {Actor5e[]} actorList - the mob's actors
+ * @param {string} actorId - the monster's actor id
+ * @param {Collection<Actor5e>} [worldActors] - world actors, game.actors by default
+ * @returns {Actor5e|undefined} the actor, or undefined if it no longer exists
+ */
+export function findMonsterActor(actorList, actorId, worldActors = game.actors) {
+  return actorList.find(actor => actor?.id === actorId) ?? worldActors.get(actorId)
+}

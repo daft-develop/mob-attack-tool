@@ -3,7 +3,7 @@ import { checkTarget, getSelectedTokenIds, getSelectedTokens, getTargetData, sel
 import { sumCheckedAttacks, sumTargetAttacks } from '../../core/attack-totals.js'
 import { buildMacroName, buildQuickRollCommand } from '../../core/macro-export.js'
 import { getTargetActor, withoutTargetedClones } from '../../integrations/multilevel-tokens.js'
-import { escapeHTML, findWeaponEntries, getMobActors, getUserMobNames, prepareMonsters, prepareMobAttack, stepMobName } from './dialog-context.js'
+import { escapeHTML, findMonsterActor, findWeaponEntries, getMobActors, getUserMobNames, prepareMonsters, prepareMobAttack, stepMobName } from './dialog-context.js'
 import { rollMobAttack } from '../../mobRules.js'
 import { rollMobAttackIndividually } from '../../individualRolls.js'
 
@@ -290,11 +290,13 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   async _loadMob(currentDialog, selectedMob) {
     let _mobList = game.settings.get(moduleName, 'hiddenMobList')
 
+    // check the mob exists before switching the dialog to it
+    let _mobData = _mobList[selectedMob]
+    if (_mobData === undefined || _mobData === null) return
+
     await game.settings.set(moduleName, 'hiddenChangedMob', true)
     await game.settings.set(moduleName, 'hiddenMobName', selectedMob)
 
-    let _mobData = _mobList[selectedMob]
-    if (_mobData === undefined || _mobData === null) return
     let _actorList = getMobActors(_mobData)
     const [, _weapons] = await prepareMonsters(_actorList)
 
@@ -329,6 +331,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     const mobList = game.settings.get(moduleName, 'hiddenMobList')
     const currentMobName = $(this.element).find(`input[name="mobName"]`)[0].value
     const mobName = stepMobName(getUserMobNames(mobList, game.user.id), currentMobName, this.mat.mobListIndex, direction)
+    // the user has no saved mobs
+    if (mobName === undefined) return
     await this._loadMob(this, mobName)
   }
 
@@ -448,7 +452,9 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     let monsterId = target.parentElement.previousElementSibling.getAttribute('name')
     for (let monsterKey of Object.keys(this.mat.monsters)) {
       if (monsterKey === monsterId) {
-        this.mat.actorList.push(game.actors.get(monsterKey))
+        const actor = findMonsterActor(this.mat.actorList, monsterKey)
+        if (!actor) break
+        this.mat.actorList.push(actor)
         let [monsters, weapons, availableAttacks] = await prepareMonsters(this.mat.actorList, true, this.mat.monsters)
         this.mat.monsters = monsters
         this.mat.weapons = weapons
@@ -587,15 +593,17 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     // prepare data
     const selectedTokenIds = getSelectedTokenIds()
     let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters, this.mat.actorList)
-    let mobList = game.settings.get(moduleName, 'hiddenMobList')
 
     // Create macro
     let key = Object.keys(mobAttackData.attacks)[0]
+    if (key === undefined) {
+      ui.notifications.warn(game.i18n.localize('MAT.selectWeaponWarning'))
+      return
+    }
     if (key.endsWith(`(${game.i18n.localize('Versatile')})`)) key = key.slice(0, key.indexOf(` (${game.i18n.localize('Versatile')})`))
     const macroNameWords = { prefix: game.i18n.localize('MAT.macroNamePrefix'), postfix: game.i18n.localize('MAT.macroNamePostfix') }
-    const macroName = (getSelectedTokens().length > 0 || Object.keys(mobList).length === 0)
-      ? buildMacroName(mobAttackData.weapons[key].name, getSelectedTokens().length, getSelectedTokens()[0].name, macroNameWords)
-      : buildMacroName(mobAttackData.weapons[key].name, mobList[Object.keys(mobList)[0]].numSelected, Object.keys(mobList)[0], macroNameWords)
+    // tokens are selected here: the check above returned otherwise
+    const macroName = buildMacroName(mobAttackData.weapons[key].name, getSelectedTokens().length, getSelectedTokens()[0].name, macroNameWords)
 
     const input = await foundry.applications.api.DialogV2.input({
       window: { title: game.i18n.localize('Macro Name') },
@@ -627,10 +635,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!overwrite) return
     }
 
-    if (game.settings.get(moduleName, 'hiddenChangedMob')) {
-      mobAttackData.numSelected = mobList[Object.keys(mobList)[0]].numSelected
-    }
-
+    // prepareMobAttack already took numSelected from the loaded saved mob
     let macroData = {
       type: 'script',
       name: userMacroName,
@@ -747,8 +752,9 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
           else {
             // adding more monsters (_delta > 0)
             // actor only (no token adds)
-            for (let i = 0; i < _deltaActors; i++) {
-              this.mat.actorList.push(game.actors.get(_monsterId))
+            const actor = findMonsterActor(this.mat.actorList, _monsterId)
+            for (let i = 0; actor && i < _deltaActors; i++) {
+              this.mat.actorList.push(actor)
             }
           }
 
