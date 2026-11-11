@@ -1,5 +1,5 @@
 import { moduleName, templatePath } from './constants.js'
-import { getTargetToken } from './integrations/multilevel-tokens.js'
+import { getDamageTargetId, getTargetToken } from './integrations/multilevel-tokens.js'
 import { isPublicRollMode, showDiceSoNiceRoll, withDiceSoNiceSuspended } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
 import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from './integrations/midi-qol.js'
@@ -309,11 +309,11 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await new Promise(resolve => setTimeout(resolve, 300))
           let damageOptions
           if (successfulAttackRolls[i].total - finalAttackBonus >= critThreshold && numCrits > 0) {
-            damageOptions = getDamageOptions(true, targetId)
+            damageOptions = getDamageOptions(true, getDamageTargetId(targetId))
             numCrits--
           }
           else {
-            damageOptions = getDamageOptions(false, targetId)
+            damageOptions = getDamageOptions(false, getDamageTargetId(targetId))
           }
           await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, damageOptions.message)
         }
@@ -350,7 +350,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await damageRoll.toMessage(
             {
               flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-              ...getDamageMessageData(targetId),
+              ...getDamageMessageData(getDamageTargetId(targetId)),
             },
           )
         }
