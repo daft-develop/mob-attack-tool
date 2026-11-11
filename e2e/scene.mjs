@@ -127,3 +127,52 @@ export async function waitForMessages(page, afterId, count) {
     return messages.length - start >= count
   }, { afterId, count }, { timeout: 30_000 })
 }
+
+/**
+ * Set up a Multilevel Tokens clone: draw a source and a target region (Multilevel
+ * Tokens regions are drawings with its flags), place a token of a world actor in
+ * the source region, and wait for the module to clone it into the target region.
+ * The module must be active. Remove everything with removeClone.
+ * @param {import('@playwright/test').Page} page - a GM page
+ * @param {string} actorName - the world actor's name
+ * @returns {Promise<{source: string, clone: string, drawings: string[]}>} the token and drawing ids
+ */
+export async function createClone(page, actorName) {
+  return page.evaluate(async (actorName) => {
+    const grid = canvas.scene.grid.size
+    const { sceneX, sceneY } = canvas.dimensions
+    const region = { disabled: false, local: false, playersOnly: false, in: false, out: false, cloneId: 'mat-e2e', macroEnter: false, macroLeave: false, macroMove: false, level: false }
+    const rect = (col, source) => ({
+      x: sceneX + grid * col,
+      y: sceneY + grid * 12,
+      shape: { type: 'r', width: grid * 4, height: grid * 3 },
+      text: `[MAT e2e] ${source ? 'source' : 'target'}`,
+      flags: { 'multilevel-tokens': { ...region, source, target: !source } },
+    })
+    const drawings = await canvas.scene.createEmbeddedDocuments('Drawing', [rect(2, true), rect(10, false)])
+
+    const actor = game.actors.getName(actorName)
+    const token = await actor.getTokenDocument({ x: sceneX + grid * 3, y: sceneY + grid * 13, actorLink: false })
+    const [source] = await canvas.scene.createEmbeddedDocuments('Token', [token.toObject()])
+    let clone
+    for (let tries = 0; tries < 50 && !clone; tries++) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      clone = canvas.tokens.placeables.find(t => t.document.flags['multilevel-tokens']?.stoken === source.id)
+    }
+    if (!clone) throw new Error('Multilevel Tokens did not clone the token')
+    return { source: source.id, clone: clone.id, drawings: drawings.map(d => d.id) }
+  }, actorName)
+}
+
+/**
+ * Remove a clone set up by createClone: its source token (Multilevel Tokens removes the clone) and the regions
+ * @param {import('@playwright/test').Page} page - a GM page
+ * @param {{source: string, clone: string, drawings: string[]}} setup - from createClone
+ */
+export async function removeClone(page, setup) {
+  await page.evaluate(async ({ source, clone, drawings }) => {
+    const tokens = [source, clone].filter(id => canvas.scene.tokens.has(id))
+    if (tokens.length) await canvas.scene.deleteEmbeddedDocuments('Token', tokens)
+    await canvas.scene.deleteEmbeddedDocuments('Drawing', drawings.filter(id => canvas.scene.drawings.has(id)))
+  }, setup)
+}

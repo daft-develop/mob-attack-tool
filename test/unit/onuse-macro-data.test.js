@@ -11,7 +11,7 @@ vi.mock('../../scripts/integrations/midi-qol.js', () => ({
   waitForMidiRollComplete: vi.fn(async () => {}),
 }))
 vi.mock('../../scripts/integrations/automated-animations.js', () => ({ playAttackAnimations: vi.fn() }))
-vi.mock('../../scripts/integrations/multilevel-tokens.js', () => ({ getTargetToken: t => t }))
+vi.mock('../../scripts/integrations/multilevel-tokens.js', () => ({ getTargetToken: t => t, getDamageTargetId: id => id }))
 vi.mock('../../scripts/utils.js', () => ({
   endGroupedMobTurn: vi.fn(),
   getDamageFormulaAndType: () => [['1d6'], ['slashing'], ['slashing']],

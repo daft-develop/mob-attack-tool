@@ -65,8 +65,10 @@ export function formatAttackTargets() {
  * Target descriptors for a single token, so a damage card only lists the
  * target its attacks were assigned to rather than every current target
  * dnd5e 6.0 descriptors are { actor, token, name, img, ac }, keyed by token,
- * and can be built for any tokens. Before 6.0 they are { uuid, name, img, ac }
- * with the actor's uuid, and only cover the user's current targets
+ * and built by dnd5e for any tokens. Before 6.0 they are { name, img, uuid, ac }
+ * with the actor's uuid; dnd5e only builds those for the user's targets, so
+ * they are built here the same way, for tokens that aren't targeted (such as
+ * a Multilevel Tokens clone's source)
  * @param {string|null} targetId - token ID, or null for no target
  * @returns {object[]} the matching descriptor, or an empty array
  */
@@ -76,8 +78,11 @@ function getTargetDescriptors(targetId) {
   if (systemEqualOrNewerThan('6.0.0')) {
     return dnd5e.dataModels.chatMessage.fields.TargetsField.getDescriptors([token])
   }
-  const actorUuid = token.actor?.uuid
-  return dnd5e.utils.getTargetDescriptors().filter(target => target.uuid == actorUuid)
+  const actor = token.actor
+  if (!actor?.uuid) return []
+  // as dnd5e's getTargetDescriptors: total cover hides the AC
+  const ac = actor.statuses?.has('coverTotal') ? null : actor.system.attributes?.ac?.value
+  return [{ name: token.name, img: actor.img, uuid: actor.uuid, ac: ac ?? null }]
 }
 
 /**

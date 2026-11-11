@@ -1,5 +1,5 @@
 import { moduleName, templatePath } from './constants.js'
-import { getTargetToken } from './integrations/multilevel-tokens.js'
+import { getDamageTargetId, getTargetToken } from './integrations/multilevel-tokens.js'
 import { showDiceSoNiceRoll, withDiceSoNiceSuspended } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
 import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow } from './integrations/midi-qol.js'
@@ -180,7 +180,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     if (showDamageRolls) {
       await new Promise(resolve => setTimeout(resolve, 100))
       for (let i = 0; i < numHitAttacks; i++) {
-        const damageOptions = getDamageOptions(false, targetId)
+        const damageOptions = getDamageOptions(false, getDamageTargetId(targetId))
         await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, damageOptions.message)
         await new Promise(resolve => setTimeout(resolve, 300))
       }
@@ -196,7 +196,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
       await damageRoll.toMessage(
         {
           flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})`,
-          ...getDamageMessageData(targetId),
+          ...getDamageMessageData(getDamageTargetId(targetId)),
         },
       )
     }

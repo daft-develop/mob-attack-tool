@@ -1,20 +1,23 @@
 // Integration with the Multilevel Tokens module (https://foundryvtt.com/packages/multilevel-tokens)
-// Multilevel Tokens can clone a token onto other levels or scenes. A clone has
-// no actor of its own; its multilevel-tokens flags point at the source token
-// (stoken), and at the source scene (sscene) when that is another scene.
+// Multilevel Tokens can clone a token onto other levels or scenes. A clone's
+// multilevel-tokens flags point at the source token (stoken), and at the
+// source scene (sscene) when that is another scene. Source tokens carry no
+// multilevel-tokens flags. Since Foundry 11 a clone also has a synthetic
+// actor (a copy of the source's), so it can't be told apart by its actor.
 
 const MODULE_ID = 'multilevel-tokens'
 
 /**
  * The Multilevel Tokens flags of a clone token, or undefined for any other token
- * Only tokens without an actor (actor === null) are treated as clones, and
- * only while the module is active
+ * Only tokens whose flags name a source token are clones, and only while the
+ * module is active
  * @param {Token} token - a canvas token
  * @returns {{stoken: string, sscene?: string}|undefined} the clone's flags
  */
 function getCloneFlags(token) {
-  if (token?.actor !== null || !game.modules.get(MODULE_ID)?.active) return undefined
-  return token.document?.flags?.[MODULE_ID] ?? token.flags?.[MODULE_ID]
+  if (!token || !game.modules.get(MODULE_ID)?.active) return undefined
+  const flags = token.document?.flags?.[MODULE_ID] ?? token.flags?.[MODULE_ID]
+  return flags?.stoken ? flags : undefined
 }
 
 /**
@@ -38,22 +41,41 @@ export function withoutTargetedClones(tokens) {
 export function getTargetActor(token) {
   const flags = getCloneFlags(token)
   if (!flags) return token?.actor
-  if (flags.sscene) {
-    return game.scenes.get(flags.sscene)?.tokens.get(flags.stoken)?.actor
-  }
-  return canvas.tokens.get(flags.stoken)?.actor
+  return getSourceToken(flags)?.actor
 }
 
 /**
- * The token to hand to other modules (such as midi-qol) as the target: a
- * clone's source token when it is on another scene, otherwise the token itself
+ * The token that takes a targeted token's damage: a clone's source token
+ * (Multilevel Tokens doesn't sync damage from a clone back to its source),
+ * otherwise the token itself
  * @param {Token} token - a targeted canvas token
- * @returns {Token|TokenDocument|undefined} the target token
+ * @returns {Token|TokenDocument|undefined} the source Token on this scene, its TokenDocument on another scene, or the token
  */
 export function getTargetToken(token) {
   const flags = getCloneFlags(token)
-  if (flags?.sscene) {
-    return game.scenes.get(flags.sscene)?.tokens.get(flags.stoken)
-  }
-  return token
+  if (!flags) return token
+  return getSourceToken(flags)
+}
+
+/**
+ * A clone's source token
+ * @param {{stoken: string, sscene?: string}} flags - the clone's flags
+ * @returns {Token|TokenDocument|undefined} the canvas Token on this scene, or the TokenDocument on another scene
+ */
+function getSourceToken(flags) {
+  if (flags.sscene) return game.scenes.get(flags.sscene)?.tokens.get(flags.stoken)
+  return canvas.tokens.get(flags.stoken)
+}
+
+/**
+ * The id of the token a damage card should list for a target: a clone's
+ * source token when it is on this scene, otherwise the target itself
+ * (a token on another scene can't be listed on this scene's card)
+ * @param {string|null} targetId - the targeted token's id
+ * @returns {string|null} the token id for the damage card
+ */
+export function getDamageTargetId(targetId) {
+  const target = getTargetToken(canvas.tokens.get(targetId))
+  // a canvas Token has a document; a TokenDocument from another scene doesn't
+  return target?.document ? target.id : targetId
 }
