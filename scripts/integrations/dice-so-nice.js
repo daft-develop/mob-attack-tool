@@ -11,15 +11,8 @@ export function isDiceSoNiceEnabled() {
   return Boolean(game.modules.get(MODULE_ID)?.active && game.settings.get(moduleName, 'enableDiceSoNice'))
 }
 
-/**
- * Whether the current roll mode shows rolls to everyone, so their 3D dice
- * are synchronized to the other users
- * @returns {boolean} true for public rolls
- */
-export function isPublicRollMode() {
-  const rollMode = game.settings.get('core', 'rollMode')
-  return rollMode === 'publicroll' || rollMode === 'roll'
-}
+// Whether rolls are public, so their 3D dice are synchronized to the other users
+export { isPublicRollMode } from '../foundry/chat.js'
 
 /**
  * Show a roll's 3D dice when Dice So Nice is enabled
