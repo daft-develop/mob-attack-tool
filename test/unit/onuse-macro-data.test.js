@@ -13,7 +13,6 @@ vi.mock('../../scripts/integrations/midi-qol.js', () => ({
 vi.mock('../../scripts/integrations/automated-animations.js', () => ({ playAttackAnimations: vi.fn() }))
 vi.mock('../../scripts/integrations/multilevel-tokens.js', () => ({ getTargetToken: t => t, getDamageTargetId: id => id }))
 vi.mock('../../scripts/utils.js', () => ({
-  endGroupedMobTurn: vi.fn(),
   getDamageFormulaAndType: () => [['1d6'], ['slashing'], ['slashing']],
   calcD20Needed: () => 10,
   calcAttackersNeeded: () => 2,

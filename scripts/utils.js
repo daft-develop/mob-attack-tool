@@ -12,7 +12,6 @@ export { getSpellMethod, getCasterLevel, simplifyFormula, formatAttackTargets, g
 
 // Foundry side effects
 export { checkTarget, getTargetData } from './foundry/targets.js'
-export { endGroupedMobTurn } from './foundry/combat.js'
 export { sendChatMessage } from './foundry/chat.js'
 
 // Third-party module integrations
