@@ -303,6 +303,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     _mobList[selectedMob]['weapons'] = _weapons
     currentDialog.mat.actorList = _actorList
     await game.settings.set(moduleName, 'hiddenMobList', _mobList)
+    Hooks.call('matMobUpdate', { mobList: _mobList, mobName: selectedMob, type: 'load' })
+    // Deprecated: the old name of this hook, kept for existing listeners
     Hooks.call('mobUpdate', { mobList: _mobList, mobName: selectedMob, type: 'load' })
     if (game.combat) await game.combat.update()
 
