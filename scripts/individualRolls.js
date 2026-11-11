@@ -1,12 +1,13 @@
 import { moduleName, templatePath } from './constants.js'
 import { getDamageTargetId, getTargetToken } from './integrations/multilevel-tokens.js'
-import { isPublicRollMode, showDiceSoNiceRoll, withDiceSoNiceSuspended } from './integrations/dice-so-nice.js'
+import { isPublicRollMode, showDiceSoNiceRoll, withDiceSoNiceSuspended, withHiddenDiceFlag } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
 import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from './integrations/midi-qol.js'
 import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 export function rollMobAttackIndividually(data) {
-  return withDiceSoNiceSuspended(() => rollMobAttackIndividuallySuspended(data))
+  // midi-qol's damage cards can't be flagged to hide their dice
+  return withDiceSoNiceSuspended(() => rollMobAttackIndividuallySuspended(data), { suspend: isMidiQolEnabled() })
 }
 
 async function rollMobAttackIndividuallySuspended(data) {
@@ -315,7 +316,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           else {
             damageOptions = getDamageOptions(false, getDamageTargetId(targetId))
           }
-          await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, damageOptions.message)
+          await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, { ...damageOptions.message, data: withHiddenDiceFlag(damageOptions.message.data) })
         }
       }
       else {
@@ -350,7 +351,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await damageRoll.toMessage(
             {
               flavor: `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`,
-              ...getDamageMessageData(getDamageTargetId(targetId)),
+              ...withHiddenDiceFlag(getDamageMessageData(getDamageTargetId(targetId))),
             },
           )
         }
