@@ -26,10 +26,14 @@ export function macroObject() {
           delete data.attacks[locator.weaponID]
           return
         }
-        weapons[weapon.id] = weapon
+        // Key the weapon by its id when the macro was exported, which the
+        // attack keys and the targets' weapon ids still use. The weapon found
+        // now can have another id, e.g. a same-named item on another token.
+        const exportedId = locator.weaponID.replace(` (${game.i18n.localize('Versatile')})`, '')
+        weapons[exportedId] = weapon
         attacks[locator.weaponID] = []
         for (let target of targets) {
-          attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === weapon.id).length })
+          attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === exportedId).length })
         }
       })
 
