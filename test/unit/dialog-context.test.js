@@ -136,3 +136,10 @@ describe('stepMobName with no saved mobs', () => {
     expect(stepMobName([], 'Unsaved mob', 0, -1)).toBeUndefined()
   })
 })
+
+describe('stepMobName from an unknown position', () => {
+  it('steps to the first or last mob when the fallback index is -1', () => {
+    expect(stepMobName(['A', 'B', 'C'], 'Unsaved mob', -1, 1)).toBe('A')
+    expect(stepMobName(['A', 'B', 'C'], 'Unsaved mob', -1, -1)).toBe('C')
+  })
+})

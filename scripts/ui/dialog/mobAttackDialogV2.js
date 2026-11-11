@@ -330,7 +330,10 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   async #stepMob(direction) {
     const mobList = game.settings.get(moduleName, 'hiddenMobList')
     const currentMobName = $(this.element).find(`input[name="mobName"]`)[0].value
-    const mobName = stepMobName(getUserMobNames(mobList, game.user.id), currentMobName, this.mat.mobListIndex, direction)
+    const userMobNames = getUserMobNames(mobList, game.user.id)
+    // mobListIndex counts every user's mobs; step from its place among this user's
+    const fallbackIndex = userMobNames.indexOf(Object.keys(mobList)[this.mat.mobListIndex])
+    const mobName = stepMobName(userMobNames, currentMobName, fallbackIndex, direction)
     // the user has no saved mobs
     if (mobName === undefined) return
     await this._loadMob(this, mobName)
@@ -372,7 +375,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
             await game.settings.set(moduleName, 'hiddenMobList', _mobList)
             Hooks.call('matMobUpdate', { mobList: _mobList, mobName: _mobSelected, type: 'delete' })
             ui.notifications.info(game.i18n.format('MAT.deleteMobNotify', { mobName: _mobSelected }))
-            _mobSelected = Object.keys(_mobList)[0]
+            // load the user's next saved mob, not another user's
+            _mobSelected = getUserMobNames(_mobList, game.user.id)[0] ?? ''
             await game.settings.set(moduleName, 'hiddenMobName', _mobSelected)
           }
           else if (dialogHtml.find(`input[name="resetUserMobs"]`)[0].checked) {

@@ -336,7 +336,8 @@ export function getUserMobNames(mobList, userId) {
  * The mob name before or after the current one, wrapping around at either end
  * @param {string[]} mobNames - the names to step through
  * @param {string} currentName - the name shown in the dialog
- * @param {number} fallbackIndex - index to step from when currentName isn't in mobNames
+ * @param {number} fallbackIndex - index in mobNames to step from when currentName isn't in mobNames;
+ *   -1 when neither is known, so the next mob is the first and the previous the last
  * @param {number} direction - -1 for the previous mob, 1 for the next
  * @returns {string|undefined} the mob name to load, undefined when mobNames is empty
  */
