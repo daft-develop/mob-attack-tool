@@ -110,3 +110,47 @@ test.describe.serial('mob attacks from the dialog', () => {
     await closeMobDialog(gm)
   })
 })
+
+test.describe.serial('versatile weapons', () => {
+  let attackers, target, longsword, previousSettings
+
+  test.beforeAll(async ({ gm }) => {
+    await ensureModules(gm, { 'midi-qol': false })
+    previousSettings = await setModuleSettings(gm, {
+      mobRules: 'individual',
+      autoDetectMultiattacks: 0,
+      noResultsMessage: false,
+      keepDialogOpen: false,
+      enableDiceSoNice: false,
+    })
+    attackers = await placeTokens(gm, ATTACKER, 1, { row: 0 })
+    ;[target] = await placeTokens(gm, TARGET, 1, { row: 2 })
+    longsword = await weaponId(gm, ATTACKER, WEAPON)
+  })
+
+  test.afterAll(async ({ gm }) => {
+    await deleteTokens(gm, [...attackers, target])
+    await targetTokens(gm, [])
+    await setModuleSettings(gm, previousSettings)
+    await gm.evaluate(() => game.user.unsetFlag('mob-attack-tool', 'showIndividualDamageRolls'))
+  })
+
+  for (const shown of [false, true]) {
+    test(`the versatile entry rolls the two-handed die (damage rolls ${shown ? 'shown' : 'condensed'})`, async ({ gm }) => {
+      await setModuleSettings(gm, { showIndividualDamageRolls: shown })
+      await gm.evaluate(shown => game.user.setFlag('mob-attack-tool', 'showIndividualDamageRolls', shown), shown)
+      await selectTokens(gm, attackers)
+      await targetTokens(gm, [target])
+      const dialog = await openMobDialog(gm)
+      await useOnlyWeapons(dialog, [`${longsword} (Versatile)`])
+
+      const since = await lastMessageId(gm)
+      await queueDice(gm, [15])
+      await executeMobAttack(dialog)
+      await waitForMessages(gm, since, 2)
+      const [damage] = damageCards(await messagesAfter(gm, since))
+      expect(damage.rolls[0].formula).toMatch(/^1d10\b/)
+      await clearDice(gm)
+    })
+  }
+})

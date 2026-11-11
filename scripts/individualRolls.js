@@ -310,11 +310,11 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await new Promise(resolve => setTimeout(resolve, 300))
           let damageOptions
           if (successfulAttackRolls[i].total - finalAttackBonus >= critThreshold && numCrits > 0) {
-            damageOptions = getDamageOptions(true, getDamageTargetId(targetId))
+            damageOptions = getDamageOptions(true, getDamageTargetId(targetId), isVersatile)
             numCrits--
           }
           else {
-            damageOptions = getDamageOptions(false, getDamageTargetId(targetId))
+            damageOptions = getDamageOptions(false, getDamageTargetId(targetId), isVersatile)
           }
           await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, { ...damageOptions.message, data: withHiddenDiceFlag(damageOptions.message.data) })
         }
