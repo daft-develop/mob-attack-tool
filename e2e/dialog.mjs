@@ -54,3 +54,13 @@ export async function useOnlyWeapons(dialog, ids) {
 export async function executeMobAttack(dialog) {
   await dialog.locator('button[name="executeMobAttack"]').click()
 }
+
+/**
+ * Click the dialog's macro export button, expanding the options section it is in first
+ * @param {import('@playwright/test').Locator} dialog - from openMobDialog
+ */
+export async function clickExport(dialog) {
+  const button = dialog.locator('button[name="exportMobAttack"]')
+  if (!(await button.isVisible())) await dialog.locator('a.mat-collapsible').click()
+  await button.click()
+}
