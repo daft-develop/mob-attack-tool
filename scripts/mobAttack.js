@@ -2,7 +2,7 @@ import { moduleName, templatePath } from './constants.js'
 import { initSettings, migrateOldSettings } from './settings.js'
 import { createAndRenderDialog } from './ui/dialog/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
-import { registerDiceSoNiceHooks } from './integrations/dice-so-nice.js'
+import { clearStaleDiceSoNiceSuspension, registerDiceSoNiceHooks } from './integrations/dice-so-nice.js'
 import { selectTokens } from './foundry/targets.js'
 // import { initQuenchTests } from './quench.js'
 
@@ -27,6 +27,7 @@ Hooks.once('init', async () => {
 
 Hooks.on('ready', async () => {
   await migrateOldSettings()
+  await clearStaleDiceSoNiceSuspension()
 
   // register global MobAttacks macro object
   // for running mat via user macros

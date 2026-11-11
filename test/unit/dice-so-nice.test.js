@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { isDiceSoNiceEnabled, isPublicRollMode, registerDiceSoNiceHooks, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice, withDiceSoNiceSuspended } from '../../scripts/integrations/dice-so-nice.js'
+import { clearStaleDiceSoNiceSuspension, isDiceSoNiceEnabled, isPublicRollMode, registerDiceSoNiceHooks, restoreDiceSoNice, showDiceSoNiceRoll, suspendDiceSoNice, withDiceSoNiceSuspended, withHiddenDiceFlag } from '../../scripts/integrations/dice-so-nice.js'
 
 let settings
 let moduleActive
@@ -14,6 +14,7 @@ beforeEach(() => {
   }
   game.user = { isGM: true }
   game.dice3d = { showForRoll: vi.fn(async () => true) }
+  game.messages = new Map()
 })
 
 describe('isDiceSoNiceEnabled', () => {
@@ -122,5 +123,61 @@ describe('withDiceSoNiceSuspended', () => {
       throw new Error('boom')
     })).rejects.toThrow('boom')
     expect(settings['mob-attack-tool.hiddenDSNactiveFlag']).toBe(true)
+  })
+})
+
+describe('withHiddenDiceFlag', () => {
+  it('flags the message when the module’s Dice So Nice setting is off, keeping other flags', () => {
+    settings['mob-attack-tool.enableDiceSoNice'] = false
+    const data = { type: 'damage', flags: { dnd5e: { targets: [] } } }
+    expect(withHiddenDiceFlag(data)).toEqual({ type: 'damage', flags: { 'dnd5e': { targets: [] }, 'mob-attack-tool': { hideDice: true } } })
+    expect(data.flags['mob-attack-tool']).toBeUndefined()
+  })
+
+  it('leaves the message alone when the setting is on', () => {
+    const data = { type: 'damage' }
+    expect(withHiddenDiceFlag(data)).toBe(data)
+  })
+})
+
+describe('the Dice So Nice roll hook', () => {
+  let hook
+
+  beforeEach(() => {
+    globalThis.Hooks = {
+      on: (name, fn) => {
+        hook = fn
+      },
+    }
+    registerDiceSoNiceHooks()
+  })
+
+  it('blinds a flagged message even when nothing is suspended, e.g. a player’s attack', () => {
+    game.messages.set('flagged', { getFlag: (scope, key) => scope === 'mob-attack-tool' && key === 'hideDice' })
+    game.messages.set('plain', { getFlag: () => undefined })
+    const flagged = {}
+    const plain = {}
+    hook('flagged', flagged)
+    hook('plain', plain)
+    expect(flagged.blind).toBe(true)
+    expect(plain.blind).toBeUndefined()
+  })
+})
+
+describe('clearStaleDiceSoNiceSuspension', () => {
+  it('clears a suspension left over from an interrupted attack', async () => {
+    settings['mob-attack-tool.hiddenDSNactiveFlag'] = false
+    await clearStaleDiceSoNiceSuspension()
+    expect(settings['mob-attack-tool.hiddenDSNactiveFlag']).toBe(true)
+  })
+
+  it('leaves the flag alone when nothing is suspended, and for players', async () => {
+    await clearStaleDiceSoNiceSuspension()
+    expect(game.settings.set).not.toHaveBeenCalled()
+
+    settings['mob-attack-tool.hiddenDSNactiveFlag'] = false
+    game.user.isGM = false
+    await clearStaleDiceSoNiceSuspension()
+    expect(game.settings.set).not.toHaveBeenCalled()
   })
 })
