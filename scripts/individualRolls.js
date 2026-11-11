@@ -3,7 +3,7 @@ import { getDamageTargetId, getTargetToken } from './integrations/multilevel-tok
 import { isPublicRollMode, showDiceSoNiceRoll, withDiceSoNiceSuspended, withHiddenDiceFlag } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
 import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow, waitForMidiRollComplete } from './integrations/midi-qol.js'
-import { endGroupedMobTurn, getDamageFormulaAndType, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
+import { getDamageFormulaAndType, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
 
 export function rollMobAttackIndividually(data) {
   // midi-qol's damage cards can't be flagged to hide their dice
@@ -196,10 +196,6 @@ async function rollMobAttackIndividuallySuspended(data) {
   for (let attack of attackData) {
     await processIndividualDamageRolls(attack.data, attack.weaponData, attack.finalAttackBonus, attack.availableAttacks, attack.successfulAttackRolls, attack.numHitAttacks, attack.numCrits, attack.isVersatile, attack.tokenAttackList, attack.targetId)
     await new Promise(resolve => setTimeout(resolve, 500))
-  }
-
-  if (data.endMobTurn) {
-    await endGroupedMobTurn(data)
   }
 }
 
