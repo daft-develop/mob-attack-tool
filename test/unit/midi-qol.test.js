@@ -200,6 +200,15 @@ describe('callMidiMacro', () => {
     expect(ui.notifications.error).toHaveBeenCalledTimes(1)
   })
 
+  it('passes a world macro the data as args[0], as midi-qol does', async () => {
+    const execute = vi.fn(async () => ({}))
+    game.macros = { getName: () => ({ execute }) }
+    await callMidiMacro(weapon('Some Macro'), { actor, tokenId: 'tok1' })
+    const scope = execute.mock.calls[0][0]
+    expect(scope.args[0]).toMatchObject({ tokenId: 'tok1', id: 'w1' })
+    expect(scope.tokenId).toBe('tok1')
+  })
+
   it('returns what a world macro resolves to', async () => {
     game.macros = { getName: () => ({ execute: async () => ({ haltEffectsApplication: true }) }) }
     await expect(callMidiMacro(weapon('Some Macro'), { actor })).resolves.toEqual({ haltEffectsApplication: true })
