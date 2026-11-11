@@ -118,11 +118,20 @@ export function selectTokens(tokenIds) {
 }
 
 /**
+ * The currently selected (controlled) tokens that can attack
+ * Tokens without an actor (e.g. their actor was deleted) are left out
+ * @returns {Token5e[]} the selected tokens with an actor
+ */
+export function getSelectedTokens() {
+  return canvas.tokens.controlled.filter(token => token.actor)
+}
+
+/**
  * Describe the currently selected (controlled) tokens for a mob attack
- * @returns {{tokenId: string, tokenUuid: string, actorId: string}[]} one entry per selected token
+ * @returns {{tokenId: string, tokenUuid: string, actorId: string}[]} one entry per selected token with an actor
  */
 export function getSelectedTokenIds() {
-  return canvas.tokens.controlled.map(token => ({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id }))
+  return getSelectedTokens().map(token => ({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id }))
 }
 
 /**
@@ -134,7 +143,7 @@ export function getSelectedTokenIds() {
  * @param {Collection<Actor5e>} [worldActors] - world actors, game.actors by default
  * @returns {Item5e|undefined} the weapon, or undefined if no actor has it
  */
-export function findLocatedWeapon(locator, tokens = canvas.tokens.controlled, worldActors = game.actors) {
+export function findLocatedWeapon(locator, tokens = getSelectedTokens(), worldActors = game.actors) {
   for (const token of tokens) {
     if (token.actor?.id !== locator.actorID) continue
     const weapon = token.actor.items.getName(locator.weaponName)

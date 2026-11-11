@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { findLocatedWeapon, getSelectedTokenIds, selectTokens } from '../../scripts/foundry/targets.js'
+import { findLocatedWeapon, getSelectedTokenIds, getSelectedTokens, selectTokens } from '../../scripts/foundry/targets.js'
 
 const makeToken = (id, actorId) => ({
   id,
@@ -41,6 +41,20 @@ describe('getSelectedTokenIds', () => {
   it('returns an empty list when nothing is selected', () => {
     globalThis.canvas = { tokens: { controlled: [] } }
     expect(getSelectedTokenIds()).toEqual([])
+  })
+
+  it('leaves out a token whose actor was deleted', () => {
+    const orphan = { ...makeToken('t2'), actor: null }
+    globalThis.canvas = { tokens: { controlled: [makeToken('t1', 'a1'), orphan] } }
+    expect(getSelectedTokenIds()).toEqual([{ tokenId: 't1', tokenUuid: 'Scene.s.Token.t1', actorId: 'a1' }])
+  })
+})
+
+describe('getSelectedTokens', () => {
+  it('returns the selected tokens that have an actor', () => {
+    const t1 = makeToken('t1', 'a1')
+    globalThis.canvas = { tokens: { controlled: [t1, { ...makeToken('t2'), actor: null }] } }
+    expect(getSelectedTokens()).toEqual([t1])
   })
 })
 
