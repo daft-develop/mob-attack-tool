@@ -131,6 +131,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     },
   }
 
+  // context holds ApplicationV2's render options (e.g. isFirstRender) and is
+  // returned as the template context
   async _prepareContext(context) {
     // Show weapon options per selected token type
     let mobList = game.settings.get(moduleName, 'hiddenMobList')
@@ -169,8 +171,15 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       }
 
+      // With nothing selected, fall back to the user's first saved mob, but
+      // only when the dialog opens: not on a re-render after the user
+      // deselected tokens
+      const useSelection = this.mat.numSelected > 0
+        || !context.isFirstRender
+        || getUserMobNames(mobList, game.user.id).length === 0
+
       // generate default mob name
-      if ((this.mat.numSelected > 0 || Object.keys(mobList).length === 0)) {
+      if (useSelection) {
         if ((this.mat.numSelected === 0)) {
           _mobName = `No monsters selected`
         }
@@ -184,7 +193,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       await game.settings.set(moduleName, 'hiddenMobName', _mobName)
 
       // determine actor list
-      if (this.mat.numSelected > 0 || Object.keys(mobList).length === 0) {
+      if (useSelection) {
         for (let token of getSelectedTokens()) {
           _actorList.push(token.actor)
         }
