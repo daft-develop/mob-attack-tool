@@ -161,6 +161,12 @@ describe('damage card targets', () => {
       expect(options.dialog).toEqual({ configure: false })
     })
 
+    it('asks for the two-handed attack mode for a versatile roll', () => {
+      game.system.version = '6.0.6'
+      expect(getDamageOptions(false, 'tokenB', true).damage).toEqual({ isCritical: false, attackMode: 'twoHanded' })
+      expect(getDamageOptions(false, 'tokenB').damage).toEqual({ isCritical: false })
+    })
+
     it('lists no targets without a target', () => {
       game.system.version = '6.0.6'
       expect(getDamageOptions(true, null).message.data.system.targets).toEqual([])

@@ -181,7 +181,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     if (showDamageRolls) {
       await new Promise(resolve => setTimeout(resolve, 100))
       for (let i = 0; i < numHitAttacks; i++) {
-        const damageOptions = getDamageOptions(false, getDamageTargetId(targetId))
+        const damageOptions = getDamageOptions(false, getDamageTargetId(targetId), isVersatile)
         await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, { ...damageOptions.message, data: withHiddenDiceFlag(damageOptions.message.data) })
         await new Promise(resolve => setTimeout(resolve, 300))
       }

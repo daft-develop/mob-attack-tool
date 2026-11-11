@@ -91,15 +91,17 @@ function getTargetDescriptors(targetId) {
  * system.targets, and ignores the old flag
  * @param {boolean} allowCritical - Whether to allow critical hits
  * @param {string|null} targetId - Optional token ID to set as target
+ * @param {boolean} [isVersatile] - roll a versatile weapon's two-handed damage
  * @returns {object} damage, dialog and message options for rollDamage
  */
-export function getDamageOptions(allowCritical = true, targetId = null) {
+export function getDamageOptions(allowCritical = true, targetId = null, isVersatile = false) {
   const targets = getTargetDescriptors(targetId)
   const message = systemEqualOrNewerThan('6.0.0')
     ? { data: { system: { targets } } }
     : { data: { flags: { dnd5e: { targets } } } }
   return {
-    damage: { isCritical: allowCritical },
+    // dnd5e 4+ uses the versatile damage for the two-handed attack mode
+    damage: isVersatile ? { isCritical: allowCritical, attackMode: 'twoHanded' } : { isCritical: allowCritical },
     dialog: { configure: false },
     message,
   }
