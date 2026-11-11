@@ -2,10 +2,6 @@
 	width: 100%;
 }
 
-.mat-dialog-content {
-	cursor: default;
-}
-
 #mob-attack-tool-dialog.mat-dialog-content2 {
 	row-gap: 0.1rem;
 }

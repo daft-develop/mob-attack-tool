@@ -6,9 +6,6 @@ import { registerDiceSoNiceHooks } from './integrations/dice-so-nice.js'
 import { selectTokens } from './foundry/targets.js'
 // import { initQuenchTests } from './quench.js'
 
-// Re-exported so existing imports of moduleName from this file keep working
-export { moduleName }
-
 Hooks.once('init', async () => {
   console.log('Mob Attack Tool | Adding Mob Attack Tool.')
 

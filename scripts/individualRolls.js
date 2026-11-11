@@ -222,7 +222,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
   // Determine target token
   let targetToken = getTargetToken(canvas.tokens.get(targetId))
 
-  const FoundryDie = foundry.dice?.terms?.Die || Die
+  const FoundryDie = foundry.dice.terms.Die
   const attackData = getAttackData(weaponData)
 
   if (numHitAttacks != 0) {
