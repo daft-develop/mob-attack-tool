@@ -4,3 +4,4 @@ foundry-config.yaml
 .env
 /test-results/
 /playwright-report/
+/coverage
