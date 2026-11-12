@@ -64,6 +64,31 @@ export async function ensureModules(page, modules) {
   return page.evaluate(ids => Object.fromEntries(ids.map(id => [id, Boolean(game.modules.get(id)?.active)])), Object.keys(modules))
 }
 
+/**
+ * Why a module is not active: the modules it requires that aren't installed,
+ * so a skip can say e.g. "missing: dae" instead of only "not installed"
+ * @param {import('@playwright/test').Page} page - a GM page
+ * @param {string} id - the module id
+ * @returns {Promise<string>} the reason, for a skip message
+ */
+export async function inactiveReason(page, id) {
+  const reasons = await page.evaluate((moduleId) => {
+    const relationships = game.modules.get(moduleId)?.relationships ?? {}
+    const reasons = []
+    const missing = (relationships.requires ?? [])
+      .filter(r => (r.type ?? 'module') === 'module' && !game.modules.get(r.id))
+      .map(r => r.id)
+    if (missing.length) reasons.push(`missing: ${missing.join(', ')}`)
+    // the module's declared range for the installed game system
+    const { minimum, maximum } = (relationships.systems ?? []).find(r => r.id === game.system.id)?.compatibility ?? {}
+    const version = game.system.version
+    if (minimum && foundry.utils.isNewerVersion(minimum, version)) reasons.push(`${game.system.id} ${version} is older than ${minimum}`)
+    if (maximum && foundry.utils.isNewerVersion(version, maximum)) reasons.push(`${game.system.id} ${version} is newer than ${maximum}`)
+    return reasons
+  }, id)
+  return reasons.length ? reasons.join('; ') : 'not installed or not compatible with this target'
+}
+
 export const test = base.extend({
   // One logged-in GM page for every test in the worker: joining takes a while.
   // Quench is turned on so the module's Quench batches can run.

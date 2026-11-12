@@ -1,7 +1,7 @@
 // midi-qol: damage goes through DamageOnlyWorkflows and the weapon's On Use
 // macro runs once per hit. midi-qol is only tested where it is compatible
 // (left out of other targets with DISABLE_MODULES).
-import { ensureModules, test, expect } from './fixtures.mjs'
+import { ensureModules, inactiveReason, test, expect } from './fixtures.mjs'
 import { clearDice, queueDice } from './dice.mjs'
 import { executeMobAttack, openMobDialog, useOnlyWeapons } from './dialog.mjs'
 import { deleteTokens, lastMessageId, messagesAfter, placeTokens, selectTokens, setModuleSettings, targetTokens, waitForMessages } from './scene.mjs'
@@ -13,7 +13,12 @@ test.describe.serial('midi-qol', () => {
 
   test.beforeAll(async ({ gm }) => {
     const active = await ensureModules(gm, { 'midi-qol': true, 'lib-wrapper': true, 'socketlib': true })
-    test.skip(!active['midi-qol'], 'midi-qol is not installed or not compatible with this target')
+    if (!active['midi-qol']) {
+      const message = `midi-qol is not active (${await inactiveReason(gm, 'midi-qol')})`
+      // the list reporter shows a skipped test without its reason, so log it
+      console.log(message)
+      test.skip(true, message)
+    }
     previousSettings = await setModuleSettings(gm, {
       mobRules: 'individual',
       autoDetectMultiattacks: 0,

@@ -1,6 +1,6 @@
 // Dice So Nice: with the module's Dice So Nice setting off, a mob attack's
 // damage rolls are blind (not animated); other rolls are left alone
-import { ensureModules, test, expect } from './fixtures.mjs'
+import { ensureModules, test, expect, inactiveReason } from './fixtures.mjs'
 import { executeMobAttack, openMobDialog, useOnlyWeapons, weaponId } from './dialog.mjs'
 import { clearDice, queueDice } from './dice.mjs'
 import { deleteTokens, lastMessageId, messagesAfter, placeTokens, selectTokens, setModuleSettings, targetTokens, waitForMessages } from './scene.mjs'
@@ -10,7 +10,12 @@ test.describe.serial('Dice So Nice', () => {
 
   test.beforeAll(async ({ gm }) => {
     const active = await ensureModules(gm, { 'dice-so-nice': true, 'midi-qol': false })
-    test.skip(!active['dice-so-nice'], 'Dice So Nice is not installed')
+    if (!active['dice-so-nice']) {
+      const message = `Dice So Nice is not active (${await inactiveReason(gm, 'dice-so-nice')})`
+      // the list reporter shows a skipped test without its reason, so log it
+      console.log(message)
+      test.skip(true, message)
+    }
     previousSettings = await setModuleSettings(gm, {
       mobRules: 'individual',
       autoDetectMultiattacks: 0,

@@ -1,6 +1,6 @@
 // Automated Animations: one animation per hit, from the token that hit, at the target.
 // playAnimation is replaced with a recorder: tests can't check the visuals.
-import { ensureModules, test, expect } from './fixtures.mjs'
+import { ensureModules, test, expect, inactiveReason } from './fixtures.mjs'
 import { clearDice, queueDice } from './dice.mjs'
 import { executeMobAttack, openMobDialog, useOnlyWeapons, weaponId } from './dialog.mjs'
 import { deleteTokens, lastMessageId, placeTokens, selectTokens, setModuleSettings, targetTokens, waitForMessages } from './scene.mjs'
@@ -10,7 +10,12 @@ test.describe.serial('Automated Animations', () => {
 
   test.beforeAll(async ({ gm }) => {
     const active = await ensureModules(gm, { 'autoanimations': true, 'midi-qol': false })
-    test.skip(!active.autoanimations, 'Automated Animations is not installed')
+    if (!active.autoanimations) {
+      const message = `Automated Animations is not active (${await inactiveReason(gm, 'autoanimations')})`
+      // the list reporter shows a skipped test without its reason, so log it
+      console.log(message)
+      test.skip(true, message)
+    }
     previousSettings = await setModuleSettings(gm, {
       mobRules: 'individual',
       autoDetectMultiattacks: 0,

@@ -1,6 +1,6 @@
 // A player's mob attack, with the GM connected too
 import { settings } from './config.mjs'
-import { ensureModules, test, expect } from './fixtures.mjs'
+import { ensureModules, test, expect, inactiveReason } from './fixtures.mjs'
 import { clearDice, queueDice } from './dice.mjs'
 import { executeMobAttack, openMobDialog, useOnlyWeapons } from './dialog.mjs'
 import { deleteTokens, lastMessageId, messagesAfter, placeTokens, selectTokens, setModuleSettings, targetTokens, waitForMessages } from './scene.mjs'
@@ -17,7 +17,12 @@ test.describe.serial('a player\'s mob attack', () => {
 
   test.beforeAll(async ({ gm }) => {
     const active = await ensureModules(gm, { 'dice-so-nice': true, 'midi-qol': false })
-    test.skip(!active['dice-so-nice'], 'Dice So Nice is not installed')
+    if (!active['dice-so-nice']) {
+      const message = `Dice So Nice is not active (${await inactiveReason(gm, 'dice-so-nice')})`
+      // the list reporter shows a skipped test without its reason, so log it
+      console.log(message)
+      test.skip(true, message)
+    }
     previousSettings = await setModuleSettings(gm, {
       mobRules: 'individual',
       autoDetectMultiattacks: 0,

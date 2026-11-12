@@ -1,6 +1,6 @@
 // Multilevel Tokens: a targeted clone stands for its source token. The test
 // draws its own Multilevel Tokens regions, so the module makes a real clone.
-import { ensureModules, test, expect } from './fixtures.mjs'
+import { ensureModules, test, expect, inactiveReason } from './fixtures.mjs'
 import { clearDice, queueDice } from './dice.mjs'
 import { executeMobAttack, openMobDialog, useOnlyWeapons, weaponId } from './dialog.mjs'
 import { createClone, deleteTokens, lastMessageId, messagesAfter, placeTokens, removeClone, selectTokens, setModuleSettings, targetTokens, waitForMessages } from './scene.mjs'
@@ -10,7 +10,12 @@ test.describe.serial('Multilevel Tokens clones', () => {
 
   test.beforeAll(async ({ gm }) => {
     const active = await ensureModules(gm, { 'multilevel-tokens': true, 'midi-qol': false })
-    test.skip(!active['multilevel-tokens'], 'Multilevel Tokens is not installed')
+    if (!active['multilevel-tokens']) {
+      const message = `Multilevel Tokens is not active (${await inactiveReason(gm, 'multilevel-tokens')})`
+      // the list reporter shows a skipped test without its reason, so log it
+      console.log(message)
+      test.skip(true, message)
+    }
     previousSettings = await setModuleSettings(gm, {
       mobRules: 'individual',
       autoDetectMultiattacks: 0,
