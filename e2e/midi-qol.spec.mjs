@@ -74,7 +74,10 @@ test.describe.serial('midi-qol', () => {
       expect(call.hits).toBe(1)
       expect(call.advantage).toBe(false)
     }
-    const midiCards = (await messagesAfter(gm, since)).filter(m => m.content.includes('midi-qol'))
-    expect(midiCards.length).toBeGreaterThan(0)
+    // midi-qol posts its damage card after the attack resolves, so poll for it
+    // midi-qol's damage card is a "midi-qol.damage" message on Foundry 14, and a
+    // normal message with a midi-qol-damage-card element on Foundry 13
+    const isMidiCard = m => m.type.startsWith('midi-qol.') || m.content.includes('midi-qol-damage-card')
+    await expect.poll(async () => (await messagesAfter(gm, since)).filter(isMidiCard).length, { timeout: 15_000 }).toBeGreaterThan(0)
   })
 })
