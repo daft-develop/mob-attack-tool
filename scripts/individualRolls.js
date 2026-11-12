@@ -251,9 +251,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           }
           damageRoll = await damageRoll.evaluate()
 
-          // Roll Dice so Nice dice
-          await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
-
+          // midi-qol animates this roll itself when the workflow posts it, so don't animate it twice
           await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
           // after issuing the workflow, wait until it signals complete, or 4 seconds has passed, whichever is first
           await waitForMidiRollComplete(4000)
@@ -286,9 +284,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
         }
         damageRoll = await damageRoll.evaluate()
 
-        // Roll Dice so Nice dice
-        await showDiceSoNiceRoll(damageRoll, { synchronize: isPublicRollMode() })
-
+        // midi-qol animates this roll itself when the workflow posts it, so don't animate it twice
         let workflow = await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
 
         await callOnUseMacroForHits(weaponData, workflow, {

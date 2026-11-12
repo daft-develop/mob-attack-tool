@@ -1,6 +1,6 @@
 import { moduleName, templatePath } from './constants.js'
 import { getDamageTargetId, getTargetToken } from './integrations/multilevel-tokens.js'
-import { showDiceSoNiceRoll, withDiceSoNiceSuspended, withHiddenDiceFlag } from './integrations/dice-so-nice.js'
+import { withDiceSoNiceSuspended, withHiddenDiceFlag } from './integrations/dice-so-nice.js'
 import { playAttackAnimations } from './integrations/automated-animations.js'
 import { callOnUseMacroForHits, isMidiQolEnabled, runDamageOnlyWorkflow } from './integrations/midi-qol.js'
 import { getDamageFormulaAndType, calcD20Needed, calcAttackersNeeded, calcSuccessfulAttacks, sendChatMessage, getAttackBonus, getAttackData, getDamageOptions, getDamageMessageData, getTextFromAttackBonus } from './utils.js'
@@ -158,7 +158,7 @@ export async function processMobRulesDamageRolls(data, weaponData, numHitAttacks
     let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
     await damageRoll.alter(numHitAttacks, 0, { multiplyNumeric: true }).roll()
 
-    showDiceSoNiceRoll(damageRoll)
+    // midi-qol animates this roll itself when the workflow posts it, so don't animate it twice
 
     let targetToken = getTargetToken(canvas.tokens.get(targetId))
 

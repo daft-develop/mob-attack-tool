@@ -7,20 +7,24 @@
  * Queue die faces for the next dice rolled in the page, in the order Foundry rolls them
  * @param {import('@playwright/test').Page} page - a Foundry page
  * @param {number[]} faces - face values, e.g. [20, 1, 4] for a natural 20, then a 1, then a 4
+ * @param {number} [dieFaces] - only give these faces to dice with this many sides, e.g. 20 for
+ *   attack rolls, so damage dice rolled in between don't use them; any die by default
  */
-export async function queueDice(page, faces) {
-  await page.evaluate((queued) => {
+export async function queueDice(page, faces, dieFaces) {
+  await page.evaluate(({ queued, sides }) => {
     const Die = foundry.dice.terms.Die
     if (!Die.prototype._matQueuedFaces) {
       const mapRandomFace = Die.prototype.mapRandomFace
       Die.prototype._matQueuedFaces = []
       Die.prototype.mapRandomFace = function (randomUniform) {
-        const face = Die.prototype._matQueuedFaces.shift()
-        return face === undefined ? mapRandomFace.call(this, randomUniform) : face
+        const queue = Die.prototype._matQueuedFaces
+        const index = queue.findIndex(entry => entry.faces === undefined || entry.faces === this.faces)
+        if (index === -1) return mapRandomFace.call(this, randomUniform)
+        return queue.splice(index, 1)[0].face
       }
     }
-    Die.prototype._matQueuedFaces.push(...queued)
-  }, faces)
+    Die.prototype._matQueuedFaces.push(...queued.map(face => ({ face, faces: sides })))
+  }, { queued: faces, sides: dieFaces })
 }
 
 /**
