@@ -1,15 +1,19 @@
 // Run the end-to-end tests once per target listed in .env (FOUNDRY_TARGETS),
 // one after another, then print a summary. Extra arguments go to Playwright,
-// e.g. `npm run test:e2e:all -- e2e/quench.spec.mjs`.
+// e.g. `npm run test:e2e:all -- e2e/quench.spec.mjs` or `-g "damage card"`.
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { targetNames } from '../e2e/config.mjs'
+
+// Playwright's CLI, run with node directly: through a shell, arguments
+// containing spaces would be split
+const playwrightCli = createRequire(import.meta.url).resolve('@playwright/test/cli')
 
 const results = []
 for (const target of targetNames()) {
   console.log(`\n=== ${target} ===`)
-  const run = spawnSync('npx', ['playwright', 'test', ...process.argv.slice(2)], {
+  const run = spawnSync(process.execPath, [playwrightCli, 'test', ...process.argv.slice(2)], {
     stdio: 'inherit',
-    shell: true,
     env: { ...process.env, FOUNDRY_TARGET: target },
   })
   results.push({ target, passed: run.status === 0 })
