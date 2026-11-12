@@ -2,6 +2,10 @@
 // rather than through canvas clicks.
 import { test as base, expect } from '@playwright/test'
 import { settings } from './config.mjs'
+import { clearDice } from './dice.mjs'
+
+// Browser errors from the GM and player pages during the current test
+const pageErrors = []
 
 const waitForReady = page => page.waitForFunction(() => globalThis.game?.ready && globalThis.canvas?.ready, null, { timeout: 90_000 })
 
@@ -25,6 +29,8 @@ export async function joinWorld(page, userName, password) {
 /**
  * Turn modules on or off in the test world (a throwaway copy), reloading
  * the page when anything changed. Modules that aren't installed are skipped.
+ * Turning a module on also turns on the modules it requires, as Foundry's
+ * module manager does (e.g. Automated Animations needs Sequencer).
  * @param {import('@playwright/test').Page} page - a GM page
  * @param {Record<string, boolean>} modules - module id → whether it should be active
  * @returns {Promise<Record<string, boolean>>} which of the modules are active afterwards
@@ -33,11 +39,21 @@ export async function ensureModules(page, modules) {
   const changed = await page.evaluate(async (wanted) => {
     const config = { ...game.settings.get('core', 'moduleConfiguration') }
     let changed = false
-    for (const [id, active] of Object.entries(wanted)) {
-      if (!game.modules.has(id) || Boolean(game.modules.get(id).active) === active) continue
-      config[id] = active
-      changed = true
+    const visited = new Set()
+    const setActive = (id, active) => {
+      const module = game.modules.get(id)
+      if (!module || visited.has(id)) return
+      visited.add(id)
+      if (Boolean(module.active) !== active && config[id] !== active) {
+        config[id] = active
+        changed = true
+      }
+      if (!active) return
+      for (const required of module.relationships?.requires ?? []) {
+        if ((required.type ?? 'module') === 'module') setActive(required.id, true)
+      }
     }
+    for (const [id, active] of Object.entries(wanted)) setActive(id, active)
     if (changed) await game.settings.set('core', 'moduleConfiguration', config)
     return changed
   }, modules)
@@ -54,7 +70,10 @@ export const test = base.extend({
   gm: [async ({ browser }, use) => {
     const context = await browser.newContext()
     const page = await context.newPage()
-    page.on('pageerror', error => console.log(`[browser error] ${error.message}`))
+    page.on('pageerror', (error) => {
+      console.log(`[browser error] ${error.message}`)
+      pageErrors.push(`GM: ${error.message}`)
+    })
     await joinWorld(page, settings.gmUser, settings.gmPassword)
     await ensureModules(page, { quench: true })
     await use(page)
@@ -67,11 +86,24 @@ export const test = base.extend({
   player: [async ({ browser, gm }, use) => {
     const context = await browser.newContext()
     const page = await context.newPage()
-    page.on('pageerror', error => console.log(`[player browser error] ${error.message}`))
+    page.on('pageerror', (error) => {
+      console.log(`[player browser error] ${error.message}`)
+      pageErrors.push(`Player: ${error.message}`)
+    })
     await joinWorld(page, settings.playerUser, settings.playerPassword)
     await use(page)
     await context.close()
   }, { scope: 'worker' }],
+
+  // Runs around every test: fails it if either page threw (a mob attack runs
+  // without the dialog waiting for it, so its errors would otherwise only be
+  // logged), and drops dice faces it queued but didn't roll
+  afterEachTest: [async ({ gm }, use) => {
+    pageErrors.length = 0
+    await use()
+    await clearDice(gm)
+    expect(pageErrors, 'browser errors during the test').toEqual([])
+  }, { auto: true }],
 })
 
 export { expect }

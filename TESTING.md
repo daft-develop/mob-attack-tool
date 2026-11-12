@@ -27,8 +27,10 @@ Copy `.env.example` to `.env` and list your local installs as targets: one Found
 * `npm run test:e2e:all` runs them for every target in turn and prints a summary
 * Arguments go to Playwright, e.g. `npm run test:e2e -- e2e/quench.spec.mjs` or `-g "damage card"`
 
-Each run starts Foundry on its own port (`FOUNDRY_PORT`) with a throwaway data folder built from the target's: the world is copied fresh, systems and modules are mirrored (compendium packs copied, so Foundry never writes to your installs), and `mob-attack-tool` points at this repository. Your own worlds are never changed, and a Foundry instance you have running on the same data folder is not disturbed. Updates to your data folders are picked up on the next run.
+Each run starts Foundry on its own port (`FOUNDRY_PORT`) with a throwaway data folder built from the target's: the world is copied fresh, systems and modules are mirrored (every compendium pack folder copied, so Foundry never writes to your installs), and `mob-attack-tool` points at this repository. Your own worlds are never changed, and you can keep using other worlds in a Foundry instance on the same data folder. Updates to your data folders are picked up on the next run.
 
-Tests turn modules on or off in the throwaway world as they need them (`ensureModules` in `e2e/fixtures.mjs`); a target's `DISABLE_MODULES` leaves modules out entirely, e.g. midi-qol where it isn't compatible yet. Dice are scripted with `queueDice` (`e2e/dice.mjs`), and tests place their own tokens (`e2e/scene.mjs`).
+Close the test world (`FOUNDRY_WORLD`) in your own Foundry before a run: the world is copied when the test server starts, and a world that is open may be copied mid-write or fail to copy.
+
+Tests turn modules on or off in the throwaway world as they need them (`ensureModules` in `e2e/fixtures.mjs`); a target's `DISABLE_MODULES` leaves modules out entirely, e.g. midi-qol where it isn't compatible yet. Dice are scripted with `queueDice` (`e2e/dice.mjs`) and cleared after each test, tests place their own tokens (`e2e/scene.mjs`), and a test fails if the browser reports an error.
 
 To run the Quench batches by hand instead, enable Quench in your world and uncomment the `initQuenchTests()` lines in mobAttack.js (don't commit that).

@@ -12,7 +12,7 @@
 //
 // Usage: node e2e/start-foundry.mjs [target]
 import { spawn } from 'node:child_process'
-import { copyFileSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { getTarget, repoRoot, settings } from './config.mjs'
 
@@ -38,18 +38,43 @@ function link(target, path) {
 }
 
 /**
- * Mirror a system or module folder: its files and packs are copied, its other
- * folders linked. Foundry writes to compendium packs (LevelDB) when it opens
- * them, so linking packs would write to the real install, and clash with a
- * Foundry instance running on it.
+ * The top-level folders of a package that hold its compendium packs: packs/,
+ * and every folder its manifest's packs[].path points into (some modules keep
+ * packs elsewhere, e.g. compendiums/ or assets/)
+ * @param {string} manifestPath - the package's module.json or system.json
+ * @returns {Set<string>} the folder names
+ */
+export function packFolders(manifestPath) {
+  const folders = new Set(['packs'])
+  let manifest
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  }
+  catch {
+    return folders
+  }
+  for (const pack of manifest.packs ?? []) {
+    const folder = String(pack.path ?? '').replace(/^\.?[/\\]/, '').split(/[/\\]/)[0]
+    if (folder && folder !== '..') folders.add(folder)
+  }
+  return folders
+}
+
+/**
+ * Mirror a system or module folder: its files and pack folders are copied,
+ * its other folders linked. Foundry writes to compendium packs (LevelDB) when
+ * it opens them, so linking packs would write to the real install, and clash
+ * with a Foundry instance running on it.
  * @param {string} source - the real package folder
  * @param {string} destination - the folder to create
+ * @param {string} manifestPath - the package's module.json or system.json
  */
-function mirrorPackage(source, destination) {
+function mirrorPackage(source, destination, manifestPath) {
+  const copied = packFolders(manifestPath)
   mkdirSync(destination)
   for (const entry of readdirSync(source)) {
     const path = join(source, entry)
-    if (entry === 'packs' || !statSync(path).isDirectory()) cpSync(path, join(destination, entry), { recursive: true })
+    if (copied.has(entry) || !statSync(path).isDirectory()) cpSync(path, join(destination, entry), { recursive: true })
     else link(path, join(destination, entry))
   }
 }
@@ -116,12 +141,12 @@ export function buildDataFolder(target) {
   mkdirSync(join(work, 'Data', 'systems'))
   for (const systemId of readdirSync(join(realData, 'systems'))) {
     if (!existsSync(join(realData, 'systems', systemId, 'system.json'))) continue
-    mirrorPackage(join(realData, 'systems', systemId), join(work, 'Data', 'systems', systemId))
+    mirrorPackage(join(realData, 'systems', systemId), join(work, 'Data', 'systems', systemId), join(realData, 'systems', systemId, 'system.json'))
   }
   for (const moduleId of readdirSync(join(realData, 'modules'))) {
     if (moduleId === MODULE_ID || target.disabledModules.includes(moduleId)) continue
     if (!existsSync(join(realData, 'modules', moduleId, 'module.json'))) continue
-    mirrorPackage(join(realData, 'modules', moduleId), join(work, 'Data', 'modules', moduleId))
+    mirrorPackage(join(realData, 'modules', moduleId), join(work, 'Data', 'modules', moduleId), join(realData, 'modules', moduleId, 'module.json'))
   }
   link(repoRoot, join(work, 'Data', 'modules', MODULE_ID))
   cpSync(realWorld, join(work, 'Data', 'worlds', settings.world), { recursive: true })
