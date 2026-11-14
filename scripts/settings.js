@@ -1,7 +1,5 @@
-import { moduleName } from './mobAttack.js'
-import { RollSettingsMenu } from './ui/RollSettingsMenu.js'
-import { RollSettingsMenuV2 } from './ui/RollSettingsMenuV2.js'
-import { foundryEqualOrNewerThan } from './versions.js'
+import { moduleName } from './constants.js'
+import { RollSettingsMenuV2 } from './ui/settings/RollSettingsMenuV2.js'
 
 export const matSettings = {
   playerAccess: {
@@ -268,14 +266,6 @@ export const matSettings = {
     type: Boolean,
     default: false,
   },
-  autoSaveCTGgroups: {
-    name: 'SETTINGS.MAT.autoSaveCTGgroups',
-    hint: 'SETTINGS.MAT.autoSaveCTGgroupsHint',
-    scope: 'world',
-    config: false,
-    type: Boolean,
-    default: false,
-  },
 }
 
 export function initSettings() {
@@ -293,8 +283,8 @@ export function initSettings() {
     },
   })
 
-  // Use the AppV2 menu on v13+, fall back to the legacy FormApplication on older (v12) versions.
-  const menuType = foundryEqualOrNewerThan('13.0.0') ? RollSettingsMenuV2 : RollSettingsMenu
+  // Use the AppV2 menu on v13+
+  const menuType = RollSettingsMenuV2
 
   game.settings.registerMenu(moduleName, 'rollSettingsMenu', {
     name: 'SETTINGS.MAT.advancedSettings',
@@ -316,13 +306,8 @@ export async function migrateOldSettings() {
   if (mobRulesSetting === '1') await game.settings.set(moduleName, 'mobRules', 'individual')
 }
 
-// ---------------------------------------------------------------------------
-// Shared data-building helper used by both menu implementations
-// ---------------------------------------------------------------------------
-
 /**
  * Builds the context/data object for the settings template.
- * Extracted so both AppV2 and FormApplication can share identical logic.
  */
 export function buildSettingsData() {
   const data = {
@@ -440,14 +425,6 @@ export function buildSettingsData() {
           isCheckbox: true,
           client: game.user.isGM,
         },
-        autoSaveCTGgroups: {
-          name: matSettings.autoSaveCTGgroups.name,
-          hint: matSettings.autoSaveCTGgroups.hint,
-          value: game.settings.get(moduleName, 'autoSaveCTGgroups'),
-          id: 'autoSaveCTGgroups',
-          isCheckbox: true,
-          client: game.user.isGM,
-        },
         enableMidi: {
           name: matSettings.enableMidi.name,
           hint: matSettings.enableMidi.hint,
@@ -515,7 +492,7 @@ export function buildSettingsData() {
 
 /**
  * Validates and corrects the custom mob table array submitted via the form,
- * then persists each setting key. Used by both menu implementations.
+ * then persists each setting key.
  */
 export async function saveFormData(formData) {
   for (let [settingKey, value] of Object.entries(formData)) {

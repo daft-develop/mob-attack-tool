@@ -1,8 +1,11 @@
-import { moduleName } from '../mobAttack.js'
-import { foundryEqualOrNewerThan } from '../versions.js'
-import { getTargetData, prepareMonsters, prepareMobAttack, checkTarget } from '../utils.js'
-import { rollMobAttack } from '../mobRules.js'
-import { rollMobAttackIndividually } from '../individualRolls.js'
+import { moduleName, templatePath } from '../../constants.js'
+import { checkTarget, getSelectedTokenIds, getSelectedTokens, getTargetData, selectTokens } from '../../foundry/targets.js'
+import { sumCheckedAttacks, sumTargetAttacks } from '../../core/attack-totals.js'
+import { buildMacroName, buildQuickRollCommand } from '../../core/macro-export.js'
+import { getTargetActor, withoutTargetedClones } from '../../integrations/multilevel-tokens.js'
+import { escapeHTML, findMonsterActor, findWeaponEntries, getMobActors, getUserMobNames, prepareMonsters, prepareMobAttack, stepMobName } from './dialog-context.js'
+import { rollMobAttack } from '../../mobRules.js'
+import { rollMobAttackIndividually } from '../../individualRolls.js'
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -52,7 +55,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static DEFAULT_OPTIONS = {
-    id: 'mob-attack-tool-dialog',
+    id: `${moduleName}-dialog`,
     classes: ['mat-dialog-content2', 'standard-form'],
     tag: 'form',
     window: {
@@ -80,8 +83,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       decreaseNumMonster: MobAttackDialogV2._decreaseNumMonster,
       displayWeapon: MobAttackDialogV2._displayWeapon,
       displayMonster: MobAttackDialogV2._displayMonster,
-      increaseACmod: MobAttackDialogV2._increateACmod,
-      decreaseACmod: MobAttackDialogV2._decreateACmod,
+      increaseACmod: MobAttackDialogV2._increaseACmod,
+      decreaseACmod: MobAttackDialogV2._decreaseACmod,
       toggleCollapse: MobAttackDialogV2._toggleCollapse,
       exportMacro: MobAttackDialogV2._exportMacro,
       executeMobAttack: MobAttackDialogV2._executeMobAttack,
@@ -113,54 +116,36 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       template: 'templates/generic/tab-navigation.hbs',
     },
     mobSelect: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-mob-select.hbs',
+      template: templatePath('dialog/mat-dialog-mob-select.hbs'),
     },
     weapons: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-weapons.hbs',
+      template: templatePath('dialog/mat-dialog-weapons.hbs'),
       scrollable: ['scrollable'],
     },
     targets: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-targets.hbs',
+      template: templatePath('dialog/mat-dialog-targets.hbs'),
       scrollable: ['scrollable'],
     },
     footer: {
-      template: 'modules/mob-attack-tool/templates/dialog/mat-dialog-footer.hbs',
+      template: templatePath('dialog/mat-dialog-footer.hbs'),
     },
   }
 
+  // context holds ApplicationV2's render options (e.g. isFirstRender) and is
+  // returned as the template context
   async _prepareContext(context) {
     // Show weapon options per selected token type
     let mobList = game.settings.get(moduleName, 'hiddenMobList')
 
-    this.mat.targetTokens = canvas.tokens.placeables.filter(t => t.isTargeted)
-    for (let i = 0; i < this.mat.targetTokens.length; i++) {
-      if (this.mat.targetTokens[i].actor === null && game.modules.get('multilevel-tokens').active) {
-        let mltFlags = this.mat.targetTokens[i].flags['multilevel-tokens']
-        if (this.mat.targetTokens.filter(t => t.id === mltFlags.stoken).length > 0) {
-          this.mat.targetTokens.splice(i, 1)
-          i--
-        }
-      }
-    }
+    this.mat.targetTokens = withoutTargetedClones(canvas.tokens.placeables.filter(t => t.isTargeted))
     this.mat.targetToken = canvas.tokens.placeables.find(t => t.isTargeted)
     this.mat.numTargets = 0
     if (this.mat.targetToken) {
-      if (this.mat.targetToken.actor === null && game.modules.get('multilevel-tokens').active) {
-        let mltFlags = this.mat.targetToken.flags['multilevel-tokens']
-        if (mltFlags?.sscene) {
-          this.mat.targetAC = game.scenes.get(mltFlags.sscene).tokens.get(mltFlags.stoken).actor.system.attributes.ac.value
-        }
-        else {
-          this.mat.targetAC = canvas.tokens.get(mltFlags.stoken).actor.system.attributes.ac.value
-        }
-      }
-      else {
-        this.mat.targetAC = this.mat.targetToken.actor.system.attributes.ac.value
-      }
+      this.mat.targetAC = getTargetActor(this.mat.targetToken)?.system.attributes.ac.value
       this.mat.numTargets = this.mat.targetTokens.length
     }
 
-    this.mat.numSelected = canvas.tokens.controlled.length
+    this.mat.numSelected = getSelectedTokens().length
     this.mat.pluralTokensOrNot = ((this.mat.numSelected === 1) ? `` : `s`)
 
     // determine relevant actor list and mob name
@@ -168,22 +153,12 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     let _mobName
     if (game.settings.get(moduleName, 'hiddenChangedMob')) {
       _mobName = Object.keys(mobList)[this.mat.mobListIndex]
-      let _mobData = mobList[_mobName]
-      for (let monster of _mobData.monsters) {
-        for (let i = 0; i < monster.amount; i++) {
-          _actorList.push(game.actors.get(monster.id))
-        }
-      }
+      _actorList = getMobActors(mobList[_mobName])
       // Select mob tokens
       if (!this.mat.localUpdate) {
         this.currentlySelectingTokens = true
-        canvas.tokens.releaseAll()
-        for (let tokenId of mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds) {
-          if (canvas.tokens.placeables.filter(t => t.id === tokenId).length > 0) {
-            canvas.tokens.get(tokenId).control({ releaseOthers: false })
-          }
-        }
-        this.mat.numSelected = canvas.tokens.controlled.length
+        selectTokens(mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds)
+        this.mat.numSelected = getSelectedTokens().length
         this.currentlySelectingTokens = false
       }
     }
@@ -196,13 +171,20 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       }
 
+      // With nothing selected, fall back to the user's first saved mob, but
+      // only when the dialog opens: not on a re-render after the user
+      // deselected tokens
+      const useSelection = this.mat.numSelected > 0
+        || !context.isFirstRender
+        || getUserMobNames(mobList, game.user.id).length === 0
+
       // generate default mob name
-      if ((this.mat.numSelected > 0 || Object.keys(mobList).length === 0)) {
+      if (useSelection) {
         if ((this.mat.numSelected === 0)) {
           _mobName = `No monsters selected`
         }
         else {
-          _mobName = `${game.settings.get(moduleName, 'defaultMobPrefix')} ${canvas.tokens.controlled[0]?.name}${game.settings.get(moduleName, 'defaultMobSuffix')}`
+          _mobName = `${game.settings.get(moduleName, 'defaultMobPrefix')} ${getSelectedTokens()[0]?.name}${game.settings.get(moduleName, 'defaultMobSuffix')}`
         }
       }
       else {
@@ -211,27 +193,17 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       await game.settings.set(moduleName, 'hiddenMobName', _mobName)
 
       // determine actor list
-      if (this.mat.numSelected > 0 || Object.keys(mobList).length === 0) {
-        for (let token of canvas.tokens.controlled) {
+      if (useSelection) {
+        for (let token of getSelectedTokens()) {
           _actorList.push(token.actor)
         }
       }
       else {
-        for (let monster of mobList[Object.keys(mobList)[this.mat.mobListIndex]].monsters) {
-          for (let i = 0; i < monster.amount; i++) {
-            if (game.actors.get(monster.id))
-              _actorList.push(game.actors.get(monster.id))
-          }
-        }
+        _actorList = getMobActors(mobList[Object.keys(mobList)[this.mat.mobListIndex]])
         // Select mob tokens
         this.currentlySelectingTokens = true
-        canvas.tokens.releaseAll()
-        for (let tokenId of mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds) {
-          if (canvas.tokens.placeables.filter(t => t.id === tokenId).length > 0) {
-            canvas.tokens.get(tokenId).control({ releaseOthers: false })
-          }
-        }
-        this.mat.numSelected = canvas.tokens.controlled.length
+        selectTokens(mobList[Object.keys(mobList)[this.mat.mobListIndex]].selectedTokenIds)
+        this.mat.numSelected = getSelectedTokens().length
         this.currentlySelectingTokens = false
       }
     }
@@ -250,16 +222,9 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     // calculate total number of attacks and average damage
-    this.mat.numTotalAttacks = 0
-    this.mat.totalAverageDamage = 0
-    for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-      for (let [, weaponData] of Object.entries(monsterData.weapons)) {
-        if (weaponData.useButtonValue === `checked`) {
-          this.mat.numTotalAttacks += weaponData.numAttack * this.mat.monsters[monsterKey].amount
-          this.mat.totalAverageDamage += weaponData.numAttack * weaponData.averageDamage * this.mat.monsters[monsterKey].amount
-        }
-      }
-    }
+    const mobTotals = sumCheckedAttacks(this.mat.monsters)
+    this.mat.numTotalAttacks = mobTotals.numAttacks
+    this.mat.totalAverageDamage = mobTotals.averageDamage
 
     // create (and/or update) target data
     let _targets = await getTargetData(this.mat.monsters)
@@ -269,14 +234,10 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     else {
       this.mat.targetUpdate = false
-      for (let i = 0; i < this.mat.targets.length; i++) {
-        let targetTotalNumAttacks = this.mat.targets[i].weapons.length
-        let targetTotalAverageDamage = 0
-        for (let weapon of this.mat.targets[i].weapons) {
-          targetTotalAverageDamage += weapon.averageDamage
-        }
-        this.mat.targets[i].targetTotalNumAttacks = targetTotalNumAttacks
-        this.mat.targets[i].targetTotalAverageDamage = targetTotalAverageDamage
+      for (const target of this.mat.targets) {
+        const targetTotals = sumTargetAttacks(target.weapons)
+        target.targetTotalNumAttacks = targetTotals.numAttacks
+        target.targetTotalAverageDamage = targetTotals.averageDamage
       }
     }
 
@@ -338,23 +299,21 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   async _loadMob(currentDialog, selectedMob) {
     let _mobList = game.settings.get(moduleName, 'hiddenMobList')
 
+    // check the mob exists before switching the dialog to it
+    let _mobData = _mobList[selectedMob]
+    if (_mobData === undefined || _mobData === null) return
+
     await game.settings.set(moduleName, 'hiddenChangedMob', true)
     await game.settings.set(moduleName, 'hiddenMobName', selectedMob)
 
-    let _mobData = _mobList[selectedMob]
-    if (_mobData === undefined || _mobData === null) return
-    let _weapons
-    let _actorList = []
-    for (let monster of _mobData.monsters) {
-      for (let i = 0; i < monster.amount; i++) {
-        _actorList.push(game.actors.get(monster.id))
-      }
-    }
-    [, _weapons] = await prepareMonsters(_actorList)
+    let _actorList = getMobActors(_mobData)
+    const [, _weapons] = await prepareMonsters(_actorList)
 
     _mobList[selectedMob]['weapons'] = _weapons
     currentDialog.mat.actorList = _actorList
     await game.settings.set(moduleName, 'hiddenMobList', _mobList)
+    Hooks.call('matMobUpdate', { mobList: _mobList, mobName: selectedMob, type: 'load' })
+    // Deprecated: the old name of this hook, kept for existing listeners
     Hooks.call('mobUpdate', { mobList: _mobList, mobName: selectedMob, type: 'load' })
     if (game.combat) await game.combat.update()
 
@@ -368,58 +327,27 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async _previousMob() {
-    let _mobList = game.settings.get(moduleName, 'hiddenMobList')
-    let _mobListNameArray = []
-    for (let mobName of Object.keys(_mobList)) {
-      if (_mobList[mobName].userId === game.user.id) {
-        _mobListNameArray.push(mobName)
-      }
-    }
-    const html = $(this.element)
-    let _currentMobName = html.find(`input[name="mobName"]`)[0].value
-    let _mobIndex = this.mat.mobListIndex
-    for (let i = 0; i < _mobListNameArray.length; i++) {
-      if (_mobListNameArray[i] === _currentMobName) {
-        _mobIndex = i
-        break
-      }
-    }
-    let _newIndex
-    if (_mobIndex - 1 >= 0) {
-      _newIndex = _mobIndex - 1
-    }
-    else {
-      _newIndex = _mobListNameArray.length - 1
-    }
-    await this._loadMob(this, _mobListNameArray[_newIndex])
+    await this.#stepMob(-1)
   }
 
   static async _nextMob() {
-    let _mobList = game.settings.get(moduleName, 'hiddenMobList')
-    let _mobListNameArray = []
-    for (let mobName of Object.keys(_mobList)) {
-      if (_mobList[mobName].userId === game.user.id) {
-        _mobListNameArray.push(mobName)
-      }
-    }
-    const html = $(this.element)
-    let _currentMobName = html.find(`input[name="mobName"]`)[0].value
-    let _mobIndex = this.mat.mobListIndex
-    for (let i = 0; i < _mobListNameArray.length; i++) {
-      if (_mobListNameArray[i] === _currentMobName) {
-        _mobIndex = i
-        break
-      }
-    }
-    let _newIndex
-    if (_mobIndex + 1 <= _mobListNameArray.length - 1) {
-      _newIndex = _mobIndex + 1
-    }
-    else {
-      _newIndex = 0
-    }
+    await this.#stepMob(1)
+  }
 
-    await this._loadMob(this, _mobListNameArray[_newIndex])
+  /**
+   * Load the user's previous or next saved mob, wrapping around at either end
+   * @param {number} direction - -1 for the previous mob, 1 for the next
+   */
+  async #stepMob(direction) {
+    const mobList = game.settings.get(moduleName, 'hiddenMobList')
+    const currentMobName = $(this.element).find(`input[name="mobName"]`)[0].value
+    const userMobNames = getUserMobNames(mobList, game.user.id)
+    // mobListIndex counts every user's mobs; step from its place among this user's
+    const fallbackIndex = userMobNames.indexOf(Object.keys(mobList)[this.mat.mobListIndex])
+    const mobName = stepMobName(userMobNames, currentMobName, fallbackIndex, direction)
+    // the user has no saved mobs
+    if (mobName === undefined) return
+    await this._loadMob(this, mobName)
   }
 
   static async _selectMob() {
@@ -436,9 +364,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    const _dialogMobList = foundryEqualOrNewerThan('13.0.0')
-      ? await foundry.applications.handlebars.renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list-v2.hbs', { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
-      : await renderTemplate('modules/mob-attack-tool/templates/dialog/mat-dialog-mob-list-v2.hbs', { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
+    const _dialogMobList = await foundry.applications.handlebars.renderTemplate(templatePath('dialog/mat-dialog-mob-list-v2.hbs'), { mobList: _mobList, isGM: game.user.isGM, noSelectMob: _noSelectMob })
 
     new foundry.applications.api.DialogV2({
       window: { title: 'MAT.selectMob' },
@@ -460,7 +386,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
             await game.settings.set(moduleName, 'hiddenMobList', _mobList)
             Hooks.call('matMobUpdate', { mobList: _mobList, mobName: _mobSelected, type: 'delete' })
             ui.notifications.info(game.i18n.format('MAT.deleteMobNotify', { mobName: _mobSelected }))
-            _mobSelected = Object.keys(_mobList)[0]
+            // load the user's next saved mob, not another user's
+            _mobSelected = getUserMobNames(_mobList, game.user.id)[0] ?? ''
             await game.settings.set(moduleName, 'hiddenMobName', _mobSelected)
           }
           else if (dialogHtml.find(`input[name="resetUserMobs"]`)[0].checked) {
@@ -513,20 +440,20 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     const html = $(this.element)
     let _mobName = html.find(`input[name="mobName"]`)[0].value
     let _selectedTokenIds = []
-    for (let token of canvas.tokens.controlled) {
+    for (let token of getSelectedTokens()) {
       _selectedTokenIds.push(token.id)
     }
     if (!Object.keys(_mobList).includes(_mobName)) {
-      await MobAttackDialogV2._saveMobList(_mobList, _mobName, this.mat.monsterArray, _selectedTokenIds, canvas.tokens.controlled.length)
+      await MobAttackDialogV2._saveMobList(_mobList, _mobName, this.mat.monsterArray, _selectedTokenIds, getSelectedTokens().length)
     }
     else {
       const proceed = await foundry.applications.api.DialogV2.confirm({
-        content: `<p>${game.i18n.format('MAT.overwriteMobDialog', { mobName: _mobName })}</p>`,
+        content: `<p>${game.i18n.format('MAT.overwriteMobDialog', { mobName: escapeHTML(_mobName) })}</p>`,
         rejectClose: false,
         modal: true,
       })
       if (proceed) {
-        await MobAttackDialogV2._saveMobList(_mobList, _mobName, this.mat.monsterArray, _selectedTokenIds, canvas.tokens.controlled.length)
+        await MobAttackDialogV2._saveMobList(_mobList, _mobName, this.mat.monsterArray, _selectedTokenIds, getSelectedTokens().length)
       }
     }
     ui.combat?.render(true)
@@ -540,7 +467,9 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     let monsterId = target.parentElement.previousElementSibling.getAttribute('name')
     for (let monsterKey of Object.keys(this.mat.monsters)) {
       if (monsterKey === monsterId) {
-        this.mat.actorList.push(game.actors.get(monsterKey))
+        const actor = findMonsterActor(this.mat.actorList, monsterKey)
+        if (!actor) break
+        this.mat.actorList.push(actor)
         let [monsters, weapons, availableAttacks] = await prepareMonsters(this.mat.actorList, true, this.mat.monsters)
         this.mat.monsters = monsters
         this.mat.weapons = weapons
@@ -561,7 +490,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     let _monsterId = target.parentElement.previousElementSibling.getAttribute('name')
     if (Object.keys(this.mat.monsters).includes(_monsterId)) {
       // deselect one monster token
-      let _monsterTokens = canvas.tokens.controlled.filter(t => t.actor.id === _monsterId)
+      let _monsterTokens = getSelectedTokens().filter(t => t.actor.id === _monsterId)
       if (_monsterTokens.length > _updatedNumMonster) {
         this.currentlySelectingTokens = true
         _monsterTokens[0]?.release()
@@ -589,38 +518,28 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async _increaseNumAttack(event, target) {
-    let _numAttack = parseInt(target.parentElement.previousElementSibling.value)
-    if (Number.isNaN(_numAttack) || _numAttack == null || _numAttack == undefined) {
-      _numAttack = 1
-    }
-    let _updatedNumAttack = _numAttack + 1
-    let _weaponId = target.parentElement.previousElementSibling.getAttribute('name').slice(10)
-    for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-      for (let weaponKey of Object.keys(monsterData.weapons)) {
-        if (weaponKey.replace(' ', '-') === _weaponId) {
-          this.mat.monsters[monsterKey].weapons[weaponKey].numAttack = _updatedNumAttack
-          break
-        }
-      }
-    }
-    this.mat.localUpdate = true
-    this.render()
+    this.#changeNumAttack(target, 1)
   }
 
   static async _decreaseNumAttack(event, target) {
-    let _numAttack = parseInt(target.parentElement.previousElementSibling.value)
-    if (Number.isNaN(_numAttack) || _numAttack == null || _numAttack == undefined) {
-      _numAttack = 1
+    this.#changeNumAttack(target, -1)
+  }
+
+  /**
+   * Change the number of attacks of the weapon whose input sits next to the clicked arrow
+   * Decreasing never goes below 1
+   * @param {HTMLElement} target - the clicked increase or decrease control
+   * @param {number} delta - 1 to increase, -1 to decrease
+   */
+  #changeNumAttack(target, delta) {
+    const input = target.parentElement.previousElementSibling
+    let numAttack = parseInt(input.value)
+    if (Number.isNaN(numAttack)) {
+      numAttack = 1
     }
-    let _updatedNumAttack = (_numAttack - 1 > 1) ? _numAttack - 1 : 1
-    let _weaponId = target.parentElement.previousElementSibling.getAttribute('name').slice(10)
-    for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-      for (let weaponKey of Object.keys(monsterData.weapons)) {
-        if (weaponKey.replace(' ', '-') === _weaponId) {
-          this.mat.monsters[monsterKey].weapons[weaponKey].numAttack = _updatedNumAttack
-          break
-        }
-      }
+    const updatedNumAttack = (delta < 0) ? Math.max(1, numAttack + delta) : numAttack + delta
+    for (const weapon of findWeaponEntries(this.mat.monsters, input.getAttribute('name').slice(10))) {
+      weapon.numAttack = updatedNumAttack
     }
     this.mat.localUpdate = true
     this.render()
@@ -654,63 +573,59 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render()
   }
 
-  static async _increateACmod() {
-    let acMod = parseInt($(this.element).find(`input[name="armorClassMod"]`)[0].value)
-    if (Number.isNaN(acMod) || acMod == null || acMod == undefined) {
-      acMod = 0
-    }
-    let newMod = acMod + 1
-    this.mat.armorClassMod = newMod
-    await game.settings.set(moduleName, 'savedArmorClassMod', newMod)
-    $(this.element).find(`input[name="armorClassMod"]`)[0].value = `${newMod}`
-    this.mat.localUpdate = true
-    this.render()
+  static async _increaseACmod() {
+    await this.#changeACmod(1)
   }
 
-  static async _decreateACmod() {
-    let acMod = parseInt($(this.element).find(`input[name="armorClassMod"]`)[0].value)
-    if (Number.isNaN(acMod) || acMod == null || acMod == undefined) {
+  static async _decreaseACmod() {
+    await this.#changeACmod(-1)
+  }
+
+  /**
+   * Change the target AC modifier and save it for later dialogs
+   * @param {number} delta - 1 to increase, -1 to decrease
+   */
+  async #changeACmod(delta) {
+    const input = $(this.element).find(`input[name="armorClassMod"]`)[0]
+    let acMod = parseInt(input.value)
+    if (Number.isNaN(acMod)) {
       acMod = 0
     }
-    let newMod = acMod - 1
+    const newMod = acMod + delta
     this.mat.armorClassMod = newMod
     await game.settings.set(moduleName, 'savedArmorClassMod', newMod)
-    $(this.element).find(`input[name="armorClassMod"]`)[0].value = `${newMod}`
+    input.value = `${newMod}`
     this.mat.localUpdate = true
     this.render()
   }
 
   static async _exportMacro() {
-    if (canvas.tokens.controlled.length === 0) {
+    if (getSelectedTokens().length === 0) {
       ui.notifications.warn(game.i18n.localize('MAT.selectTokenWarning'))
       return
     }
 
     // prepare data
-    let selectedTokenIds = []
-    for (let token of canvas.tokens.controlled) {
-      selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
-    }
-    let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters)
-    let mobList = game.settings.get(moduleName, 'hiddenMobList')
+    const selectedTokenIds = getSelectedTokenIds()
+    let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters, this.mat.actorList)
 
     // Create macro
     let key = Object.keys(mobAttackData.attacks)[0]
+    if (key === undefined) {
+      ui.notifications.warn(game.i18n.localize('MAT.selectWeaponWarning'))
+      return
+    }
     if (key.endsWith(`(${game.i18n.localize('Versatile')})`)) key = key.slice(0, key.indexOf(` (${game.i18n.localize('Versatile')})`))
-    let macroName
-    if (canvas.tokens.controlled.length > 0 || Object.keys(mobList).length === 0) {
-      macroName = `${mobAttackData.weapons[key].name} ${game.i18n.localize('MAT.macroNamePrefix')} ${canvas.tokens.controlled.length} ${canvas.tokens.controlled[0].name}${game.i18n.localize('MAT.macroNamePostfix')}`
-    }
-    else {
-      macroName = `${mobAttackData.weapons[key].name} ${game.i18n.localize('MAT.macroNamePrefix')} ${mobList[Object.keys(mobList)[0]].numSelected} ${Object.keys(mobList)[0]}${game.i18n.localize('MAT.macroNamePostfix')}`
-    }
+    const macroNameWords = { prefix: game.i18n.localize('MAT.macroNamePrefix'), postfix: game.i18n.localize('MAT.macroNamePostfix') }
+    // tokens are selected here: the check above returned otherwise
+    const macroName = buildMacroName(mobAttackData.weapons[key].name, getSelectedTokens().length, getSelectedTokens()[0].name, macroNameWords)
 
     const input = await foundry.applications.api.DialogV2.input({
       window: { title: game.i18n.localize('Macro Name') },
       content: `
       <div class="form-group">
       <label>${game.i18n.localize('Macro Name')}: </label>
-      <input type="text" name="macroName" value="${macroName}">
+      <input type="text" name="macroName" value="${escapeHTML(macroName)}">
       <p class="hint">${game.i18n.localize('MAT.macroNameNote')}</p>
       </div>
       `,
@@ -729,29 +644,17 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
     if (game.macros.filter(m => m.name === userMacroName).length > 0) {
       const overwrite = await foundry.applications.api.DialogV2.confirm({
         window: { title: game.i18n.localize('Overwrite Macro') },
-        content: `<p>${game.i18n.format('MAT.macroOverwriteDialog', { userMacroName })}</p>`,
+        content: `<p>${game.i18n.format('MAT.macroOverwriteDialog', { userMacroName: escapeHTML(userMacroName) })}</p>`,
       })
 
       if (!overwrite) return
     }
 
-    if (game.settings.get(moduleName, 'hiddenChangedMob')) {
-      mobAttackData.numSelected = mobList[Object.keys(mobList)[0]].numSelected
-    }
-
-    // if macro not exported explicitly with advantage/disadvantage,
-    // make the macro respond to alt (option on MacOS) and ctrl (Command on MacOS) for advantage/disadvantage.
-    let advKeyEvent = mobAttackData.withAdvantage
-    let disadvKeyEvent = mobAttackData.withDisadvantage
-    if (!mobAttackData.withAdvantage && !mobAttackData.withDisadvantage) {
-      advKeyEvent = `event.altKey`
-      disadvKeyEvent = (game.settings.get(moduleName, 'disadvantageKeyBinding') === 0 ? `event.metaKey` : `event.ctrlKey`)
-    }
-
+    // prepareMobAttack already took numSelected from the loaded saved mob
     let macroData = {
       type: 'script',
       name: userMacroName,
-      command: `MobAttacks.quickRoll({numSelected: ${mobAttackData.numSelected}, weaponLocators: ${JSON.stringify(mobAttackData.weaponLocators)}, attacks: ${JSON.stringify(mobAttackData.attacks)}, withAdvantage: ${advKeyEvent}, withDisadvantage: ${disadvKeyEvent}, rollTypeValue: ${mobAttackData.rollTypeValue}, rollTypeMessage: "${mobAttackData.rollTypeMessage}", endMobTurn: ${mobAttackData.endMobTurn}, monsters: ${JSON.stringify(mobAttackData.monsters)}})`,
+      command: buildQuickRollCommand(mobAttackData, game.settings.get(moduleName, 'disadvantageKeyBinding')),
       img: mobAttackData.weapons[key].img,
     }
 
@@ -767,16 +670,13 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async _executeMobAttack(event) {
     let mobList = game.settings.get(moduleName, 'hiddenMobList')
-    if (canvas.tokens.controlled.length == 0 && Object.keys(mobList).length == 0) {
+    if (getSelectedTokens().length == 0 && Object.keys(mobList).length == 0) {
       ui.notifications.warn(game.i18n.localize('MAT.selectTokenWarning'))
       return
     }
     if (checkTarget()) {
-      let selectedTokenIds = []
-      for (let token of canvas.tokens.controlled) {
-        selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
-      }
-      let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters)
+      const selectedTokenIds = getSelectedTokenIds()
+      let mobAttackData = await prepareMobAttack($(this.element), selectedTokenIds, this.mat.weapons, this.mat.availableAttacks, this.mat.targets, this.mat.targetAC + game.settings.get(moduleName, 'savedArmorClassMod'), this.mat.numSelected, this.mat.monsters, this.mat.actorList)
       mobAttackData.event = event
       const mobRulesSetting = game.settings.get(moduleName, 'mobRules')
       if (game.settings.get(moduleName, 'mobRules') === 'individual') {
@@ -805,15 +705,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
 
         let weaponId = e.currentTarget.getAttribute('name').slice(10)
         let updatedNumAttack = this.element.querySelector(`input[name="numAttacks${weaponId}"]`)?.value
-        for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-          for (let weaponKey of Object.keys(monsterData.weapons)) {
-            if (weaponKey.replace(' ', '-') === weaponId) {
-              if (this.mat.monsters[monsterKey].weapons[weaponKey].numAttack !== updatedNumAttack) {
-                this.mat.monsters[monsterKey].weapons[weaponKey].numAttack = updatedNumAttack
-              }
-              break
-            }
-          }
+        for (const weapon of findWeaponEntries(this.mat.monsters, weaponId)) {
+          weapon.numAttack = updatedNumAttack
         }
         this.mat.localUpdate = true
         this.render()
@@ -834,7 +727,7 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
         if (Object.keys(this.mat.monsters).includes(_monsterId)) {
           // check if this is add, remove, or no change
           // for both canvas tokens and (the potentially larger) actor list
-          let _monsterTokens = canvas.tokens.controlled.filter(t => t.actor.id === _monsterId)
+          let _monsterTokens = getSelectedTokens().filter(t => t.actor.id === _monsterId)
           let _monsterActors = this.mat.actorList.filter(t => t.id == _monsterId)
           let _deltaTokens = _updatedNumMonster - _monsterTokens.length
           let _deltaActors = _updatedNumMonster - _monsterActors.length
@@ -874,8 +767,9 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
           else {
             // adding more monsters (_delta > 0)
             // actor only (no token adds)
-            for (let i = 0; i < _deltaActors; i++) {
-              this.mat.actorList.push(game.actors.get(_monsterId))
+            const actor = findMonsterActor(this.mat.actorList, _monsterId)
+            for (let i = 0; actor && i < _deltaActors; i++) {
+              this.mat.actorList.push(actor)
             }
           }
 
@@ -898,18 +792,8 @@ class MobAttackDialogV2 extends HandlebarsApplicationMixin(ApplicationV2) {
         e.stopImmediatePropagation()
 
         let weaponId = e.currentTarget.getAttribute('name').slice(3)
-        for (let [monsterKey, monsterData] of Object.entries(this.mat.monsters)) {
-          for (let weaponKey of Object.keys(monsterData.weapons)) {
-            if (weaponKey.replace(' ', '-') === weaponId) {
-              if (this.mat.monsters[monsterKey].weapons[weaponKey].useButtonValue === `checked`) {
-                this.mat.monsters[monsterKey].weapons[weaponKey].useButtonValue = ``
-              }
-              else {
-                this.mat.monsters[monsterKey].weapons[weaponKey].useButtonValue = `checked`
-              }
-              break
-            }
-          }
+        for (const weapon of findWeaponEntries(this.mat.monsters, weaponId)) {
+          weapon.useButtonValue = (weapon.useButtonValue === `checked`) ? `` : `checked`
         }
         this.mat.localUpdate = true
         this.render()

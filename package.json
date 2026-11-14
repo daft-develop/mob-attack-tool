@@ -5,17 +5,29 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "lint": "eslint",
+    "lint": "eslint && node tools/check-imports.mjs",
+    "lint:imports": "node tools/check-imports.mjs",
     "lint:fix": "eslint --fix",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "createSymlinks": "node ./tools/create-symlinks.mjs"
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "createSymlinks": "node ./tools/create-symlinks.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:all": "node tools/e2e-matrix.mjs"
   },
   "author": "",
   "license": "GPL-3.0-or-later",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
     "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/ui": "^5.1.0",
     "eslint": "^10.5.0",
-    "globals": "^17.6.0"
+    "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
+    "vitest": "^5.1.0"
   }
 }

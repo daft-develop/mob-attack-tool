@@ -1,37 +1,46 @@
 import { rollMobAttackIndividually } from './individualRolls.js'
-import { moduleName } from './mobAttack.js'
-import { createAndRenderDialog } from './ui/mobAttackDialog.js'
-import { createAndRenderDialog as renderV2 } from './ui/mobAttackDialogV2.js'
+import { moduleName } from './constants.js'
+import { createAndRenderDialog as renderV2 } from './ui/dialog/mobAttackDialogV2.js'
 import { rollMobAttack } from './mobRules.js'
-import { checkTarget, getTargetData, prepareMonsters } from './utils.js'
-import { foundryEqualOrNewerThan } from './versions.js'
+import { checkTarget, findLocatedWeapon, getSelectedTokenIds, getTargetData } from './foundry/targets.js'
+import { prepareMonsters } from './ui/dialog/dialog-context.js'
 
 export function macroObject() {
   function quickRoll(data) {
     // Collect necessary data for mob attack
     if (!checkTarget()) return
-    let selectedTokenIds = []
-    for (let token of canvas.tokens.controlled) {
-      selectedTokenIds.push({ tokenId: token.id, tokenUuid: token.document.uuid, actorId: token.actor.id })
-    }
-    data['selectedTokenIds'] = selectedTokenIds;
+    data['selectedTokenIds'] = getSelectedTokenIds();
 
     (async () => {
       let targets = await getTargetData(data.monsters)
       data['targets'] = targets
 
       let weapons = {}
-      let attacker, weapon
       let attacks = {}
+      const missingWeapons = []
       data.weaponLocators.forEach((locator) => {
-        attacker = game.actors.get(locator['actorID'])
-        weapon = attacker.items.getName(locator['weaponName'])
-        weapons[weapon.id] = weapon
+        const weapon = findLocatedWeapon(locator)
+        if (!weapon) {
+          // e.g. renamed or deleted since the macro was exported
+          missingWeapons.push(locator.weaponName)
+          delete data.attacks[locator.weaponID]
+          return
+        }
+        // Key the weapon by its id when the macro was exported, which the
+        // attack keys and the targets' weapon ids still use. The weapon found
+        // now can have another id, e.g. a same-named item on another token.
+        const exportedId = locator.weaponID.replace(` (${game.i18n.localize('Versatile')})`, '')
+        weapons[exportedId] = weapon
         attacks[locator.weaponID] = []
         for (let target of targets) {
-          attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === weapon.id).length })
+          attacks[locator.weaponID].push({ targetId: target.targetId, targetNumAttacks: target.weapons.filter(w => w.weaponId === exportedId).length })
         }
       })
+
+      if (missingWeapons.length) {
+        ui.notifications.warn(game.i18n.format('MAT.macroWeaponNotFound', { weaponNames: missingWeapons.join(', ') }))
+      }
+      if (Object.keys(weapons).length === 0) return
 
       data['weapons'] = weapons
       if (targets.length) data['attacks'] = attacks
@@ -47,12 +56,7 @@ export function macroObject() {
   }
 
   async function createDialog() {
-    if (foundryEqualOrNewerThan('13.0.0')) {
-      await renderV2()
-    }
-    else {
-      await createAndRenderDialog()
-    }
+    await renderV2()
   }
 
   /*
@@ -85,7 +89,8 @@ export function macroObject() {
     const dialogId = game.settings.get(moduleName, 'currentDialogId')
     let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
     if (mobDialog) {
-      mobDialog.localUpdate = true
+      // keep the dialog's checkbox and attack count edits
+      mobDialog.mat.localUpdate = true
       mobDialog.render()
     }
 
@@ -110,12 +115,12 @@ export function macroObject() {
         break
       }
     }
-    await game.settings.set('mob-attack-tool', 'hiddenMobList', mobList)
+    await game.settings.set(moduleName, 'hiddenMobList', mobList)
     Hooks.call('matMobUpdate', { mobList, mobName, type: 'delete' })
     const dialogId = game.settings.get(moduleName, 'currentDialogId')
     let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
     if (mobDialog) {
-      mobDialog.localUpdate = true
+      // not a local update: the deleted mob's monsters must not be kept
       await game.settings.set(moduleName, 'hiddenChangedMob', false)
       mobDialog.render()
     }
@@ -123,40 +128,17 @@ export function macroObject() {
     return mobList
   }
 
-  async function createSavedMobsFromCTGgroups(groups, mobNames = []) {
-    let mobList = game.settings.get(moduleName, 'hiddenMobList')
+  /*
+    Removed with Combat Tracker Groups support. Kept so macros that still
+    call it get a warning instead of a "not a function" error.
 
-    // delete existing CTG groups first
-    for (let ctgMobName of Object.keys(mobList)) {
-      if (mobList[ctgMobName]?.type === 'ctg') {
-        await deleteSavedMob(ctgMobName)
-      }
-    }
-    let dupNameNum = 2
-    if (!groups.length || !groups[0].length) return
+    output:
+    - mobList [Object (Promise)]  The saved mobs, unchanged.
 
-    for (let i = 0; i < groups.length; i++) {
-      let numSelected = groups[i].length
-      let actorList = [], selectedTokenIds = []
-      if (!mobNames[i]) {
-        mobNames[i] = `${game.settings.get(moduleName, 'defaultMobPrefix')} ${groups[i][0]?.name}${game.settings.get(moduleName, 'defaultMobSuffix')}`
-        if (i > 0) {
-          if (mobNames[i - 1] === mobNames[i]) {
-            mobNames[i] += ` ${dupNameNum.toString()}`
-          }
-          else if (mobNames[i - 1].endsWith(dupNameNum.toString())) {
-            dupNameNum++
-            mobNames[i] += ` ${dupNameNum.toString()}`
-          }
-        }
-      }
-      for (let combatant of groups[i]) {
-        actorList.push(combatant?.actor)
-        selectedTokenIds.push(combatant?.tokenId)
-      }
-      mobList = await saveMob(mobNames[i], actorList, selectedTokenIds, numSelected, 'ctg')
-    }
-    return mobList
+     */
+  async function createSavedMobsFromCTGgroups() {
+    ui.notifications.warn(game.i18n.localize('MAT.ctgGroupsRemoved'))
+    return game.settings.get(moduleName, 'hiddenMobList')
   }
 
   return {

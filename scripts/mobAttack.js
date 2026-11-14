@@ -1,29 +1,19 @@
+import { moduleName, templatePath } from './constants.js'
 import { initSettings, migrateOldSettings } from './settings.js'
-import { createAndRenderDialog } from './ui/mobAttackDialog.js'
-import { createAndRenderDialog as renderV2 } from './ui/mobAttackDialogV2.js'
+import { createAndRenderDialog } from './ui/dialog/mobAttackDialogV2.js'
 import { macroObject } from './macroObject.js'
-import { foundryEqualOrNewerThan } from './versions.js'
+import { clearStaleDiceSoNiceSuspension, registerDiceSoNiceHooks } from './integrations/dice-so-nice.js'
+import { selectTokens } from './foundry/targets.js'
 // import { initQuenchTests } from './quench.js'
-
-export const moduleName = 'mob-attack-tool'
 
 Hooks.once('init', async () => {
   console.log('Mob Attack Tool | Adding Mob Attack Tool.')
 
-  if (foundryEqualOrNewerThan('13.0.0')) {
-    await foundry.applications.handlebars.loadTemplates({
-      'mat.setting': 'modules/mob-attack-tool/templates/partials/mat-settings-partial.hbs',
-      'mat.formatMonster': 'modules/mob-attack-tool/templates/partials/mat-format-monster-partial.hbs',
-      'mat.formatWeapon': 'modules/mob-attack-tool/templates/partials/mat-format-weapon-partial.hbs',
-    })
-  }
-  else {
-    loadTemplates({
-      'mat.setting': 'modules/mob-attack-tool/templates/partials/mat-settings-partial.hbs',
-      'mat.formatMonster': 'modules/mob-attack-tool/templates/partials/mat-format-monster-partial.hbs',
-      'mat.formatWeapon': 'modules/mob-attack-tool/templates/partials/mat-format-weapon-partial.hbs',
-    })
-  }
+  await foundry.applications.handlebars.loadTemplates({
+    'mat.setting': templatePath('partials/mat-settings-partial.hbs'),
+    'mat.formatMonster': templatePath('partials/mat-format-monster-partial.hbs'),
+    'mat.formatWeapon': templatePath('partials/mat-format-weapon-partial.hbs'),
+  })
 
   initSettings()
   addMobAttackToolButton()
@@ -37,44 +27,11 @@ Hooks.once('init', async () => {
 
 Hooks.on('ready', async () => {
   await migrateOldSettings()
+  await clearStaleDiceSoNiceSuspension()
 
   // register global MobAttacks macro object
   // for running mat via user macros
   window.MobAttacks = macroObject()
-
-  // check if CTG's groups have changed
-  Hooks.on('ctgGroupUpdate', async (args) => {
-    let groups
-    if (Array.isArray(args)) {
-      groups = args
-    }
-    else {
-      groups = args.groups
-    }
-    if (!game.settings.get(moduleName, 'autoSaveCTGgroups')) return
-    if (groups[0]) {
-      if (groups[0].filter(c => c.initiative).length > 0) {
-        await macroObject().createSavedMobsFromCTGgroups(groups)
-        const dialogId = game.settings.get(moduleName, 'currentDialogId')
-        let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
-        if (mobDialog) mobDialog.render()
-      }
-    }
-  })
-
-  Hooks.on('deleteCombat', async () => {
-    if (!game.settings.get(moduleName, 'autoSaveCTGgroups')) return
-    if (game.modules.get('ctg')?.active) {
-      let mobList = game.settings.get(moduleName, 'hiddenMobList')
-
-      // delete existing CTG groups
-      for (let ctgMobName of Object.keys(mobList)) {
-        if (mobList[ctgMobName]?.type === 'ctg') {
-          await macroObject().deleteSavedMob(ctgMobName)
-        }
-      }
-    }
-  })
 })
 
 // update dialog windows if new tokens are selected
@@ -84,15 +41,7 @@ Hooks.on('controlToken', async () => {
   if (mobDialog) {
     if (mobDialog.rendered && !mobDialog.currentlySelectingTokens) {
       await game.settings.set(moduleName, 'hiddenChangedMob', false)
-      if (foundryEqualOrNewerThan('13.0.0')) {
-        mobDialog.render()
-      }
-      else {
-        let mobList = game.settings.get(moduleName, 'hiddenMobList')
-        if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
-          mobDialog.render()
-        }
-      }
+      mobDialog.render()
     }
   }
 })
@@ -103,16 +52,7 @@ Hooks.on('targetToken', async () => {
   let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
   if (mobDialog) {
     if (mobDialog.rendered) {
-      if (foundryEqualOrNewerThan('13.0.0')) {
-        mobDialog.render()
-      }
-      else {
-        // await game.settings.set(moduleName, "hiddenChangedMob", false);
-        let mobList = game.settings.get(moduleName, 'hiddenMobList')
-        if (canvas.tokens.controlled.length !== 0 || Object.keys(mobList).length !== 0) {
-          mobDialog.render()
-        }
-      }
+      mobDialog.render()
     }
   }
 })
@@ -125,7 +65,7 @@ Hooks.on('updateCombat', async (combat, changed) => {
   if (thisCombat.combatants.length === 0) return
   if (!game.user.isGM && game.combat.combatant.players.filter(p => p.id === game.user.id).length === 0) return
 
-  const mobList = game.settings.get('mob-attack-tool', 'hiddenMobList')
+  const mobList = game.settings.get(moduleName, 'hiddenMobList')
   const nextTurn = combat.turns[changed.turn]
   const nextTokenId = nextTurn.tokenId
   let nextMobName = ''
@@ -140,57 +80,28 @@ Hooks.on('updateCombat', async (combat, changed) => {
   const dialogId = game.settings.get(moduleName, 'currentDialogId')
   let mobDialog = game.mobAttackTool.dialogs.get(dialogId)
 
-  // wait a moment to let CUB's Pan / Select feature do its thing
-  if (game.modules.get('combat-utility-belt')?.active) {
-    await new Promise(resolve => setTimeout(resolve, 50))
-  }
-
   if (mobDialog) mobDialog.currentlySelectingTokens = true
-  canvas.tokens.releaseAll()
-  for (let tokenId of mobList[nextMobName].selectedTokenIds) {
-    if (canvas.tokens.placeables.filter(t => t.id === tokenId).length > 0) {
-      canvas.tokens.get(tokenId).control({ releaseOthers: false })
-    }
-  }
+  selectTokens(mobList[nextMobName].selectedTokenIds)
   if (mobDialog) {
-    mobDialog.numSelected = canvas.tokens.controlled.length
     mobDialog.currentlySelectingTokens = false
     mobDialog.render()
   }
 })
 
-//  Hide DSN 3d dice
-Hooks.on('diceSoNiceRollStart', (messageId, context) => {
-  if (game.settings.get(moduleName, 'hiddenDSNactiveFlag')) return
-
-  // Hide this roll
-  context.blind = true
-})
+//  Hide DSN 3d dice while a mob attack has them suspended
+registerDiceSoNiceHooks()
 
 function addMobAttackToolButton() {
   Hooks.on('getSceneControlButtons', (controls) => {
     const playerAccess = game.settings.get(moduleName, 'playerAccess')
-    if (foundryEqualOrNewerThan('13.0')) {
-      const tokenBar = controls['tokens']
-      tokenBar.tools[game.i18n.localize('MAT.name')] = {
-        name: game.i18n.localize('MAT.name'),
-        title: game.i18n.localize('MAT.mobAttack'),
-        icon: 'fas fa-dice',
-        visible: (playerAccess ? true : game.user.isGM),
-        onChange: () => renderV2(),
-        button: true,
-      }
-    }
-    else {
-      const bar = controls.find(c => c.name === 'token')
-      bar.tools.push({
-        name: game.i18n.localize('MAT.name'),
-        title: game.i18n.localize('MAT.mobAttack'),
-        icon: 'fas fa-dice',
-        visible: (playerAccess ? true : game.user.isGM),
-        onClick: async () => createAndRenderDialog(),
-        button: true,
-      })
+    const tokenBar = controls['tokens']
+    tokenBar.tools[game.i18n.localize('MAT.name')] = {
+      name: game.i18n.localize('MAT.name'),
+      title: game.i18n.localize('MAT.mobAttack'),
+      icon: 'fas fa-dice',
+      visible: (playerAccess ? true : game.user.isGM),
+      onChange: () => createAndRenderDialog(),
+      button: true,
     }
   })
 }
