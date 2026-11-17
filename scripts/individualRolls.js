@@ -225,8 +225,10 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
   if (numHitAttacks != 0) {
     // midi active
     if (midi_QOL_Active) {
+      // with individual damage rolls
       if (showDamageRolls) {
         for (let i = 0; i < numHitAttacks; i++) {
+          let hasCrit = false
           let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
 
           let diceFormula = diceFormulas.join(' + ')
@@ -234,6 +236,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           let damageRoll = new CONFIG.Dice.DamageRoll(diceFormula, { mod: attackData.ability == 'none' ? 0 : weaponData.actor.system.abilities[attackData.ability].mod }, { type: damageTypeLabels[0] })
 
           if (numCrits > 0) {
+            hasCrit = true
             // Add critical damage dice on each successful attack, up to the number of crits
             let critDice = [], critDie
             let damageRollDiceTerms = damageRoll.terms.filter(t => t.number > 0 && t.faces > 0)
@@ -252,11 +255,12 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           damageRoll = await damageRoll.evaluate()
 
           // midi-qol animates this roll itself when the workflow posts it, so don't animate it twice
-          await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(numCrits > 0) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
+          await runDamageOnlyWorkflow(weaponData, damageRoll, damageTypeLabels[0], targetToken, `${weaponData.name} - ${game.i18n.localize('Damage Roll')} (${damageType})${(hasCrit) ? ` (${game.i18n.localize('MAT.critIncluded')})` : ``}`)
           // after issuing the workflow, wait until it signals complete, or 4 seconds has passed, whichever is first
           await waitForMidiRollComplete(4000)
         }
       }
+      // midi with single condensed damage roll
       else {
         await new Promise(resolve => setTimeout(resolve, 300))
         let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
@@ -297,11 +301,13 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
       // Midi-QOL not active
     }
     else {
+      // no midi, individual damage rolls
       if (showDamageRolls) {
         for (let i = 0; i < numHitAttacks; i++) {
           await new Promise(resolve => setTimeout(resolve, 300))
           let damageOptions
           if (successfulAttackRolls[i].total - finalAttackBonus >= critThreshold && numCrits > 0) {
+            // note: critical applied here via passing true to getDamageOptions
             damageOptions = getDamageOptions(true, getDamageTargetId(targetId), isVersatile)
             numCrits--
           }
@@ -311,6 +317,7 @@ export async function processIndividualDamageRolls(data, weaponData, finalAttack
           await attackData.rollDamage(damageOptions.damage, damageOptions.dialog, { ...damageOptions.message, data: withHiddenDiceFlag(damageOptions.message.data) })
         }
       }
+      // No midi, single condensed damage roll
       else {
         // Condense the damage rolls.
         let [diceFormulas, damageTypes, damageTypeLabels] = getDamageFormulaAndType(weaponData, isVersatile)
